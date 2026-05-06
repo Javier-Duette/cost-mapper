@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+.pytest_cache/
+
+# Variables de entorno
+.env
+.env.*
+!.env.example
+
+# Base de datos local
+*.db
+*.sqlite
+
+# Node / Frontend
+node_modules/
+dist/
+.vite/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Logs
+logs/
+*.log
+
+# Archivos generados por el ETL (datos locales, no van al repo)
+data/
+exports/
