@@ -242,7 +242,7 @@ Al terminar una sesión de trabajo, hacer estas tres cosas en orden:
 Agregar una nueva entrada al inicio del archivo (después del encabezado):
 
 ```markdown
-## YYYY-MM-DD — [Título descriptivo]
+## YYYY-MM-DD HH:MM — [Título descriptivo]
 
 **Implementado:**
 - [qué se hizo concretamente]

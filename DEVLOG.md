@@ -2,11 +2,33 @@
 
 > **Propósito de este archivo:** Log cronológico de sesiones de trabajo. Al final de cada sesión se agrega una entrada con la fecha, qué se implementó o decidió, qué problemas aparecieron y cuál es el siguiente paso concreto. No es un documento formal — es el puente entre sesiones para que cualquier agente (o colaborador) sepa exactamente dónde quedó el proyecto sin tener que releer todo.
 >
-> **Formato de entrada:** fecha · implementado · problemas · decisiones cambiadas · próximo paso.
+> **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 — Titulo`) · implementado · problemas · decisiones cambiadas · próximo paso.
 
 ---
 
-## 2026-05-06 — Reorganización de ADRs y refactoring del flujo de agentes IA
+## 2026-05-06 21:45 — Implementación del módulo catalog y carga de datos NBR
+
+**Implementado:**
+- Módulo `catalog/` desarrollado bajo el patrón SQLModel (ADR-009). Creados `models.py`, `repository.py`, `service.py`, y `router.py`.
+- Base de datos configurada por defecto en SQLite para facilitar el desarrollo inmediato, con soporte para PostgreSQL en producción (`.env.example`).
+- Tests unitarios de catálogo (11/11 pasando) que cubren búsqueda, paginación, edición de precios y detalle de APU.
+- Creación de dos scripts de carga de datos (`seed.py` y `seed_nbr.py`):
+  - Carga manual de 4 APUs y 15 componentes extraídos de una página de la TCPO (Canteiro de obras).
+  - Carga automática de más de 10,000 ítems en portugués a partir de los 5 archivos Excel de la ABNT NBR 15965.
+- Actualización de las reglas del `DEVLOG.md` y `CLAUDE.md` para incluir de forma obligatoria la hora exacta en los cierres de sesión para evitar pérdida de orden cronológico.
+
+**Problemas resueltos:**
+- Prevención de lock de archivo de SQLite en Windows utilizando `SQLModel.metadata.drop_all()` en vez de borrar el archivo.
+- Falta de orden cronológico preciso en el DEVLOG corregido (se agregó formato de hora).
+
+**Decisiones cambiadas:**
+- Se mantiene el idioma portugués puro en la base de datos por ahora para facilitar las pruebas funcionales. La traducción se abordará posteriormente.
+
+**Próximo paso:** Cerrar sesión (commit + push). Para la próxima sesión, conectar el Frontend con los endpoints de este módulo `catalog/` para que el usuario pueda explorar la base de 10,000 ítems desde la interfaz gráfica.
+
+---
+
+## 2026-05-06 19:45 — Reorganización de ADRs y refactoring del flujo de agentes IA
 
 **Implementado:**
 - Migración de ADRs: `docs/DUDAS.md` (47KB, 611 líneas) → `docs/adrs/` (9 archivos individuales + README índice). Cada ADR ahora es un `.md` separado, más eficiente para que los agentes lean solo lo que necesitan.
@@ -29,7 +51,7 @@
 
 ---
 
-## 2026-05-06 — Decisión de repositorio y protocolo de git
+## 2026-05-06 18:30 — Decisión de repositorio y protocolo de git
 
 **Implementado:**
 - `docs/adrs/ADR-008.md` — estrategia de repositorio y protocolo de control de versiones. Documenta la causa raíz de la pérdida de trabajo en V0 y las reglas obligatorias para evitar que se repita.
