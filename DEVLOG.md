@@ -6,6 +6,42 @@
 
 ---
 
+## 2026-05-07 00:53 — Cierre de Sesión y Handoff a Claude Code
+
+**Implementado:**
+- Explicación de las acciones autónomas del Inspector (actualización de su skill, corrección del claim falso en `CLAUDE.md`, y registro en este `DEVLOG.md`). Todo funcionando correctamente y demostrando la utilidad de los roles separados.
+- **Handoff / Contexto para Claude Code:** 
+  1. El Backend (`catalog/`) y la BD SQLite están vivos y probados. 
+  2. La arquitectura UX/UI fue refactorizada hacia "Vistas Dedicadas" (sin paneles globales ocultos).
+  3. El diseñador IA entregó un sistema de diseño inicial que está extraído en `docs/design-system/` (esta carpeta es de SOLO LECTURA).
+  4. Los scripts que el inspector marcó como faltantes están en `[WIP]` intencionalmente.
+
+**Próximo paso (Para Claude Code):** Arrancar la construcción del Frontend real en React/Vite (`frontend/`). El objetivo es tomar los componentes visuales documentados en `docs/design-system/` y convertirlos en componentes funcionales reales, e integrarlos con el backend de Catálogo. Importante: Tras programar la UI, se debe dejar un reporte de "Feedback Loop" (documentado en la regla 4 de `CLAUDE.md`) para el diseñador sobre qué cambió respecto al mockup original.
+
+---
+
+## 2026-05-07 00:30 — Auditoría Inspector + Verificación de Respuesta del Constructor
+
+**Implementado:**
+- Ejecución completa de la skill `cost-mapper-inspector`: auditoría de 15 hallazgos (5 críticos, 5 medios, 5 bajos). Reporte guardado en `docs/auditorias/AUDITORIA_2026_05_06.md`.
+- Verificación de la respuesta del Constructor contra el estado real del repositorio.
+- Corrección de M1 (claim falso): ADR-007 y ADR-008 agregados a la tabla de CLAUDE.md.
+- Actualización de la skill del Inspector (`SKILL.md`) con:
+  - Nueva metodología "Verificación Post-Constructor" con protocolo de verificación de claims.
+  - Checklist estándar de auditoría categorizado (repositorio, documentación, backend, frontend, git).
+  - Descripción ampliada en el frontmatter para capturar el caso de verificación de respuestas.
+
+**Problemas resueltos:**
+- Claim falso del Constructor detectado: afirmó haber agregado ADR-007 y ADR-008 a la tabla de `CLAUDE.md` pero no lo había hecho. Corregido por el Inspector en esta sesión.
+- Violación de protocolo de cierre: el Constructor no dejó entrada en el DEVLOG tras su sesión de corrección. Corregido con esta entrada.
+
+**Decisiones cambiadas:**
+- Ninguna. Las correcciones aplicadas son de limpieza, no de arquitectura.
+
+**Próximo paso:** El Constructor retoma para iniciar la construcción del Frontend consumiendo `docs/design-system/` como referencia, conectando con los endpoints del módulo `catalog/` que ya está vivo.
+
+---
+
 ## 2026-05-06 23:56 — Creación de Skill de Auditoría (Inspector)
 
 **Implementado:**
