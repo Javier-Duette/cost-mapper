@@ -163,14 +163,22 @@ Estas no son librerías sino estándares que el sistema implementa. Se listan aq
 
 ---
 
+## Decisiones tomadas desde la redacción inicial
+
+| Componente              | Decisión            | Referencia                                                                                               |
+| ----------------------- | ------------------- | -------------------------------------------------------------------------------------------------------- |
+| ORM / query builder     | **SQLModel** (SQLAlchemy + Pydantic combinados) | ADR-009 — elimina la duplicación `models.py` + `schemas.py`. 4 archivos por módulo en lugar de 5. |
+| Base de datos (dev/test)| **SQLite** en desarrollo, PostgreSQL en producción | SQLModel crea las tablas automáticamente en el lifespan de FastAPI. Migrar a PG solo requiere cambiar la URL de conexión. |
+| Gestor de paquetes JS   | **npm** (estándar)  | Elegido al inicializar el proyecto frontend con Vite.                                                    |
+| Build tool frontend     | **Vite 5**          | Hot reload instantáneo, soporte TypeScript nativo, proxy `/api` → `localhost:8000` para desarrollo.      |
+
 ## Lo que NO está decidido todavía
 
 | Componente              | Estado              | Nota                                                                                                     |
 | ----------------------- | ------------------- | -------------------------------------------------------------------------------------------------------- |
-| ORM / query builder     | No decidido         | FastAPI funciona bien con SQLAlchemy (async) o asyncpg directo. Se decide al escribir el primer módulo. |
 | Hosting / infraestructura | No decidido       | MVP corre localmente. El deploy en producción (VPS, Railway, Render) se decide post-MVP.                |
 | Autenticación           | Básica en MVP       | `role` en tabla `users`. Sistema de auth completo (JWT, OAuth) es post-MVP.                             |
-| Gestor de paquetes JS   | No decidido         | npm, pnpm o bun — indiferente para el diseño. Se elige al inicializar el proyecto frontend.             |
+| Migraciones de schema   | No decidido         | Alembic está planificado (ver ARQUITECTURA.md sección 2.8) pero no inicializado. Actualmente se usa `SQLModel.metadata.create_all()` en el lifespan. |
 
 ---
 
@@ -179,17 +187,19 @@ Estas no son librerías sino estándares que el sistema implementa. Se listan aq
 ```
 ┌──────────────────────────────────────────────────────────┐
 │  FRONTEND                                                │
-│  TypeScript + React                                      │
-│  @thatopen/components  →  visor IFC 3D (WebAssembly)     │
-│  Playwright            →  testing E2E                    │
+│  TypeScript + React 18  →  framework de interfaz         │
+│  Vite 5                 →  build tool + dev proxy        │
+│  @thatopen/components   →  visor IFC 3D (WebAssembly)    │
+│  Playwright             →  testing E2E                   │
 ├──────────────────────────────────────────────────────────┤
 │  BACKEND                                                 │
 │  Python 3.11+ + FastAPI  →  API REST                     │
+│  SQLModel                →  ORM (SQLAlchemy + Pydantic)  │
 │  ifcopenshell            →  parsing IFC                  │
 │  pytest                  →  testing unitario             │
 ├──────────────────────────────────────────────────────────┤
 │  DATOS                                                   │
-│  PostgreSQL              →  base de datos principal      │
+│  SQLite (dev) / PostgreSQL (prod)  →  base de datos      │
 ├──────────────────────────────────────────────────────────┤
 │  PIPELINE ETL (offline)                                  │
 │  Python scripts          →  carga TCPO + Mandu'a         │

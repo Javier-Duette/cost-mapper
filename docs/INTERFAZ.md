@@ -73,41 +73,49 @@ El explorador del catálogo completo (`catalog_items`). Es la sección de refere
 
 **Área principal — tabla del catálogo:**
 
-Columnas visibles por defecto: Faceta · Código NBR · Descripción · Unidad · Precio · Moneda · Fuente · Relevancia PY.
+Columnas: FAC · Código NBR · Descripción · Unidad · P. Unit (₲) · Fuente · [+]
+
+La última columna tiene un botón `+` invisible en reposo que se hace visible al hover sobre la fila. Clic en `+` agrega el ítem al `project_library` del proyecto activo. Si el ítem ya está en la biblioteca, el backend devuelve 409 y se muestra un toast de advertencia en lugar de duplicar.
 
 Controles encima de la tabla:
 - Barra de búsqueda de texto libre (busca en descripción ES y PT)
-- Filtro por faceta (chips seleccionables: 3E · 4U · 2C · 2N · 2Q · 1S)
-- Filtro por relevancia PY (toggle: Solo relevantes PY)
-- Filtro por fuente de precios
-- Indicador: "X ítems sin precio" — con botón para filtrar solo esos
+- Filtro por faceta (chips seleccionables: 3E · 4U · 2C · 2N · 2Q)
+- Toggle: Solo relevantes PY
 
-**Selección de ítem:** al hacer clic en una fila se selecciona el ítem y el panel de detalle inferior se expande mostrando su composición APU. Si el ítem tiene `bim_taggable = true` y hay un modelo IFC cargado, el visor 3D resalta los elementos asignados a ese ítem.
+**Estado vacío:** sin faceta ni búsqueda activa, la tabla muestra un empty state — no carga los 10k ítems del catálogo automáticamente.
 
-**Edición inline:** doble clic en las celdas `unit_price`, `currency` o `fuente_precios` activa la edición directa. Ver sección 10 para el comportamiento de guardado.
+**Selección de ítem:** clic en una fila selecciona el ítem y el `DetailPanel` (área-panel derecho) muestra su composición APU con datos reales del backend.
+
+**Feedback de acciones:** las operaciones sobre la biblioteca muestran toasts en la esquina inferior derecha (auto-dismiss 3s):
+- Verde: "X agregado al proyecto"
+- Amarillo: "El ítem ya está en el proyecto"
+- Rojo: error de red
+
+**Edición inline de precios (pendiente):** doble clic en `unit_price` o `fuente_precios` activará la edición directa. Dispara el diálogo de advertencia de cambio global. Ver sección 10.
 
 ---
 
 ## 5. Sección: Presupuesto
 
-Vista del presupuesto del proyecto activo, calculado desde `project_assignments`.
+Vista del presupuesto del proyecto activo. En MVP calcula desde `project_library JOIN catalog_items` usando `manual_quantity`. Post-IFC usará `project_assignments`. Ver ADR-010.
 
 **Área principal — tabla de presupuesto:**
 
-Columnas: Código NBR · Descripción · Unidad · Cantidad · Precio Unitario · Subtotal · Fase (post-MVP).
+Columnas: FAC · Código NBR · Descripción · UND · CANT. · P. UNIT (₲) · SUBTOTAL (₲)
 
-Agrupado por faceta NBR por defecto (colapsable). Muestra totales por grupo y total general en la parte inferior.
+Agrupado por faceta NBR con subtotales por grupo. Fila de total general fija al pie de la tabla.
 
-Controles:
-- Toggle: ver por ítem / ver por elemento IFC
-- Filtro por faceta
-- Indicador de ítems sin precio con botón "Completar precios" que lleva al catálogo filtrado
+**KPI strip (implementado):**
+- Costo Directo: suma de subtotales
+- Ítems Totales: cantidad de filas
+- Sin Precio: ítems con `unit_price = NULL`
+- Sin Cantidad: ítems con `manual_quantity = NULL`
 
-**Métricas y Gráficos:** Tarjetas superiores con el Costo Total, Avance, o Gráfico de distribución por Faceta NBR.
+**Banner de alerta (implementado):** si hay ítems sin precio o sin cantidad, aparece un banner amarillo con el conteo. Bloquea semánticamente al usuario: el total no es confiable hasta completar los datos faltantes.
 
-**Selección:** al hacer clic en una fila del presupuesto, el usuario puede acceder a sus detalles, pero no hay visor 3D en esta vista. Si el usuario desea ubicar un elemento en el espacio, debe utilizar la herramienta en "Mapeo IFC".
+**Edición de cantidad (pendiente — próximo paso):** clic en la celda CANT. activa un input inline. Al confirmar hace `PATCH /api/projects/{id}/library/{entry_id}` con el nuevo `manual_quantity`. La fila se actualiza con el subtotal recalculado.
 
-**Alerta de presupuesto incompleto:** si hay ítems con `unit_price = NULL`, un banner amarillo en la parte superior indica cuántos ítems no tienen precio y bloquea la exportación hasta que se completen.
+**Selección:** clic en fila selecciona el ítem; no hay visor 3D en esta sección (solo en Mapeo IFC).
 
 ---
 

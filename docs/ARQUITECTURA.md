@@ -172,28 +172,36 @@ Scripts Python numerados que corren **fuera del servidor**, como tareas de mante
 
 **Responsabilidad:** gestionar la biblioteca de ítems candidatos de un proyecto (`project_library`) y generar el archivo de keynotes para Revit.
 
+**Estado actual (MVP implementado):** CRUD completo. Los 4 endpoints están operativos:
+- `GET /api/projects/{id}/library` — lista ítems de la biblioteca con `manual_quantity`
+- `POST /api/projects/{id}/library` — agrega ítem; devuelve 409 si ya existe
+- `PATCH /api/projects/{id}/library/{entry_id}` — actualiza `notes` y `manual_quantity`
+- `DELETE /api/projects/{id}/library/{entry_id}` — elimina entrada
+
 **Entradas:**
 - `project_id`
-- Ítems a agregar/remover de la biblioteca
+- Ítems a agregar/remover de la biblioteca (`item_id`, `notes`, `manual_quantity`)
 - Selección de facetas para el keynote (`["3E", "4U"]` o `["3E", "4U", "2C"]`)
 
 **Salidas:**
 - Estado de la `project_library` del proyecto
-- Archivo `.txt` de keynotes (formato tabulado: `código\tdescripción\tcódigo_padre`)
+- Archivo `.txt` de keynotes (formato tabulado: `código\tdescripción\tcódigo_padre`) — **pendiente de implementar**
 
 **Tablas que toca:** `project_library`, `catalog_items`
 
-**Formato del keynote file:**
+**Campo `manual_quantity`:** nullable Decimal(14,4). Permite presupuesto pre-IFC. Ver ADR-010.
+
+**Formato del keynote file (post-MVP):**
 ```
 3E[TAB][TAB]
 3E 02[TAB]Resultados de obra gruesa[TAB]3E
 3E 02 10[TAB]Muros de mampostería cerámica[TAB]3E 02
 ```
-Solo se incluyen ítems con `bim_taggable = true` de las facetas seleccionadas. Los ítems sin precio (`unit_price = NULL`) se incluyen igual — el keynote file es para clasificación, no para precios.
+Solo se incluyen ítems con `bim_taggable = true` de las facetas seleccionadas.
 
 ---
 
-#### 2.6 `exporter` — Exportación de informes
+#### 2.7 `exporter` — Exportación de informes
 
 **Responsabilidad:** generar los formatos de entregable del presupuesto a partir de los datos calculados por `budget`.
 
@@ -267,9 +275,16 @@ alembic upgrade head
 
 #### 3.1 `catalog_panel` — Explorador y editor del catálogo
 
-Búsqueda y filtrado del catálogo por faceta, texto y relevancia PY. Panel de detalle con la composición APU del ítem seleccionado — tabla editable con columnas: Clase, Código, Descripción, Unidad, Coef., Precio, Moneda, Fuente.
+Búsqueda y filtrado del catálogo por faceta, texto y relevancia PY. Panel de detalle con la composición APU del ítem seleccionado.
 
-La edición de precio o fuente desde este panel dispara el diálogo de advertencia de cambio global (ver `INTERFAZ.md` sección 1) y llama al endpoint del módulo `catalog`.
+**Estado actual (MVP implementado):**
+- Árbol de facetas NBR en sidebar izquierdo. Sin selección → empty state (no carga 10k ítems)
+- Tabla de ítems con datos reales del backend (`GET /api/catalog/items`)
+- Botón `+` por fila (visible en hover): agrega al `project_library` del proyecto activo vía `POST /api/projects/{id}/library`
+- Feedback visual con toast: éxito (verde) o duplicado (amarillo)
+- Panel APU en `area-panel`: datos reales de `GET /api/catalog/items/{id}/apu`
+
+La edición de precio o fuente desde este panel dispara el diálogo de advertencia de cambio global (ver `INTERFAZ.md` sección 1) y llama al endpoint del módulo `catalog` — **pendiente de implementar**.
 
 ---
 
@@ -296,7 +311,31 @@ Interfaz para completar las asignaciones post-importación. Divide los elementos
 
 #### 3.4 `budget_panel` — Vista del presupuesto
 
-Presupuesto del proyecto agrupado por faceta NBR. Resalta ítems con `unit_price = NULL` para que el usuario los complete antes de exportar. Conectado al `ifc_viewer` para selección bidireccional.
+Presupuesto del proyecto agrupado por faceta NBR. Resalta ítems con `unit_price = NULL` para que el usuario los complete antes de exportar.
+
+**Estado actual (MVP implementado):**
+- Carga desde `GET /api/projects/{id}/budget` (lee `project_library JOIN catalog_items`)
+- KPI strip: costo directo, ítems totales, sin precio, sin cantidad
+- Banner dinámico cuando hay ítems sin precio o sin cantidad
+- Filas agrupadas por faceta con subtotales
+- Edición inline de `manual_quantity` — **pendiente de implementar** (próximo paso)
+
+---
+
+#### 3.5 `shared` — Componentes reutilizables
+
+Componentes de uso transversal a todas las vistas:
+
+| Componente | Descripción |
+|---|---|
+| `Icon.tsx` | 22 íconos inline SVG |
+| `Chip.tsx` | Badges de faceta NBR + `SourceBadge` para fuente de precio |
+| `Header.tsx` | Barra superior con selector de proyecto |
+| `Sidebar.tsx` | Navegación principal con tooltips |
+| `SectionHeader.tsx` | Título de sección + búsqueda + filtros de faceta |
+| `DetailPanel.tsx` | Panel APU inferior (área-panel) |
+| `Toast.tsx` | Notificaciones transitorias con auto-dismiss (3s). Hook `useToast` para gestionar el stack. Tipos: `success` / `warning` / `error`. |
+| `formatters.ts` | `fmt(n)` — formato numérico con locale `es-PY` |
 
 ---
 
