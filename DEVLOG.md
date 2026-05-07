@@ -6,6 +6,20 @@
 
 ---
 
+## 2026-05-06 23:56 — Creación de Skill de Auditoría (Inspector)
+
+**Implementado:**
+- Creación de una nueva skill de IA especializada en auditoría de código y documentación (`.agents/skills/cost-mapper-inspector/SKILL.md`).
+- Esta skill actúa como un "Fiscal / QA Senior" enfocado exclusivamente en encontrar incongruencias arquitectónicas, enlaces rotos y deuda técnica sin modificar código.
+- Actualización de `CLAUDE.md` estableciendo explícitamente el concepto de "Roles de Agente IA". El agente por defecto es "Constructor", pero el usuario puede invocar al "Inspector" a demanda.
+
+**Problemas resueltos:**
+- Reducción del uso innecesario de la ventana de contexto. Al separar la responsabilidad de auditoría en una skill opcional invocada manualmente, el agente constructor no malgasta tokens analizando todo el workspace continuamente.
+
+**Próximo paso:** Arrancar el desarrollo del Frontend y la integración con Claude Design, o ejecutar el Inspector si se requiere una auditoría profunda.
+
+---
+
 ## 2026-05-06 23:45 — Refactorización de Layout UI e Integración de Sistema de Diseño
 
 **Implementado:**
