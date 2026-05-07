@@ -46,6 +46,43 @@ export function EtlView() {
   const partial = pageEntries.filter(([, v]) => v.status === 'partial').length
   const errors  = pageEntries.filter(([, v]) => v.status === 'error').length
 
+  // Agrupar páginas consecutivas con el mismo estado
+  const sortedEntries = [...pageEntries].sort((a, b) => Number(a[0]) - Number(b[0]))
+  const ranges: { label: string; status: string; items: number }[] = []
+  
+  if (sortedEntries.length > 0) {
+    let [startPage, currentData] = sortedEntries[0]
+    let currentStart = Number(startPage)
+    let currentEnd = currentStart
+    let currentStatus = currentData.status
+    let currentItems = currentData.items_extracted || 0
+
+    for (let i = 1; i < sortedEntries.length; i++) {
+      const pageNum = Number(sortedEntries[i][0])
+      const data = sortedEntries[i][1]
+
+      if (pageNum === currentEnd + 1 && data.status === currentStatus) {
+        currentEnd = pageNum
+        currentItems += (data.items_extracted || 0)
+      } else {
+        ranges.push({
+          label: currentStart === currentEnd ? String(currentStart) : `${currentStart}-${currentEnd}`,
+          status: currentStatus,
+          items: currentItems,
+        })
+        currentStart = pageNum
+        currentEnd = pageNum
+        currentStatus = data.status
+        currentItems = data.items_extracted || 0
+      }
+    }
+    ranges.push({
+      label: currentStart === currentEnd ? String(currentStart) : `${currentStart}-${currentEnd}`,
+      status: currentStatus,
+      items: currentItems,
+    })
+  }
+
   return (
     <div style={{ padding: '24px 32px', maxWidth: 680 }}>
       <div style={{ marginBottom: 24, color: 'var(--text-secondary)', fontSize: 13 }}>
@@ -71,6 +108,28 @@ export function EtlView() {
           </div>
         ))}
       </div>
+
+      {/* Pages Detail */}
+      {pageEntries.length > 0 && (
+        <details style={{ marginBottom: 24, padding: '12px 14px', background: 'var(--bg-surface)', borderRadius: 8, fontSize: 12 }}>
+          <summary style={{ cursor: 'pointer', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            Ver páginas procesadas ({pageEntries.length})
+          </summary>
+          <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
+            {ranges.map((r, i) => {
+              const color = r.status === 'done' ? 'var(--success)' : r.status === 'partial' ? 'var(--warning)' : 'var(--error)'
+              return (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px', background: 'var(--bg-base)', borderRadius: 4 }}>
+                  <span style={{ color: 'var(--text-primary)' }}>Pág. {r.label}</span>
+                  <span style={{ color, fontWeight: 600 }}>
+                    {r.items} {r.items === 1 ? 'ítem' : 'ítems'}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </details>
+      )}
 
       {/* Controls */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginBottom: 16 }}>
@@ -108,6 +167,24 @@ export function EtlView() {
         >
           {running ? 'Ejecutando…' : '▶ Ejecutar'}
         </button>
+
+        <a
+          href="/api/etl/cost-log"
+          download
+          className="btn"
+          style={{ whiteSpace: 'nowrap', textDecoration: 'none' }}
+        >
+          Descargar CSV
+        </a>
+
+        <a
+          href="/api/etl/api-log"
+          download
+          className="btn"
+          style={{ whiteSpace: 'nowrap', textDecoration: 'none' }}
+        >
+          Descargar Log API
+        </a>
       </div>
 
       {/* Output */}

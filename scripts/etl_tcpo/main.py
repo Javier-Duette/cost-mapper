@@ -47,6 +47,7 @@ PDF_PATH      = _REPO_ROOT / "scripts" / "data" / "538948707-TCPO-BIM-15-Edicao.
 DB_PATH       = _REPO_ROOT / "backend" / "costmapper_dev.db"
 PROGRESS_FILE = _REPO_ROOT / "scripts" / "data" / "tcpo_progress.json"
 DEBUG_DIR     = _REPO_ROOT / "scripts" / "data" / "debug_crops"
+COST_LOG_FILE = _REPO_ROOT / "scripts" / "data" / "cost_log.csv"
 
 
 # ---------------------------------------------------------------------------
@@ -73,6 +74,37 @@ def _mark_page(prog: dict, page: int, status: str, items: int = 0, error: str = 
     if status == "done":
         prog["total_items"] = prog.get("total_items", 0) + items
     _save_progress(prog)
+
+
+# ---------------------------------------------------------------------------
+# Cost tracking
+# ---------------------------------------------------------------------------
+
+def _log_cost(page: int, mode: str, usage: dict) -> None:
+    if not usage:
+        return
+    import csv
+    file_exists = COST_LOG_FILE.exists()
+    
+    prompt_tokens = usage.get("prompt_tokens", 0)
+    completion_tokens = usage.get("completion_tokens", 0)
+    
+    # gemini-2.5-flash pricing: $0.075 / 1M prompt, $0.30 / 1M completion
+    cost_usd = (prompt_tokens / 1_000_000 * 0.075) + (completion_tokens / 1_000_000 * 0.30)
+    
+    with COST_LOG_FILE.open("a", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["timestamp", "page", "mode", "prompt_tokens", "completion_tokens", "estimated_cost_usd"])
+        
+        writer.writerow([
+            datetime.now(timezone.utc).isoformat(),
+            page,
+            mode,
+            prompt_tokens,
+            completion_tokens,
+            f"{cost_usd:.6f}"
+        ])
 
 
 # ---------------------------------------------------------------------------
@@ -205,10 +237,12 @@ def run(pages: str, force: bool, dry_run: bool, model: str, single_pass: bool):
             for crop in crops:
                 try:
                     if single_pass:
-                        items = extractor.extract_table(crop)
+                        items, usage = extractor.extract_table(crop)
+                        _log_cost(p, "single-pass", usage)
                     else:
                         # Paso 1: obtener solo codigos (llamada barata)
-                        codes = extractor.extract_codes_only(crop)
+                        codes, usage = extractor.extract_codes_only(crop)
+                        _log_cost(p, "codes_only", usage)
                         if not codes:
                             page_skipped += 1
                             continue
@@ -221,7 +255,8 @@ def run(pages: str, force: bool, dry_run: bool, model: str, single_pass: bool):
                             page_skipped += 1
                             continue  # todos ya en DB
 
-                        items = extractor.extract_table(crop, target_codes=new_codes)
+                        items, usage = extractor.extract_table(crop, target_codes=new_codes)
+                        _log_cost(p, "full_table", usage)
 
                     all_items.extend(items)
 

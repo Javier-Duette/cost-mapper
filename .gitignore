@@ -28,6 +28,8 @@ dist/
 scripts/data/tcpo_progress.json
 scripts/data/translation_cache.json
 scripts/data/debug_crops/
+scripts/data/cost_log.csv
+scripts/data/api_debug.jsonl
 
 # Archivos del sistema
 .DS_Store

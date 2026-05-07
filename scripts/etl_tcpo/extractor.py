@@ -28,6 +28,7 @@ import io
 import json
 import re
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 import google.generativeai as genai
@@ -39,8 +40,23 @@ from PIL import Image
 
 _REPO_ROOT   = Path(__file__).parent.parent.parent
 _CACHE_PATH  = _REPO_ROOT / "scripts" / "data" / "translation_cache.json"
+_API_LOG_PATH = _REPO_ROOT / "scripts" / "data" / "api_debug.jsonl"
+_GLOSSARY_PATH = _REPO_ROOT / "scripts" / "data" / "glossary.csv"
 
 _cache: dict[str, str] | None = None  # md5(description_pt) → description_es
+
+def _log_api_exchange(prompt: str, response_text: str | None, error: str | None, usage: dict | None = None) -> None:
+    """Registra la interacción exacta con la API de Gemini."""
+    _API_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    log_entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "prompt": prompt,
+        "response": response_text,
+        "error": error,
+        "usage": usage or {}
+    }
+    with _API_LOG_PATH.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
 
 
 def _load_cache() -> dict[str, str]:
@@ -115,13 +131,14 @@ NBR code format — codes span multiple lines, join with spaces:
 
 Each table: header [code box | description | unit] + body [Código | Descrição | Unid. | Consumos]
 
-If a table has MULTIPLE Consumos columns (variants), return ONE item per column.
-Append the column header to the description. Skip columns with only "-" values.
-
-Translate all descriptions to Latin American technical Spanish.
-Use: "carpintero" not "carpinteiro", "hormigón" not "concreto", "encofrado" not "fôrma".
-
-Return a JSON array:
+  If a table has MULTIPLE Consumos columns (variants), return ONE item per column.
+  Append the column header to the description. Skip columns with only "-" values.
+  
+  Translate all descriptions to Latin American technical Spanish.
+  
+  {glossary}
+  
+  Return a JSON array:
 [
   {{
     "nbr_code": "FULL CODE WITH SPACES",
@@ -162,24 +179,60 @@ def init(api_key: str, model_name: str = "gemini-2.5-flash") -> None:
 # Extracción
 # ---------------------------------------------------------------------------
 
+def _load_glossary_text() -> str:
+    if not _GLOSSARY_PATH.exists():
+        return ""
+    import csv
+    lines = []
+    try:
+        with _GLOSSARY_PATH.open("r", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader, None)  # skip header
+            for row in reader:
+                if len(row) >= 2 and row[0].strip():
+                    lines.append(f'- Use "{row[1].strip()}" instead of "{row[0].strip()}"')
+        if lines:
+            return "GLOSSARY OF REQUIRED TRANSLATIONS:\n" + "\n".join(lines)
+    except Exception:
+        pass
+    return ""
+
+
 def _img_bytes(crop: Image.Image) -> bytes:
     buf = io.BytesIO()
     crop.save(buf, format="JPEG", quality=92)
     return buf.getvalue()
 
 
-def _call_gemini(image_part: dict, prompt: str, *, retries: int = 3) -> str:
-    """Llama a Gemini con reintentos. Devuelve el texto de respuesta."""
+def _call_gemini(image_part: dict, prompt: str, *, retries: int = 3) -> tuple[str, dict]:
+    """Llama a Gemini con reintentos. Devuelve (texto_respuesta, uso_de_tokens)."""
     if _model is None:
         raise RuntimeError("Llamar a init() antes de usar extract_*().")
 
     last_err: Exception | None = None
     for attempt in range(retries):
         try:
-            response = _model.generate_content([image_part, prompt])
-            return response.text.strip()
+            response = _model.generate_content(
+                [image_part, prompt],
+                generation_config=genai.types.GenerationConfig(
+                    response_mime_type="application/json"
+                )
+            )
+            usage = {}
+            if hasattr(response, "usage_metadata") and response.usage_metadata:
+                usage = {
+                    "prompt_tokens": getattr(response.usage_metadata, "prompt_token_count", 0),
+                    "completion_tokens": getattr(response.usage_metadata, "candidates_token_count", 0),
+                    "total_tokens": getattr(response.usage_metadata, "total_token_count", 0),
+                }
+            
+            response_text = response.text.strip()
+            _log_api_exchange(prompt, response_text, None, usage)
+            return response_text, usage
         except Exception as e:
             last_err = e
+            _log_api_exchange(prompt, None, str(e), None)
+            
             if "quota" in str(e).lower() or "429" in str(e):
                 time.sleep(15)
             else:
@@ -188,7 +241,7 @@ def _call_gemini(image_part: dict, prompt: str, *, retries: int = 3) -> str:
     raise RuntimeError(f"Error después de {retries} intentos: {last_err}")
 
 
-def extract_codes_only(crop: Image.Image, *, retries: int = 3) -> list[str]:
+def extract_codes_only(crop: Image.Image, *, retries: int = 3) -> tuple[list[str], dict]:
     """Paso 1 (barato): extrae solo los códigos NBR padre de una imagen de tabla.
 
     Args:
@@ -196,20 +249,26 @@ def extract_codes_only(crop: Image.Image, *, retries: int = 3) -> list[str]:
         retries: Intentos en caso de error de API o JSON inválido.
 
     Returns:
-        Lista de strings con códigos NBR (normalizados). Lista vacía si no hay tablas.
+        Tupla: (Lista de strings con códigos NBR normalizados, dict con uso de tokens).
     """
     image_part = {"mime_type": "image/jpeg", "data": _img_bytes(crop)}
 
     last_err: Exception | None = None
+    accumulated_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+    
     for attempt in range(retries):
         try:
-            raw = _call_gemini(image_part, _PROMPT_CODES_ONLY, retries=1)
+            raw, usage = _call_gemini(image_part, _PROMPT_CODES_ONLY, retries=1)
+            accumulated_usage["prompt_tokens"] += usage.get("prompt_tokens", 0)
+            accumulated_usage["completion_tokens"] += usage.get("completion_tokens", 0)
+            accumulated_usage["total_tokens"] += usage.get("total_tokens", 0)
+
             clean = re.sub(r"^```(?:json)?\s*", "", raw)
             clean = re.sub(r"\s*```$", "", clean).strip()
             codes = json.loads(clean)
             if not isinstance(codes, list):
                 raise json.JSONDecodeError("Expected JSON array", clean, 0)
-            return [_normalize_code(c) for c in codes if isinstance(c, str) and c.strip()]
+            return [_normalize_code(c) for c in codes if isinstance(c, str) and c.strip()], accumulated_usage
         except json.JSONDecodeError as e:
             last_err = e
             time.sleep(1.5 * (attempt + 1))
@@ -228,7 +287,7 @@ def extract_table(
     target_codes: list[str] | None = None,
     *,
     retries: int = 3,
-) -> list[dict]:
+) -> tuple[list[dict], dict]:
     """Paso 2 (completo): extrae ítems con descripciones, unidades y componentes APU.
 
     Args:
@@ -238,28 +297,35 @@ def extract_table(
         retries: Intentos en caso de error de API o JSON inválido.
 
     Returns:
-        Lista de dicts con esquema de ítem. Lista vacía si la tabla no tiene datos.
+        Tupla (Lista de dicts con esquema de ítem, dict con uso de tokens). Lista vacía si no hay datos.
 
     Raises:
         RuntimeError: Si se agotaron los reintentos.
     """
     if target_codes is not None and len(target_codes) == 0:
-        return []  # nada nuevo en esta tabla — skip completo
+        return [], {}  # nada nuevo en esta tabla — skip completo
 
     image_part = {"mime_type": "image/jpeg", "data": _img_bytes(crop)}
+    glossary_text = _load_glossary_text()
 
     if target_codes:
         codes_str = "\n".join(f"- {c}" for c in target_codes)
-        prompt = _PROMPT_FULL_TEMPLATE.format(target_codes=codes_str)
+        prompt = _PROMPT_FULL_TEMPLATE.format(target_codes=codes_str, glossary=glossary_text)
     else:
         # single-pass: extraer todo (target_codes=None)
-        prompt = _PROMPT_FULL_TEMPLATE.format(target_codes="(all tables — extract everything)")
+        prompt = _PROMPT_FULL_TEMPLATE.format(target_codes="(all tables — extract everything)", glossary=glossary_text)
 
     last_err: Exception | None = None
+    accumulated_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+
     for attempt in range(retries):
         try:
-            raw = _call_gemini(image_part, prompt, retries=1)
-            return _parse_response(raw)
+            raw, usage = _call_gemini(image_part, prompt, retries=1)
+            accumulated_usage["prompt_tokens"] += usage.get("prompt_tokens", 0)
+            accumulated_usage["completion_tokens"] += usage.get("completion_tokens", 0)
+            accumulated_usage["total_tokens"] += usage.get("total_tokens", 0)
+
+            return _parse_response(raw), accumulated_usage
         except json.JSONDecodeError as e:
             last_err = e
             time.sleep(1.5 * (attempt + 1))

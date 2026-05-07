@@ -5,14 +5,17 @@ import subprocess
 import sys
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/etl", tags=["etl"])
 
 _SCRIPT_DIR = Path(__file__).parent.parent / "scripts" / "etl_tcpo"
 _PROGRESS   = Path(__file__).parent.parent / "scripts" / "data" / "tcpo_progress.json"
+_COST_LOG   = Path(__file__).parent.parent / "scripts" / "data" / "cost_log.csv"
+_API_LOG    = Path(__file__).parent.parent / "scripts" / "data" / "api_debug.jsonl"
 
 
 class RunRequest(BaseModel):
@@ -54,3 +57,29 @@ async def get_status():
         "total_items": data.get("total_items", 0),
         "pages": data.get("processed_pages", {}),
     }
+
+
+@router.get("/cost-log")
+async def get_cost_log():
+    """Descarga el log de costos CSV."""
+    if not _COST_LOG.exists():
+        raise HTTPException(status_code=404, detail="El log de costos aún no existe. Ejecuta el ETL primero.")
+    
+    return FileResponse(
+        path=_COST_LOG,
+        media_type="text/csv",
+        filename="etl_cost_log.csv"
+    )
+
+
+@router.get("/api-log")
+async def get_api_log():
+    """Descarga el log completo de intercambio con la API de Gemini (JSONL)."""
+    if not _API_LOG.exists():
+        raise HTTPException(status_code=404, detail="El log de API aún no existe. Ejecuta el ETL primero.")
+
+    return FileResponse(
+        path=_API_LOG,
+        media_type="application/x-ndjson",
+        filename="etl_api_debug.jsonl"
+    )
