@@ -150,6 +150,31 @@ def upsert_catalog_item(cur: sqlite3.Cursor, item: dict, source: str = "etl_tcpo
     return item_id
 
 
+def get_existing_codes(db_path: Path, codes: list[str]) -> set[str]:
+    """Devuelve el subconjunto de `codes` que ya existe en DB como is_work_item=1.
+
+    Args:
+        db_path: Ruta al archivo SQLite.
+        codes: Lista de códigos NBR a consultar (normalizados, mayúsculas).
+
+    Returns:
+        Conjunto de códigos ya presentes en catalog_items con is_work_item=1.
+    """
+    if not codes:
+        return set()
+
+    conn = sqlite3.connect(str(db_path))
+    cur = conn.cursor()
+    placeholders = ",".join("?" * len(codes))
+    cur.execute(
+        f"SELECT nbr_code FROM catalog_items WHERE is_work_item = 1 AND nbr_code IN ({placeholders})",
+        codes,
+    )
+    result = {row[0] for row in cur.fetchall()}
+    conn.close()
+    return result
+
+
 def load_items(db_path: Path, items: list[dict], source: str = "etl_tcpo") -> dict:
     """Carga una lista de ítems validados en la base de datos.
 

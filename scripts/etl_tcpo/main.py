@@ -136,8 +136,17 @@ def detect(pages: str, save_crops: bool):
 @click.option("--force", is_flag=True, default=False, help="Re-procesar páginas ya completadas.")
 @click.option("--dry-run", is_flag=True, default=False, help="Extraer pero NO insertar en DB.")
 @click.option("--model", default="gemini-2.0-flash", show_default=True, help="Modelo Gemini a usar.")
-def run(pages: str, force: bool, dry_run: bool, model: str):
-    """Procesa páginas del TCPO: detecta tablas → Gemini → inserta en DB."""
+@click.option("--single-pass", "single_pass", is_flag=True, default=False,
+              help="Desactivar optimizacion 2-pasos: extrae todo sin consultar DB primero.")
+def run(pages: str, force: bool, dry_run: bool, model: str, single_pass: bool):
+    """Procesa paginas del TCPO: detecta tablas -> Gemini -> inserta en DB.
+
+    Por defecto usa 2 pasos por tabla:
+      Paso 1 (barato): pide solo los codigos NBR a Gemini.
+      Paso 2 (completo): extrae solo los codigos nuevos (no presentes en DB).
+
+    Usar --single-pass para saltear la optimizacion (util para depuracion).
+    """
     import detector
     import extractor
     import loader
@@ -160,46 +169,69 @@ def run(pages: str, force: bool, dry_run: bool, model: str):
     page_list = _parse_pages(pages)
     total_pages = detector.page_count(PDF_PATH)
 
-    click.echo(f"\nModelo: {model}")
-    click.echo(f"Páginas a procesar: {page_list}")
-    click.echo(f"PDF: {PDF_PATH.name} ({total_pages} páginas total)")
+    click.echo(f"\nModelo: {model}  |  Modo: {'single-pass' if single_pass else '2-pasos'}")
+    click.echo(f"Paginas a procesar: {page_list}")
+    click.echo(f"PDF: {PDF_PATH.name} ({total_pages} paginas total)")
     click.echo(f"DB:  {DB_PATH.name}")
     if dry_run:
-        click.echo("[DRY-RUN] No se insertará en DB.\n")
+        click.echo("[DRY-RUN] No se insertara en DB.\n")
 
     session_items = 0
+    session_skipped = 0
     session_errors = 0
 
     for p in page_list:
         if p < 1 or p > total_pages:
-            click.echo(f"  [SKIP] Página {p} fuera de rango")
+            click.echo(f"  [SKIP] Pagina {p} fuera de rango")
             continue
 
         page_str = str(p)
         already_done = prog["processed_pages"].get(page_str, {}).get("status") == "done"
         if already_done and not force:
             prev = prog["processed_pages"][page_str]
-            click.echo(f"  [CACHE] Pág {p:4d} — ya procesada ({prev['items_extracted']} ítems). Usar --force para re-procesar.")
+            click.echo(f"  [CACHE] Pag {p:4d} - ya procesada ({prev['items_extracted']} items). Usar --force para re-procesar.")
             continue
 
-        click.echo(f"  Pág {p:4d}: renderizando...", nl=False)
+        click.echo(f"  Pag {p:4d}: renderizando...", nl=False)
         try:
             page_img = detector.render_page(PDF_PATH, p)
             crops = detector.detect_tables(page_img)
-            click.echo(f" {len(crops)} tabla(s) → Gemini...", nl=False)
+            click.echo(f" {len(crops)} tabla(s)", nl=False)
 
             all_items: list[dict] = []
             table_errors = 0
+            page_skipped = 0
 
             for crop in crops:
                 try:
-                    items = extractor.extract_table(crop)
+                    if single_pass:
+                        items = extractor.extract_table(crop)
+                    else:
+                        # Paso 1: obtener solo codigos (llamada barata)
+                        codes = extractor.extract_codes_only(crop)
+                        if not codes:
+                            page_skipped += 1
+                            continue
+
+                        # Paso 2: filtrar contra DB
+                        known = set() if dry_run else loader.get_existing_codes(DB_PATH, codes)
+                        new_codes = [c for c in codes if c not in known]
+
+                        if not new_codes:
+                            page_skipped += 1
+                            continue  # todos ya en DB
+
+                        items = extractor.extract_table(crop, target_codes=new_codes)
+
                     all_items.extend(items)
+
                 except Exception as e:  # noqa: BLE001
                     table_errors += 1
                     click.echo(f"\n    [WARN] Error en tabla: {e}", nl=False)
 
-            click.echo(f" {len(all_items)} ítem(s) extraídos", nl=False)
+            session_skipped += page_skipped
+            skip_info = f", {page_skipped} ya-en-DB" if page_skipped else ""
+            click.echo(f" >> {len(all_items)} item(s) extraidos{skip_info}", nl=False)
 
             if not dry_run and all_items:
                 stats = loader.load_items(DB_PATH, all_items)
@@ -226,8 +258,8 @@ def run(pages: str, force: bool, dry_run: bool, model: str):
             _mark_page(prog, p, "error", error=str(e))
             session_errors += 1
 
-    click.echo(f"\nSesión terminada: {session_items} ítems extraídos, {session_errors} errores.")
-    click.echo(f"Total acumulado en progress.json: {prog.get('total_items', 0)} ítems.")
+    click.echo(f"\nSesion terminada: {session_items} items extraidos, {session_skipped} tablas ya-en-DB, {session_errors} errores.")
+    click.echo(f"Total acumulado en progress.json: {prog.get('total_items', 0)} items.")
 
 
 @cli.command()

@@ -82,56 +82,66 @@ def flush_cache() -> int:
     return len(_cache or {})
 
 # ---------------------------------------------------------------------------
-# Prompt
+# Prompts — dos pasadas para reducir costo de API
 # ---------------------------------------------------------------------------
 
-_PROMPT = """
+# Pass 1: solo extrae los códigos NBR padres. Respuesta mínima, costo mínimo.
+_PROMPT_CODES_ONLY = """
+This image shows TCPO V15 construction composition tables.
+
+For each table in the image, find the NBR code in the top-left header box.
+The code spans multiple lines — join them all with spaces into one string.
+Example: "3R 02 57 / 27 00 00 00 / 00 02" → "3R 02 57 27 00 00 00 00 02"
+
+Return a JSON array of strings, one code per table:
+["CODE1", "CODE2", ...]
+
+Return ONLY the JSON array. No markdown, no explanation.
+""".strip()
+
+# Pass 2: extracción completa, restringida a los códigos desconocidos.
+# El placeholder {target_codes} se reemplaza en runtime.
+_PROMPT_FULL_TEMPLATE = """
 You are extracting data from a TCPO V15 (Tabela de Composições de Preços) table.
 TCPO V15 is the Brazilian construction cost database aligned with NBR 15965.
 
-The image shows one or more bordered construction service composition tables.
+IMPORTANT — extract ONLY items whose parent NBR code is in this list:
+{target_codes}
+Skip any other tables visible in the image even if they contain valid data.
 
-IMPORTANT — NBR code format:
-- Codes span multiple lines in the image. Join all lines into one code with spaces.
-- Example: "3R 02 57 / 27 00 00 00 / 00 02" → nbr_code: "3R 02 57 27 00 00 00 00 02"
-- Same rule for component codes: "2N 36 16 25 / 12 15" → "2N 36 16 25 12 15"
+NBR code format — codes span multiple lines, join with spaces:
+  "3R 02 57 / 27 00 00 00 / 00 02" → "3R 02 57 27 00 00 00 00 02"
+  "2N 36 16 25 / 12 15" → "2N 36 16 25 12 15"
 
-Each table has:
-- Header: [code box] | [description of the service] | [unit]
-- Body: rows with columns Código | Descrição | Unid. | Consumos (quantity per unit of parent)
+Each table: header [code box | description | unit] + body [Código | Descrição | Unid. | Consumos]
 
-If a table has MULTIPLE "Consumos" columns (e.g., "sobrepostas" / "matajunta de ripas",
-or "1º aproveitamento" / "2º aproveitamento"), return ONE item per column — each item
-has the same nbr_code and description but with the components from that column's quantities.
-Append the column header to the description to differentiate. Skip columns with "-" values.
+If a table has MULTIPLE Consumos columns (variants), return ONE item per column.
+Append the column header to the description. Skip columns with only "-" values.
 
-Translate all descriptions to Latin American technical Spanish (not European Spanish).
-Use standard construction terms: "carpintero" not "carpinteiro", "hormigón" not "concreto", etc.
+Translate all descriptions to Latin American technical Spanish.
+Use: "carpintero" not "carpinteiro", "hormigón" not "concreto", "encofrado" not "fôrma".
 
-Return a JSON array. Each element is one construction service composition:
+Return a JSON array:
 [
-  {
-    "nbr_code": "FULL CODE JOINED WITH SPACES",
-    "description_pt": "original Portuguese description",
+  {{
+    "nbr_code": "FULL CODE WITH SPACES",
+    "description_pt": "original Portuguese",
     "description_es": "Spanish translation",
-    "unit": "unit abbreviation exactly as shown (m², h, kg, un, m, m³, etc.)",
+    "unit": "unit as shown (m², h, kg, un, m, m³, etc.)",
     "components": [
-      {
-        "nbr_code": "FULL CODE JOINED",
+      {{
+        "nbr_code": "FULL CODE",
         "description_pt": "original",
         "description_es": "translation",
         "unit": "unit",
         "quantity": 0.4000
-      }
+      }}
     ]
-  }
+  }}
 ]
 
-Rules:
-- Return ONLY valid JSON. No markdown, no explanation, no code fences.
-- If you cannot read a code clearly, use your best guess and add a "_UNCERTAIN" suffix.
-- If the image has no TCPO tables, return an empty array: []
-- quantities must be numbers (floats), not strings.
+Return ONLY valid JSON. No markdown, no explanation.
+If no matching tables found, return: []
 """.strip()
 
 # ---------------------------------------------------------------------------
@@ -152,41 +162,22 @@ def init(api_key: str, model_name: str = "gemini-2.0-flash") -> None:
 # Extracción
 # ---------------------------------------------------------------------------
 
-def extract_table(crop: Image.Image, *, retries: int = 3) -> list[dict]:
-    """Envía una imagen de tabla recortada a Gemini y devuelve los ítems parseados.
-
-    Args:
-        crop: Imagen PIL de la tabla.
-        retries: Intentos en caso de error de API o JSON inválido.
-
-    Returns:
-        Lista de dicts con esquema de ítem. Lista vacía si la tabla no tiene datos.
-
-    Raises:
-        RuntimeError: Si se agotaron los reintentos.
-    """
-    if _model is None:
-        raise RuntimeError("Llamar a init() antes de extract_table().")
-
-    # PIL → bytes para la API
+def _img_bytes(crop: Image.Image) -> bytes:
     buf = io.BytesIO()
     crop.save(buf, format="JPEG", quality=92)
-    img_bytes = buf.getvalue()
+    return buf.getvalue()
 
-    image_part = {"mime_type": "image/jpeg", "data": img_bytes}
+
+def _call_gemini(image_part: dict, prompt: str, *, retries: int = 3) -> str:
+    """Llama a Gemini con reintentos. Devuelve el texto de respuesta."""
+    if _model is None:
+        raise RuntimeError("Llamar a init() antes de usar extract_*().")
 
     last_err: Exception | None = None
     for attempt in range(retries):
         try:
-            response = _model.generate_content([image_part, _PROMPT])
-            raw = response.text.strip()
-            items = _parse_response(raw)
-            return items
-
-        except json.JSONDecodeError as e:
-            last_err = e
-            time.sleep(1.5 * (attempt + 1))
-
+            response = _model.generate_content([image_part, prompt])
+            return response.text.strip()
         except Exception as e:
             last_err = e
             if "quota" in str(e).lower() or "429" in str(e):
@@ -195,6 +186,91 @@ def extract_table(crop: Image.Image, *, retries: int = 3) -> list[dict]:
                 time.sleep(2 * (attempt + 1))
 
     raise RuntimeError(f"Error después de {retries} intentos: {last_err}")
+
+
+def extract_codes_only(crop: Image.Image, *, retries: int = 3) -> list[str]:
+    """Paso 1 (barato): extrae solo los códigos NBR padre de una imagen de tabla.
+
+    Args:
+        crop: Imagen PIL de la tabla.
+        retries: Intentos en caso de error de API o JSON inválido.
+
+    Returns:
+        Lista de strings con códigos NBR (normalizados). Lista vacía si no hay tablas.
+    """
+    image_part = {"mime_type": "image/jpeg", "data": _img_bytes(crop)}
+
+    last_err: Exception | None = None
+    for attempt in range(retries):
+        try:
+            raw = _call_gemini(image_part, _PROMPT_CODES_ONLY, retries=1)
+            clean = re.sub(r"^```(?:json)?\s*", "", raw)
+            clean = re.sub(r"\s*```$", "", clean).strip()
+            codes = json.loads(clean)
+            if not isinstance(codes, list):
+                raise json.JSONDecodeError("Expected JSON array", clean, 0)
+            return [_normalize_code(c) for c in codes if isinstance(c, str) and c.strip()]
+        except json.JSONDecodeError as e:
+            last_err = e
+            time.sleep(1.5 * (attempt + 1))
+        except Exception as e:
+            last_err = e
+            if "quota" in str(e).lower() or "429" in str(e):
+                time.sleep(15)
+            else:
+                time.sleep(2 * (attempt + 1))
+
+    raise RuntimeError(f"extract_codes_only: {retries} intentos fallidos: {last_err}")
+
+
+def extract_table(
+    crop: Image.Image,
+    target_codes: list[str] | None = None,
+    *,
+    retries: int = 3,
+) -> list[dict]:
+    """Paso 2 (completo): extrae ítems con descripciones, unidades y componentes APU.
+
+    Args:
+        crop: Imagen PIL de la tabla.
+        target_codes: Si se provee, solo extrae ítems cuyo código padre esté en la lista.
+                      Si es None o lista vacía, extrae todos (modo single-pass).
+        retries: Intentos en caso de error de API o JSON inválido.
+
+    Returns:
+        Lista de dicts con esquema de ítem. Lista vacía si la tabla no tiene datos.
+
+    Raises:
+        RuntimeError: Si se agotaron los reintentos.
+    """
+    if target_codes is not None and len(target_codes) == 0:
+        return []  # nada nuevo en esta tabla — skip completo
+
+    image_part = {"mime_type": "image/jpeg", "data": _img_bytes(crop)}
+
+    if target_codes:
+        codes_str = "\n".join(f"- {c}" for c in target_codes)
+        prompt = _PROMPT_FULL_TEMPLATE.format(target_codes=codes_str)
+    else:
+        # single-pass: extraer todo (target_codes=None)
+        prompt = _PROMPT_FULL_TEMPLATE.format(target_codes="(all tables — extract everything)")
+
+    last_err: Exception | None = None
+    for attempt in range(retries):
+        try:
+            raw = _call_gemini(image_part, prompt, retries=1)
+            return _parse_response(raw)
+        except json.JSONDecodeError as e:
+            last_err = e
+            time.sleep(1.5 * (attempt + 1))
+        except Exception as e:
+            last_err = e
+            if "quota" in str(e).lower() or "429" in str(e):
+                time.sleep(15)
+            else:
+                time.sleep(2 * (attempt + 1))
+
+    raise RuntimeError(f"extract_table: {retries} intentos fallidos: {last_err}")
 
 
 def _parse_response(raw: str) -> list[dict]:

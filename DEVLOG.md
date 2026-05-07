@@ -4,6 +4,22 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 — Titulo`) · implementado · problemas · decisiones cambiadas · próximo paso.
 
+## 2026-05-07 — ETL TCPO: extracción 2-pasos completa
+
+**Implementado:**
+- `extractor.py`: refactorizado a arquitectura 2-pasos. `_call_gemini()` como helper compartido. `extract_codes_only()` usa `_PROMPT_CODES_ONLY` (respuesta mínima, solo array de strings). `extract_table(crop, target_codes=None)` usa `_PROMPT_FULL_TEMPLATE` con los códigos nuevos inyectados.
+- `loader.py`: agregado `get_existing_codes(db_path, codes) -> set[str]` — consulta SQLite filtrando `is_work_item=1` para el subconjunto de códigos dados.
+- `main.py`: comando `run` actualizado con flag `--single-pass`. Flujo default 2-pasos: Paso 1 extrae códigos → consulta DB → Paso 2 extrae solo lo nuevo. Tablas completamente conocidas se saltean sin llamada de extracción completa. Contador de tablas saltadas en el resumen final.
+
+**Problemas resueltos:**
+- `extractor.py` tenía referencia a `_PROMPT` (renombrado en sesión anterior) causando `NameError` en runtime. Resuelto al completar la refactorización.
+- `main.py` tenía carácter unicode `→` que causaba error de encoding en Windows cp1252. Reemplazado por texto ASCII en la nueva versión del comando `run`.
+
+**Decisiones cambiadas:**
+- Ningún ADR nuevo. ADR-012 ya documenta la estrategia 2-pasos.
+
+**Próximo paso:** Configurar `GEMINI_API_KEY` en `.env` y ejecutar `python main.py run --pages 36 --dry-run` para validar el pipeline completo end-to-end contra el PDF real.
+
 ---
 
 ## 2026-05-07 17:30 — ETL TCPO: herramienta de extracción con Gemini Vision (ADR-012)
