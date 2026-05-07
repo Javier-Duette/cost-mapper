@@ -194,6 +194,7 @@ Cuando el diseñador (o Claude Design) provea una actualización del diseño, en
 1. **Extraer y Limpiar:** El agente debe borrar la carpeta `docs/design-system/` actual (si existe) y descomprimir el nuevo `.zip` allí.
 2. **Borrar el Zip:** Eliminar inmediatamente el archivo `.zip` de la raíz para no ensuciar el repositorio.
 3. **Traducir, No Copiar:** Los archivos HTML/CSS dentro de `docs/design-system/` **NO** se copian tal cual a `frontend/`. Se utilizan como **referencia estricta** para refactorizar o construir los componentes correspondientes en React/Vite dentro de `frontend/src/components/`, extrayendo los Design Tokens (`colors_and_type.css` o `theme.css`) al sistema global de estilos de React.
+4. **Documentación de Implementación (Feedback Loop):** Después de implementar la interfaz en el frontend real, el agente de IA **DEBE** documentar detalladamente qué se ejecutó en la realidad frente a lo que pedía el mockup (ej. estructura final de componentes de React, limitaciones técnicas, decisiones de simplificación). Esto permitirá que en la próxima iteración, Claude Design tenga contexto de cómo se llevó su mockup a la vida real y diseñe sobre la arquitectura real y no sobre ilusiones pasadas.
 
 ---
 
