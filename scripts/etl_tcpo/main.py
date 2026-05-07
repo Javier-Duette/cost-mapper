@@ -214,9 +214,12 @@ def run(pages: str, force: bool, dry_run: bool, model: str):
             else:
                 click.echo("")
 
+            cache_size = extractor.flush_cache()
             _mark_page(prog, p, "done" if table_errors == 0 else "partial", len(all_items))
             session_items += len(all_items)
             session_errors += table_errors
+            if cache_size:
+                click.echo(f"    cache MD5: {cache_size} traducciones guardadas")
 
         except Exception as e:  # noqa: BLE001
             click.echo(f" [ERROR] {e}")
@@ -237,9 +240,15 @@ def status():
     partial = [p for p, v in pages.items() if v["status"] == "partial"]
     errors  = [p for p, v in pages.items() if v["status"] == "error"]
 
+    cache_count = 0
+    if (PROGRESS_FILE.parent / "translation_cache.json").exists():
+        import json as _json
+        cache_count = len(_json.loads((PROGRESS_FILE.parent / "translation_cache.json").read_text(encoding="utf-8")))
+
     click.echo(f"\n{'─'*50}")
-    click.echo(f"  Páginas procesadas: {len(done)} ✓  {len(partial)} parcial  {len(errors)} error")
-    click.echo(f"  Ítems totales extraídos: {prog.get('total_items', 0)}")
+    click.echo(f"  Paginas procesadas: {len(done)} OK  {len(partial)} parcial  {len(errors)} error")
+    click.echo(f"  Items totales extraidos: {prog.get('total_items', 0)}")
+    click.echo(f"  Cache MD5 traducciones: {cache_count} entradas")
     click.echo(f"  Progress file: {PROGRESS_FILE}")
 
     if errors:

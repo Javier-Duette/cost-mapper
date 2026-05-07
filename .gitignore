@@ -26,6 +26,7 @@ dist/
 
 # ETL TCPO — estado local del desarrollador
 scripts/data/tcpo_progress.json
+scripts/data/translation_cache.json
 scripts/data/debug_crops/
 
 # Archivos del sistema

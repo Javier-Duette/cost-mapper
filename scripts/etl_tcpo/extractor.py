@@ -1,28 +1,29 @@
 """
 Extractor TCPO — envía tablas recortadas a Gemini Vision y parsea la respuesta.
 
+Cache de traducciones MD5 (rescatado de V0 — ver ADR-003):
+  Cada descripción en portugués se hashea con MD5. Si ya existe en
+  scripts/data/translation_cache.json, se usa la traducción guardada
+  en lugar de confiar en la versión nueva de Gemini. Esto garantiza
+  consistencia: "Carpinteiro" siempre se traduce igual en todas las páginas.
+  El cache se actualiza con cada traducción nueva.
+
 Cada imagen de tabla recortada produce una lista de ítems con este esquema:
   {
-    "nbr_code":       str,   # código NBR completo con espacios
-    "description_pt": str,   # descripción original en portugués
-    "description_es": str,   # traducción al español técnico latinoamericano
-    "unit":           str,   # unidad de medida (m², m³, h, kg, un, etc.)
+    "nbr_code":       str,
+    "description_pt": str,
+    "description_es": str,
+    "unit":           str,
     "components": [
-      {
-        "nbr_code":       str,
-        "description_pt": str,
-        "description_es": str,
-        "unit":           str,
-        "quantity":       float  # consumo por unidad del ítem padre
-      }
+      {"nbr_code": str, "description_pt": str, "description_es": str,
+       "unit": str, "quantity": float}
     ]
   }
-
-Tablas con múltiples columnas de Consumos (variantes) generan múltiples ítems.
 """
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import re
@@ -31,6 +32,54 @@ from pathlib import Path
 
 import google.generativeai as genai
 from PIL import Image
+
+# ---------------------------------------------------------------------------
+# Cache de traducciones MD5
+# ---------------------------------------------------------------------------
+
+_REPO_ROOT   = Path(__file__).parent.parent.parent
+_CACHE_PATH  = _REPO_ROOT / "scripts" / "data" / "translation_cache.json"
+
+_cache: dict[str, str] | None = None  # md5(description_pt) → description_es
+
+
+def _load_cache() -> dict[str, str]:
+    global _cache
+    if _cache is None:
+        if _CACHE_PATH.exists():
+            _cache = json.loads(_CACHE_PATH.read_text(encoding="utf-8"))
+        else:
+            _cache = {}
+    return _cache
+
+
+def _save_cache() -> None:
+    if _cache is not None:
+        _CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _CACHE_PATH.write_text(
+            json.dumps(_cache, indent=2, ensure_ascii=False, sort_keys=True),
+            encoding="utf-8",
+        )
+
+
+def _md5(text: str) -> str:
+    return hashlib.md5(text.strip().lower().encode("utf-8")).hexdigest()
+
+
+def _cached_translation(description_pt: str) -> str | None:
+    """Devuelve la traducción cacheada o None si no existe."""
+    return _load_cache().get(_md5(description_pt))
+
+
+def _store_translation(description_pt: str, description_es: str) -> None:
+    """Guarda una traducción nueva en el cache (sin escribir a disco todavía)."""
+    _load_cache()[_md5(description_pt)] = description_es
+
+
+def flush_cache() -> int:
+    """Escribe el cache a disco. Devuelve cantidad de entradas. Llamar al final de cada página."""
+    _save_cache()
+    return len(_cache or {})
 
 # ---------------------------------------------------------------------------
 # Prompt
@@ -149,8 +198,7 @@ def extract_table(crop: Image.Image, *, retries: int = 3) -> list[dict]:
 
 
 def _parse_response(raw: str) -> list[dict]:
-    """Parsea y valida el JSON devuelto por Gemini."""
-    # Gemini a veces agrega ```json ... ``` aunque se le pide que no
+    """Parsea, valida y aplica el cache MD5 al JSON devuelto por Gemini."""
     clean = re.sub(r"^```(?:json)?\s*", "", raw)
     clean = re.sub(r"\s*```$", "", clean).strip()
 
@@ -166,10 +214,12 @@ def _parse_response(raw: str) -> list[dict]:
         if not item.get("nbr_code") or not item.get("description_es"):
             continue
 
-        # Normalizar código: quitar saltos de línea residuales, colapsar espacios múltiples
         item["nbr_code"] = _normalize_code(item["nbr_code"])
         item.setdefault("description_pt", item["description_es"])
         item.setdefault("unit", "")
+
+        # Cache MD5: si ya teníamos esta traducción, usarla para consistencia
+        item["description_es"] = _apply_cache(item["description_pt"], item["description_es"])
 
         components = []
         for comp in item.get("components", []):
@@ -184,12 +234,27 @@ def _parse_response(raw: str) -> list[dict]:
             except (TypeError, ValueError):
                 comp["quantity"] = 0.0
             if comp["quantity"] > 0:
+                comp["description_es"] = _apply_cache(comp["description_pt"], comp["description_es"])
                 components.append(comp)
 
         item["components"] = components
         validated.append(item)
 
     return validated
+
+
+def _apply_cache(description_pt: str, gemini_translation: str) -> str:
+    """Aplica el cache MD5: usa traducción guardada si existe, si no guarda la nueva.
+
+    La traducción guardada tiene prioridad sobre la nueva de Gemini para garantizar
+    que la misma descripción portuguesa siempre produce la misma traducción española.
+    """
+    cached = _cached_translation(description_pt)
+    if cached:
+        return cached
+    # Nueva traducción: guardarla para uso futuro
+    _store_translation(description_pt, gemini_translation)
+    return gemini_translation
 
 
 def _normalize_code(code: str) -> str:
