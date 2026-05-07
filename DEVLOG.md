@@ -6,6 +6,29 @@
 
 ---
 
+## 2026-05-07 01:35 — Módulos projects/, library/ y budget/ + integración completa frontend
+
+**Implementado:**
+- Backend `projects/` (4 archivos: models, repository, service, router): CRUD completo para proyectos. Seed automático de 2 proyectos demo al arrancar si la tabla está vacía.
+- Backend `library/` (4 archivos): CRUD de biblioteca de proyecto (`project_library`). Incluye campo `manual_quantity` para cantidades manuales pre-IFC, con 409 si se intenta agregar el mismo ítem dos veces.
+- Backend `budget/` (4 archivos): módulo de solo lectura. Lee `project_library` JOIN `catalog_items` y calcula subtotales, total, conteo de ítems sin precio y sin cantidad.
+- Frontend: tipos `types/projects.ts`, `types/budget.ts`. Clientes HTTP `api/projects.ts`, `api/budget.ts`.
+- `Header.tsx` migrado de interfaz local a `types/projects.Project` (maneja `location: null`).
+- `App.tsx`: elimina proyectos mock, carga proyectos desde `GET /api/projects` con `useEffect`. Header oculto hasta que los proyectos carguen.
+- `BudgetView.tsx` reescrito: carga real desde `GET /api/projects/{id}/budget`. Banner dinámico con conteo real de ítems sin precio/cantidad. Agrupación por faceta con subtotales. Empty state cuando presupuesto vacío.
+- Verificado en browser: Presupuesto muestra 1 ítem real (de la prueba de integración), Catálogo carga faceta 3E con ítems reales del backend.
+
+**Problemas resueltos:**
+- Puerto 8000 ocupado por proceso viejo al reiniciar backend — resuelto con kill explícito del PID antes de relanzar.
+- TestClient sin `with` no ejecuta el lifespan (no crea tablas) — corregido usando `with TestClient(app) as client:`.
+
+**Decisiones cambiadas:**
+- `project_library` extendido con campo `manual_quantity` (no está en MODELO-DE-DATOS.md original). Decisión documentada en el código con comentario. Permite presupuesto manual sin IFC pipeline.
+
+**Próximo paso:** Implementar endpoint `POST /api/projects/{id}/library` desde el frontend (botón "Agregar al proyecto" en CatalogView) para que el usuario pueda construir el presupuesto desde la UI, sin tocar directamente la API.
+
+---
+
 ## 2026-05-07 06:15 — Construcción del Frontend React/TypeScript
 
 **Implementado:**

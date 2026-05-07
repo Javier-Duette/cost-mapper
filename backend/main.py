@@ -10,13 +10,35 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from catalog.router import router as catalog_router
+from projects.router import router as projects_router
+from library.router import router as library_router
+from budget.router import router as budget_router
+from projects.models import Project
 from db.session import create_db_and_tables
+from sqlmodel import Session, select
+
+
+def _seed_demo_projects(session: Session) -> None:
+    """Inserta proyectos de demo si la tabla está vacía."""
+    existing = session.exec(select(Project)).first()
+    if existing:
+        return
+    demos = [
+        Project(name="Edificio Residencial Asunción", location="Asunción, Paraguay", type="residencial", currency="PYG"),
+        Project(name="Centro Comercial CDE", location="Ciudad del Este, Paraguay", type="comercial", currency="PYG"),
+    ]
+    for p in demos:
+        session.add(p)
+    session.commit()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Crea las tablas de DB al arrancar (solo desarrollo)."""
+    """Crea las tablas de DB al arrancar y siembra datos de demo."""
     create_db_and_tables()
+    from db.session import engine
+    with Session(engine) as session:
+        _seed_demo_projects(session)
     yield
 
 
@@ -31,6 +53,9 @@ app = FastAPI(
 )
 
 app.include_router(catalog_router)
+app.include_router(projects_router)
+app.include_router(library_router)
+app.include_router(budget_router)
 
 
 @app.get("/", tags=["Health"])

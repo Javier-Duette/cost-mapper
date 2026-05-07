@@ -3,7 +3,7 @@ import { getItemAPU } from '../../api/catalog'
 import { Chip, SourceBadge } from './Chip'
 import { Icon } from './Icon'
 import { fmt } from './formatters'
-import type { APUComponent, CatalogItem } from '../../types/catalog'
+import type { APUComponentRead, CatalogItem } from '../../types/catalog'
 
 interface DetailPanelProps {
   item: CatalogItem | null
@@ -11,7 +11,7 @@ interface DetailPanelProps {
 
 /** Panel inferior APU — muestra el desglose de un ítem seleccionado. */
 export function DetailPanel({ item }: DetailPanelProps) {
-  const [apu, setApu] = useState<APUComponent[]>([])
+  const [apu, setApu] = useState<APUComponentRead[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -37,12 +37,13 @@ export function DetailPanel({ item }: DetailPanelProps) {
     <div className="dpanel">
       <div className="dpanel__strip">
         <div className="dpanel__strip-center">
-          <Chip faceta={item.faceta} />
+          <Chip faceta={item.facet} />
           <span className="codetag">{item.nbr_code}</span>
-          <span>{item.description}</span>
+          <span>{item.description_es}</span>
           <span style={{ color: 'var(--text-secondary)', margin: '0 4px' }}>·</span>
           <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>
-            {apu.length} insumos · ₲ {fmt(item.unit_price)}/{item.unit}
+            {apu.length > 0 ? `${apu.length} insumos · ` : ''}
+            {item.unit_price != null ? `₲ ${fmt(item.unit_price)}/${item.unit}` : 'sin precio'}
           </span>
         </div>
         <div className="dpanel__strip-tools">
@@ -68,22 +69,20 @@ export function DetailPanel({ item }: DetailPanelProps) {
                 <th>INSUMO</th>
                 <th style={{ width: 50 }}>UND</th>
                 <th className="num" style={{ width: 80 }}>COEF.</th>
-                <th style={{ width: 110 }}>FUENTE COEF.</th>
                 <th className="num" style={{ width: 110 }}>P. UNIT (₲)</th>
-                <th style={{ width: 110 }}>FUENTE PRECIO</th>
+                <th style={{ width: 110 }}>FUENTE</th>
               </tr>
             </thead>
             <tbody>
               {apu.map(r => (
-                <tr key={r.id}>
-                  <td><Chip faceta={r.component_faceta} /></td>
-                  <td className="num">{r.component_code}</td>
-                  <td>{r.component_description}</td>
-                  <td>{r.component_unit}</td>
-                  <td className="num">{r.coefficient.toLocaleString('es-PY')}</td>
-                  <td><SourceBadge source={r.coef_source} /></td>
-                  <td className="num">{fmt(r.unit_price)}</td>
-                  <td><SourceBadge source={r.price_source} /></td>
+                <tr key={r.apu_component_id}>
+                  <td><Chip faceta={r.clase} /></td>
+                  <td className="num">{r.codigo}</td>
+                  <td>{r.descripcion}</td>
+                  <td>{r.unidad}</td>
+                  <td className="num">{Number(r.coef).toLocaleString('es-PY')}</td>
+                  <td className="num">{fmt(r.precio != null ? Number(r.precio) : null)}</td>
+                  <td><SourceBadge source={r.fuente ?? '—'} /></td>
                 </tr>
               ))}
             </tbody>

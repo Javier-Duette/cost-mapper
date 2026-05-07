@@ -251,7 +251,7 @@ html, body, #root {
 .tbl tbody tr:hover { background: var(--bg-surface-hover); }
 .tbl tbody tr.is-selected { background: var(--accent-subtle); }
 .tbl tbody tr.is-selected td { color: #fff; }
-.tbl .num { text-align: right; font-family: var(--font-mono); }
+.tbl .num { text-align: right; font-family: var(--font-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tbl .desc small { color: var(--text-secondary); font-size: 11px; display: block; margin-top: 2px; }
 .tbl .group-hdr td { background: var(--bg-surface-raised); color: var(--text-primary); font-weight: 600; font-size: 12px; height: 30px; border-bottom: 1px solid var(--border-default); }
 .tbl .ftr td { background: var(--bg-surface); color: #fff; font-weight: 600; font-size: 14px; height: 42px; border-top: 1px solid var(--border-default); position: sticky; bottom: 0; }

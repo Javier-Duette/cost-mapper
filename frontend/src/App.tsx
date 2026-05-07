@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Header } from './components/shared/Header'
 import { Sidebar } from './components/shared/Sidebar'
 import { SectionHeader } from './components/shared/SectionHeader'
@@ -9,12 +9,9 @@ import { MappingView } from './components/mapping_panel/MappingView'
 import { ReportsView } from './components/reports_panel/ReportsView'
 import { Viewer3D } from './components/ifc_viewer/Viewer3D'
 import { Icon } from './components/shared/Icon'
+import { listProjects } from './api/projects'
 import type { CatalogItem, Faceta, Section } from './types/catalog'
-
-const MOCK_PROJECTS = [
-  { id: 'p1', name: 'Edificio Residencial Asunción', location: 'Asunción, Paraguay' },
-  { id: 'p2', name: 'Centro Comercial CDE',          location: 'Ciudad del Este, Paraguay' },
-]
+import type { Project } from './types/projects'
 
 const SECTION_TITLE: Record<Section, string> = {
   catalog:  'Catálogo de Ítems',
@@ -26,11 +23,21 @@ const SECTION_TITLE: Record<Section, string> = {
 }
 
 export default function App() {
-  const [project, setProject]           = useState(MOCK_PROJECTS[0]!)
+  const [projects, setProjects]         = useState<Project[]>([])
+  const [project, setProject]           = useState<Project | null>(null)
   const [section, setSection]           = useState<Section>('budget')
   const [search, setSearch]             = useState('')
   const [activeFacetas, setActiveFacetas] = useState<Faceta[]>([])
   const [relevantOnly, setRelevantOnly] = useState(true)
+
+  useEffect(() => {
+    listProjects()
+      .then(({ items }) => {
+        setProjects(items)
+        if (items.length > 0) setProject(items[0]!)
+      })
+      .catch(console.error)
+  }, [])
 
   /* Catalog state */
   const [catFaceta, setCatFaceta]       = useState<Faceta | null>(null)
@@ -59,7 +66,9 @@ export default function App() {
   return (
     <div className={`app ${layoutClass}`}>
       <div className="area-header">
-        <Header project={project} projects={MOCK_PROJECTS} onChangeProject={setProject} />
+        {project && (
+          <Header project={project} projects={projects} onChangeProject={setProject} />
+        )}
       </div>
 
       <div className="area-sidebar">
@@ -70,7 +79,7 @@ export default function App() {
         <div className="section">
           <SectionHeader
             title={SECTION_TITLE[section]}
-            subtitle={section === 'budget' ? project.name : undefined}
+            subtitle={section === 'budget' ? (project?.name ?? '') : undefined}
             search={search}
             onSearch={setSearch}
             activeFacetas={activeFacetas}
@@ -85,6 +94,7 @@ export default function App() {
               search={search}
               activeFaceta={catFaceta}
               onSelectFaceta={setCatFaceta}
+              relevantOnly={relevantOnly}
               selectedId={catSelectedId}
               onSelect={(id, item) => handleCatSelect(id, item)}
             />
@@ -92,6 +102,7 @@ export default function App() {
 
           {section === 'budget' && (
             <BudgetView
+              projectId={project?.id ?? null}
               search={search}
               selectedId={budgetSelectedId}
               onSelect={setBudgetSelectedId}

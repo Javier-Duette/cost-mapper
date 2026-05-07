@@ -1,4 +1,4 @@
-import type { APUComponent, CatalogItem, CatalogSearchResult } from '../types/catalog'
+import type { APUComponentRead, CatalogItem, CatalogSearchResult } from '../types/catalog'
 
 const BASE = '/api/catalog'
 
@@ -11,11 +11,11 @@ export async function searchItems(params: {
   limit?: number
 }): Promise<CatalogSearchResult> {
   const url = new URL(BASE + '/items', window.location.origin)
-  if (params.q)           url.searchParams.set('q', params.q)
-  if (params.facet)       url.searchParams.set('facet', params.facet)
+  if (params.q)                  url.searchParams.set('q', params.q)
+  if (params.facet)              url.searchParams.set('facet', params.facet)
   if (params.relevant_py != null) url.searchParams.set('relevant_py', String(params.relevant_py))
-  if (params.offset != null) url.searchParams.set('offset', String(params.offset))
-  if (params.limit  != null) url.searchParams.set('limit',  String(params.limit))
+  if (params.offset != null)     url.searchParams.set('offset', String(params.offset))
+  if (params.limit  != null)     url.searchParams.set('limit',  String(params.limit))
 
   const res = await fetch(url.toString())
   if (!res.ok) throw new Error(`GET /items falló: ${res.status}`)
@@ -30,8 +30,8 @@ export async function getItem(id: string): Promise<CatalogItem> {
 }
 
 /** Obtiene el desglose APU de un ítem. */
-export async function getItemAPU(id: string): Promise<APUComponent[]> {
+export async function getItemAPU(id: string): Promise<APUComponentRead[]> {
   const res = await fetch(`${BASE}/items/${id}/apu`)
   if (!res.ok) throw new Error(`GET /items/${id}/apu falló: ${res.status}`)
-  return res.json() as Promise<APUComponent[]>
+  return res.json() as Promise<APUComponentRead[]>
 }

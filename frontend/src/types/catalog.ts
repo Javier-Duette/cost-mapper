@@ -1,29 +1,44 @@
+/** Facetas NBR 15965 principales (BIM-relevantes en construcción). */
 export type Faceta = '3E' | '4U' | '2C' | '2N' | '2Q'
 
+/** Respuesta del endpoint GET /api/catalog/items/:id y listados. */
 export interface CatalogItem {
   id: string
+  uuid_status: string
   nbr_code: string
-  description: string
+  facet: string          // puede ser '3E', '2C', '0M', etc.
+  description_es: string
+  description_pt: string | null
   unit: string
   unit_price: number | null
-  faceta: Faceta
-  price_source: string
+  currency: string | null
+  fuente_precios: string | null
+  fuente_factores: string | null
+  bim_taggable: boolean
   relevant_py: boolean
+  oficial: boolean
+  parent_nbr_code: string | null
+  creado_por: string
+  modificado_por: string | null
+  created_at: string
+  updated_at: string
 }
 
-export interface APUComponent {
-  id: string
+/** Fila del desglose APU (endpoint GET /api/catalog/items/:id/apu). */
+export interface APUComponentRead {
+  apu_component_id: string
   component_id: string
-  component_code: string
-  component_description: string
-  component_unit: string
-  component_faceta: Faceta
-  coefficient: number
-  coef_source: string
-  unit_price: number | null
-  price_source: string
+  clase: string      // facet del componente (2N, 2Q, 2C)
+  codigo: string     // nbr_code del componente
+  descripcion: string
+  unidad: string
+  coef: number
+  precio: number | null
+  currency: string | null
+  fuente: string | null
 }
 
+/** Respuesta paginada del endpoint GET /api/catalog/items. */
 export interface CatalogSearchResult {
   items: CatalogItem[]
   total: number

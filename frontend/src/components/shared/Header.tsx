@@ -1,11 +1,6 @@
 import { useState } from 'react'
 import { Icon } from './Icon'
-
-interface Project {
-  id: string
-  name: string
-  location: string
-}
+import type { Project } from '../../types/projects'
 
 interface HeaderProps {
   project: Project
@@ -29,7 +24,7 @@ export function Header({ project, projects, onChangeProject }: HeaderProps) {
           <Icon name="folder" size={16} style={{ color: '#9D9D9D' }} />
           <div className="proj-select__lines">
             <div className="proj-select__name">{project.name}</div>
-            <div className="proj-select__loc">{project.location}</div>
+            <div className="proj-select__loc">{project.location ?? '—'}</div>
           </div>
           <Icon name={open ? 'chevron_up' : 'chevron_down'} size={14} style={{ color: '#9D9D9D' }} />
 
@@ -42,7 +37,7 @@ export function Header({ project, projects, onChangeProject }: HeaderProps) {
                   onClick={() => { onChangeProject(p); setOpen(false) }}
                 >
                   <div className="pn">{p.name}</div>
-                  <div className="pl">{p.location}</div>
+                  <div className="pl">{p.location ?? '—'}</div>
                 </div>
               ))}
             </div>
