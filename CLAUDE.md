@@ -12,20 +12,28 @@ El sistema permite: importar un modelo IFC de Revit → mapear elementos 3D a í
 
 ---
 
+## Al inicio de cada sesión — leer antes de hacer cualquier cosa
+
+1. **`DEVLOG.md`** — la última entrada dice exactamente dónde quedó el proyecto. Esto reemplaza tener que releer toda la conversación anterior.
+2. **Este archivo (`CLAUDE.md`)** — reglas del proyecto, convenciones de código, módulos y protocolo de git.
+3. Si el usuario menciona un módulo o decisión específica → leer el ADR correspondiente en `docs/adrs/`.
+
+---
+
 ## Leer antes de tocar código
 
 Los ADRs son la razón de por qué el sistema es como es. Un cambio que contradiga un ADR sin revisarlo primero es un error. Leer en este orden:
 
 | ADR | Tema | Por qué importa |
 |-----|------|-----------------|
-| ADR-001 | UUIDs y sistema de identificación | Explica por qué `catalog_items.id` es un UUID NBR, no un autoincremental |
-| ADR-002 | Estrategia de datos TCPO V14 → V15 | Explica el pipeline ETL y por qué la clasificación es semántica con IA |
-| ADR-003 | Extracción del PDF TCPO V15 | Explica el estado real de los datos disponibles — crítico antes de tocar scripts ETL |
-| ADR-004 | Flujo de trabajo IFC | Explica todo el ciclo importación → mapeo → presupuesto y los dos módulos críticos |
-| ADR-005 | Formatos de exportación | Explica qué formatos hay en MVP y cuáles son post-MVP |
-| ADR-006 | Extensibilidad y documentación | Explica este archivo, el DEVLOG y las reglas de módulo |
+| [ADR-001](docs/adrs/ADR-001.md) | UUIDs y sistema de identificación | Explica por qué `catalog_items.id` es un UUID NBR, no un autoincremental |
+| [ADR-002](docs/adrs/ADR-002.md) | Estrategia de datos TCPO V14 → V15 | Explica el pipeline ETL y por qué la clasificación es semántica con IA |
+| [ADR-003](docs/adrs/ADR-003.md) | Extracción del PDF TCPO V15 | Explica el estado real de los datos disponibles — crítico antes de tocar scripts ETL |
+| [ADR-004](docs/adrs/ADR-004.md) | Flujo de trabajo IFC | Explica todo el ciclo importación → mapeo → presupuesto y los dos módulos críticos |
+| [ADR-005](docs/adrs/ADR-005.md) | Formatos de exportación | Explica qué formatos hay en MVP y cuáles son post-MVP |
+| [ADR-006](docs/adrs/ADR-006.md) | Extensibilidad y documentación | Explica este archivo, el DEVLOG y las reglas de módulo |
 
-Todos en: `docs/DUDAS.md`
+Todos en: `docs/adrs/` — índice completo en [`docs/adrs/README.md`](docs/adrs/README.md)
 
 ---
 
@@ -39,7 +47,7 @@ cost-mapper/
 ├── README.md
 │
 ├── docs/                  ← documentación del proyecto (no tocar sin leer el ADR correspondiente)
-│   ├── DUDAS.md           ← ADRs — decisiones de arquitectura
+│   ├── adrs/              ← ADRs — decisiones de arquitectura (un .md por ADR)
 │   ├── MODELO-DE-DATOS.md ← schema PostgreSQL completo
 │   ├── ARQUITECTURA.md    ← módulos del sistema y sus contratos
 │   ├── STACK-TECNOLOGICO.md
@@ -172,7 +180,7 @@ Tipos: `feat` · `fix` · `refactor` · `docs` · `test` · `chore`
 | `scripts/04_traducir.py` · `05_clasificar.py` | ADR-002 | La estrategia de clasificación semántica está documentada — no cambiar el enfoque sin revisarla |
 | `backend/ifc_importer/` | ADR-004 | El flujo de ingesta IFC tiene reglas de sincronización en reimportaciones |
 | `backend/mapper/` | ADR-004 | La lógica de `classification_source` determina el comportamiento en reimportaciones |
-| `docs/DUDAS.md` | — | Solo agregar ADRs nuevos o actualizar el estado. No editar decisiones ya aceptadas sin consenso. |
+| `docs/adrs/` | — | Solo agregar ADRs nuevos o actualizar el estado. No editar decisiones ya aceptadas sin consenso. |
 | `.git/` · operaciones de historial | ADR-008 | Nunca reescribir historial (`rebase -i`, `push --force`, `reset --hard` con commits pusheados). Ver protocolo de git arriba. |
 
 ---
@@ -219,5 +227,57 @@ cd frontend && npx playwright test
 1. Leer el `DEVLOG.md` para saber el estado actual del proyecto.
 2. Correr los tests: `pytest` en backend, `playwright test` en frontend.
 3. Verificar que no se rompen las reglas de módulo.
-4. Si se cambia una decisión de diseño: actualizar el ADR correspondiente en `docs/DUDAS.md`.
+4. Si se cambia una decisión de diseño: actualizar el ADR correspondiente en `docs/adrs/`.
 5. Agregar una entrada al `DEVLOG.md` con qué cambió y por qué.
+
+---
+
+## Cierre de sesión — protocolo obligatorio
+
+Al terminar una sesión de trabajo, hacer estas tres cosas en orden:
+
+### 1. Actualizar DEVLOG.md
+
+Agregar una nueva entrada al inicio del archivo (después del encabezado):
+
+```markdown
+## YYYY-MM-DD — [Título descriptivo]
+
+**Implementado:**
+- [qué se hizo concretamente]
+
+**Problemas resueltos:**
+- [bugs encontrados y cómo se resolvieron, si aplica]
+
+**Decisiones cambiadas:**
+- [si se creó o modificó algún ADR, referenciarlo]
+
+**Próximo paso:** [una sola frase concreta de qué viene después]
+```
+
+Cuando `DEVLOG.md` supere las ~30 entradas, mover las más antiguas a `DEVLOG-archive.md` y mantener solo las últimas 10 en el archivo principal.
+
+### 2. Verificar coherencia de documentación
+
+Antes del commit, chequear si algún doc quedó desactualizado:
+
+| Si cambió... | Actualizar... |
+|---|---|
+| Schema de DB | `docs/MODELO-DE-DATOS.md` |
+| Un módulo o su contrato | `docs/ARQUITECTURA.md` |
+| Una tecnología del stack | `docs/STACK-TECNOLOGICO.md` |
+| Una decisión de diseño | `docs/adrs/ADR-0XX.md` + tabla en `docs/adrs/README.md` |
+| Las instrucciones del repo | `CLAUDE.md` |
+
+### 3. Commit + push
+
+```bash
+git add -A
+git commit -m "tipo: descripción corta en imperativo"
+git push
+```
+
+Reportar al usuario el mensaje exacto del commit:
+> _"Hice push. El último commit en github.com/Javier-Duette/cost-mapper dice: '[mensaje]'. Podés verificarlo en el navegador."_
+
+**Nunca terminar una sesión sin pushear.** Si el trabajo está incompleto, commitear igualmente con un mensaje descriptivo.

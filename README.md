@@ -25,7 +25,7 @@ Modelo IFC (Revit) → Cost-Mapper → Presupuesto con APUs → Export PDF/Excel
 
 - [`CLAUDE.md`](CLAUDE.md) — punto de entrada para agentes de IA y desarrolladores
 - [`DEVLOG.md`](DEVLOG.md) — log cronológico de sesiones
-- [`docs/DUDAS.md`](docs/DUDAS.md) — decisiones de arquitectura (ADRs)
+- [`docs/adrs/`](docs/adrs/) — decisiones de arquitectura (ADRs)
 - [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md) — módulos del sistema
 - [`docs/MODELO-DE-DATOS.md`](docs/MODELO-DE-DATOS.md) — schema PostgreSQL
 

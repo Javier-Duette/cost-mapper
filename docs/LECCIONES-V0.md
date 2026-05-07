@@ -106,7 +106,7 @@ Para evitar traducir la misma descripción portuguesa dos veces (hay muchas part
 
 Los ítems creados por el usuario recibían el prefijo `PY.{cap}.{NNNNNN}.{sufijo}` (ejemplo: `PY.22.000005.MAT`). Esto los diferenciaba visualmente de los ítems TCPO originales y evitaba colisiones de códigos. El sistema soportaba tanto ítems "hoja" (precio directo) como "servicios compuestos" (con composición de componentes y recálculo en cascada).
 
-**Para V2:** Esta es la respuesta a la pregunta abierta en `DUDAS.md` sobre ítems personalizados. El prefijo `PY.*` es la solución probada.
+**Para V2:** Esta es la respuesta a la pregunta abierta en los ADRs (`docs/adrs/`) sobre ítems personalizados. El prefijo `PY.*` es la solución probada.
 
 ---
 
@@ -160,9 +160,9 @@ El prototipo era puramente un catálogo de precios con interfaz de búsqueda. La
 
 ---
 
-## 8. Preguntas de DUDAS.md: qué responde V0 y qué sigue abierto
+## 8. Preguntas de los ADRs: qué responde V0 y qué sigue abierto
 
-| Pregunta en DUDAS.md                                | Estado                               | Respuesta                                                                                                                                                                                                |
+| Pregunta en ADRs (`docs/adrs/`)                     | Estado                               | Respuesta                                                                                                                                                                                                |
 | --------------------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ¿Cómo manejar ítems sin UUID o personalizados?      | ✅ Resuelta                           | Namespace `PY.{cap}.{NNNNNN}.{sufijo}`. Probado en V0, adoptar en V2.                                                                                                                                    |
 | ¿Cómo vincular TCPO V14 con V15?                    | ⚠️ Sigue abierta y es la más crítica | V0 trabajó solo con V14. La V15 real (con UUIDs NBR 15965) no estaba disponible y fue la razón del abandono. En V2 hay que decidir: ¿obtener la V15 oficial, o construir un mapeo V14→UUIDs manualmente? |

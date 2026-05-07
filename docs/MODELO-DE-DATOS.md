@@ -2,7 +2,7 @@
 
 > **Propósito de este documento:** Esquema conceptual de la base de datos. Define las entidades, sus campos clave y las relaciones entre ellas. Las decisiones de diseño aquí documentadas derivan directamente de los ADRs — cada campo importante tiene una razón. Este documento es la referencia para diseñar las migraciones de PostgreSQL.
 
-**Documentos previos requeridos:** `ISO-12006.md`, `DUDAS.md` (ADR-001, ADR-004, ADR-007)
+**Documentos previos requeridos:** `ISO-12006.md`, `docs/adrs/` (ADR-001, ADR-004, ADR-007)
 
 ---
 

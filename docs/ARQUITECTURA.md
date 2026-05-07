@@ -2,7 +2,7 @@
 
 > **Propósito de este documento:** Describir cómo está organizado el sistema en módulos, qué hace cada uno, cómo se comunican y dónde están los límites de responsabilidad. Este documento es la referencia para cualquier desarrollador (o agente de IA) que quiera modificar una parte del sistema sin tener que entender todo el resto.
 >
-> **Documentos previos requeridos:** `MODELO-DE-DATOS.md`, `DUDAS.md` (ADR-004, ADR-006)
+> **Documentos previos requeridos:** `MODELO-DE-DATOS.md`, `docs/adrs/` (ADR-004, ADR-006)
 
 ---
 
@@ -355,7 +355,7 @@ Estas reglas garantizan que los módulos sean modificables de forma independient
 | Documento            | Relación                                                        |
 | -------------------- | --------------------------------------------------------------- |
 | `MODELO-DE-DATOS.md` | Define las tablas que cada módulo lee y escribe                 |
-| `DUDAS.md` ADR-004   | Flujo IFC completo — justifica el diseño del módulo ifc_importer y mapper |
-| `DUDAS.md` ADR-006   | Requisito de modularidad — justifica las reglas de módulo       |
+| `docs/adrs/ADR-004.md` | Flujo IFC completo — justifica el diseño del módulo ifc_importer y mapper |
+| `docs/adrs/ADR-006.md` | Requisito de modularidad — justifica las reglas de módulo       |
 | `INTERFAZ.md`        | Decisiones de comportamiento del frontend                       |
 | `LECCIONES-V0.md`    | Scripts ETL rescatables del prototipo anterior                  |

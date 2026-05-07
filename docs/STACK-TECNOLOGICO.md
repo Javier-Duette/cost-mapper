@@ -2,7 +2,7 @@
 
 > **Propósito de este documento:** Justificar cada tecnología del stack. No es una lista de herramientas — es el registro de por qué cada pieza fue elegida sobre las alternativas, de modo que cualquier desarrollador entienda las restricciones y pueda tomar decisiones coherentes al extender el sistema.
 >
-> **Documentos previos requeridos:** `ARQUITECTURA.md`, `DUDAS.md` (ADR-004, ADR-006), `LECCIONES-V0.md`
+> **Documentos previos requeridos:** `ARQUITECTURA.md`, `docs/adrs/` (ADR-004, ADR-006), `LECCIONES-V0.md`
 
 ---
 

@@ -6,10 +6,33 @@
 
 ---
 
+## 2026-05-06 — Reorganización de ADRs y refactoring del flujo de agentes IA
+
+**Implementado:**
+- Migración de ADRs: `docs/DUDAS.md` (47KB, 611 líneas) → `docs/adrs/` (9 archivos individuales + README índice). Cada ADR ahora es un `.md` separado, más eficiente para que los agentes lean solo lo que necesitan.
+- ADR-009 (SQLModel) movido de la raíz del repo a `docs/adrs/ADR-009.md` y registrado en el índice.
+- Análisis completo del flujo de trabajo de agentes de IA: identificados 6 problemas de coherencia entre `CLAUDE.md` y `SKILL.md`.
+- Refactoring de `CLAUDE.md`: agregadas secciones "Al inicio de cada sesión" y "Cierre de sesión — protocolo obligatorio" con tabla de coherencia de documentación. Ahora cualquier agente (no solo Antigravity) tiene las instrucciones completas.
+- Refactoring de `SKILL.md`: eliminada duplicación de contenido (197 → 134 líneas). Las secciones duplicadas ahora referencian a `CLAUDE.md` como fuente de verdad.
+- Actualización de 14 referencias a `DUDAS.md` en 8 archivos del repositorio.
+- Eliminados archivos huérfanos: `ADR-009-SQLModel.md` (raíz), `CIERRE-SESION-2026-05-06.md`.
+
+**Problemas resueltos:**
+- El protocolo de cierre de sesión solo existía en `SKILL.md` (invisible para Claude Code, Copilot, Cursor). Movido a `CLAUDE.md`.
+- `CLAUDE.md` no indicaba leer `DEVLOG.md` al inicio de sesión. Corregido con nueva sección.
+
+**Decisiones cambiadas:**
+- ADRs migrados de archivo monolítico a carpeta con archivos individuales (`docs/adrs/`).
+- `CLAUDE.md` es ahora la fuente de verdad universal; `SKILL.md` es el amplificador.
+
+**Próximo paso:** Revisar y aprobar ADR-009 (migración a SQLModel), luego implementar módulo `catalog/` como piloto.
+
+---
+
 ## 2026-05-06 — Decisión de repositorio y protocolo de git
 
 **Implementado:**
-- `DUDAS.md` — ADR-008: estrategia de repositorio y protocolo de control de versiones. Documenta la causa raíz de la pérdida de trabajo en V0 y las reglas obligatorias para evitar que se repita.
+- `docs/adrs/ADR-008.md` — estrategia de repositorio y protocolo de control de versiones. Documenta la causa raíz de la pérdida de trabajo en V0 y las reglas obligatorias para evitar que se repita.
 - `CLAUDE.md` — sección "Protocolo de control de versiones" agregada. Define la regla central (push = guardado real), el protocolo para operaciones riesgosas y cómo el usuario puede verificar el estado del repositorio sin saber git.
 - `CLAUDE.md` — tabla "Archivos que NO tocar" actualizada con fila para `.git/` referenciando ADR-008.
 
@@ -63,7 +86,7 @@ La frase "crear un backup" fue interpretada por el agente como copia de carpeta 
 - `STACK-TECNOLOGICO.md` — justificación de cada tecnología: Python/FastAPI/ifcopenshell/PostgreSQL/Gemini (ETL) + TypeScript/React/@thatopen/Playwright. Sección "lo que no está decidido todavía" (ORM, hosting, auth, gestor JS).
 - `INTERFAZ.md` — layout de 4 zonas (sidebar iconos · área principal · visor 3D derecho · panel de detalle inferior), header, navegación sidebar (6 secciones sin etiquetas de texto), las 6 secciones completas (Catálogo, Presupuesto, Mapeo IFC, Biblioteca, Informes, Ajustes), panel de detalle, visor 3D, 4 decisiones UX documentadas, sección 13 de iconografía (set SVG monoline para Claude Design).
 - `CLAUDE.md` — archivo de entrada para agentes de IA: descripción del proyecto, tabla de ADRs, estructura del repositorio, reglas de módulo, convenciones de código, archivos protegidos, comandos para correr el proyecto.
-- `DUDAS.md` (actualización) — ADR-005 cerrado como Aceptado. Registro de documentos completados.
+- `docs/adrs/ADR-005.md` (actualización) — ADR-005 cerrado como Aceptado. Registro de documentos completados.
 
 **Problemas resueltos:**
 - `unit_price` referenciado en la query APU pero ausente del schema `catalog_items`. Resuelto: se agregó `unit_price DECIMAL(14,2)` y `currency TEXT` directamente en `catalog_items`. Los insumos (mano de obra, materiales, equipos) tienen precio propio en el catálogo — es el mismo ítem, no una tabla separada.
