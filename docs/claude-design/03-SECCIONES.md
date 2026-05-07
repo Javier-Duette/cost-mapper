@@ -92,7 +92,9 @@ Panel simple y directo para generar los entregables.
 1. **Tarjetas de Exportación (Grid):**
    - Tarjeta "PDF Formal": Ícono de PDF, descripción, opciones (incluir detalle APU o solo resumen).
    - Tarjeta "Excel (XLSX)": Ícono de Excel, descripción, opciones (exportación cruda).
-2. **Área de Advertencias:**
+2. **Prototipo de PDF (Previsualización):**
+   - El sistema de diseño debe incluir un layout/mockup de cómo se vería el documento PDF exportado (tamaño A4, header formal, tabla densa en blanco y negro, pie de página).
+3. **Área de Advertencias:**
    - Si faltan precios, un bloque de advertencia grande con botones de acción ("Exportar de todas formas" o "Ir al presupuesto").
 
 ---
