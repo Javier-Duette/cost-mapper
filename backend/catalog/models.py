@@ -149,6 +149,15 @@ class CatalogItem(SQLModel, table=True):
         default=False,
         description="Indica si un usuario humano verificó la exactitud de este ítem y su APU.",
     )
+    verificado_por: str | None = Field(
+        default=None,
+        description="Nombre del usuario que verificó el ítem.",
+        max_length=100,
+    )
+    fecha_verificacion: datetime | None = Field(
+        default=None,
+        description="Fecha y hora de la verificación.",
+    )
 
     # --- Auditoría ---
     modificado_por: str | None = Field(
@@ -263,6 +272,8 @@ class CatalogItemUpdate(SQLModel):
     fuente_factores: str | None = None
     relevant_py: bool | None = None
     is_verified: bool | None = None
+    verificado_por: str | None = None
+    fecha_verificacion: datetime | None = None
 
 
 class CatalogItemRead(SQLModel):
@@ -283,6 +294,8 @@ class CatalogItemRead(SQLModel):
     relevant_py: bool
     oficial: bool
     is_verified: bool
+    verificado_por: str | None
+    fecha_verificacion: datetime | None
     is_work_item: bool
     parent_nbr_code: str | None
     creado_por: str
@@ -305,6 +318,10 @@ class APUComponentRead(SQLModel):
     fuente_coef: str | None    # source del apu_component
     apu_component_id: str  # id del APUComponent (para edición)
     component_id: str      # id del catalog_item componente
+    creado_por: str | None = None
+    modificado_por: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 class APUComponentUpdate(SQLModel):
     """Request body para edición parcial de un componente APU (coeficientes)."""

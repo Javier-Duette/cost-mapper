@@ -17,6 +17,7 @@ import { MappingView } from './components/mapping_panel/MappingView'
 import { ReportsView } from './components/reports_panel/ReportsView'
 
 import { EtlView } from './components/settings_panel/EtlView'
+import { SettingsView } from './components/settings_panel/SettingsView'
 
 import { Viewer3D } from './components/ifc_viewer/Viewer3D'
 
@@ -46,7 +47,7 @@ const SECTION_TITLE: Record<Section, string> = {
 
   reports:  'Informes',
 
-  settings: 'Importar TCPO V15',
+  settings: 'Configuración',
 
 }
 
@@ -102,11 +103,11 @@ export default function App() {
 
       if (e instanceof DuplicateItemError) {
 
-        toast('El Ã­tem ya estÃ¡ en el proyecto', 'warning')
+        toast('El ítem ya está en el proyecto', 'warning')
 
       } else {
 
-        toast('Error al agregar el Ã­tem', 'error')
+        toast('Error al agregar el ítem', 'error')
 
       }
 
@@ -133,6 +134,7 @@ export default function App() {
   /* Resizing panel */
 
   const [panelHeight, setPanelHeight] = useState(280)
+  const [refreshCounter, setRefreshCounter] = useState(0)
 
   const handleDragStart = (e: React.MouseEvent) => {
 
@@ -187,6 +189,11 @@ export default function App() {
   const showFacetas = section === 'catalog' || section === 'budget'
 
 
+
+  const handleItemUpdate = (updated: CatalogItem) => {
+    setCatSelectedItem(updated)
+    setRefreshCounter(prev => prev + 1)
+  }
 
   const handleCatSelect = (id: string, item: CatalogItem) => {
 
@@ -269,6 +276,7 @@ export default function App() {
               projectId={project?.id ?? null}
 
               onAddToProject={handleAddToProject}
+                  refreshKey={refreshCounter}
 
             />
 
@@ -301,10 +309,13 @@ export default function App() {
 
 
           {section === 'reports' && <ReportsView onPreviewPdf={() => {}} />}
-
-
-
-          {section === 'settings' && <EtlView />}
+          {section === 'settings' && (
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'auto' }}>
+              <EtlView />
+              <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '0 32px' }} />
+              <SettingsView />
+            </div>
+          )}
 
 
 
@@ -364,7 +375,10 @@ export default function App() {
 
           />
 
-          <DetailPanel item={section === 'catalog' ? catSelectedItem : null} />
+          <DetailPanel 
+              item={section === 'catalog' ? catSelectedItem : null} 
+              onUpdate={handleItemUpdate}
+            />
 
         </div>
 

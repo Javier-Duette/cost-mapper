@@ -1,4 +1,4 @@
-﻿"""
+"""
 Repository del mÃ³dulo catalog â€” acceso a DB.
 
 Solo queries. Sin lÃ³gica de negocio.
@@ -149,6 +149,10 @@ def get_apu_components(session: Session, item_id: str) -> list[APUComponentRead]
             fuente_coef=apu.source,
             apu_component_id=apu.id,
             component_id=component.id,
+            creado_por=component.creado_por,
+            modificado_por=component.modificado_por,
+            created_at=component.created_at,
+            updated_at=component.updated_at,
         )
         for apu, component in results
     ]

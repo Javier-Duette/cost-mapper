@@ -1,110 +1,31 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { getItemAPU, updateItem, updateAPUComponent, addAPUComponent } from '../../api/catalog'
 import { Chip, SourceBadge } from './Chip'
 import { Icon } from './Icon'
 import { fmt } from './formatters'
 import { AddInsumoModal } from './AddInsumoModal'
+import { VerifyModal } from './VerifyModal'
+import { AuditModal } from './AuditModal'
+import { InlineEdit } from './InlineEdit'
 import type { APUComponentRead, CatalogItem } from '../../types/catalog'
 
 interface DetailPanelProps {
   item: CatalogItem | null
+  onUpdate?: (updated: CatalogItem) => void
 }
 
-/** Componente interno para ediciÃ³n en lÃ­nea (texto y nÃºmeros) */
-function InlineEdit({ 
-  value, 
-  onSave, 
-  type = 'text',
-  align = 'left',
-  children
-}: { 
-  value: string | number | null, 
-  onSave: (val: string) => void,
-  type?: 'text' | 'number',
-  align?: 'left' | 'right',
-  children?: React.ReactNode
-}) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [tempVal, setTempVal] = useState(value?.toString() ?? '')
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    setTempVal(value?.toString() ?? '')
-  }, [value])
-
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus()
-    }
-  }, [isEditing])
-
-  const handleSave = () => {
-    setIsEditing(false)
-    if (tempVal !== (value?.toString() ?? '')) {
-      onSave(tempVal)
-    }
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSave()
-    if (e.key === 'Escape') {
-      setTempVal(value?.toString() ?? '')
-      setIsEditing(false)
-    }
-  }
-
-  if (isEditing) {
-    return (
-      <input
-        ref={inputRef}
-        type={type}
-        value={tempVal}
-        onChange={e => setTempVal(e.target.value)}
-        onBlur={handleSave}
-        onKeyDown={handleKeyDown}
-        style={{
-          width: '100%',
-          background: 'var(--bg-elevated, #2a2a2a)',
-          color: 'var(--text-primary, #fff)',
-          border: '1px solid var(--border-color, #444)',
-          borderRadius: 2,
-          padding: '2px 4px',
-          fontSize: 'inherit',
-          fontFamily: 'inherit',
-          textAlign: align
-        }}
-      />
-    )
-  }
-
-  return (
-    <div 
-      onClick={() => setIsEditing(true)}
-      style={{ 
-        cursor: 'text', 
-        minHeight: 18, 
-        minWidth: 20,
-        display: 'inline-block',
-        width: '100%',
-        textAlign: align,
-        borderBottom: '1px dashed transparent',
-        transition: 'border-color 0.2s'
-      }}
-      onMouseEnter={e => e.currentTarget.style.borderBottom = '1px dashed var(--text-secondary, #888)'}
-      onMouseLeave={e => e.currentTarget.style.borderBottom = '1px dashed transparent'}
-    >
-      {children ? children : (type === 'number' && value != null 
-        ? (align === 'right' ? Number(value).toLocaleString('es-PY') : value) 
-        : (value || <span style={{ color: 'var(--text-secondary)' }}>â€”</span>))}
-    </div>
-  )
-}
-
-/** Panel inferior APU â€” muestra el desglose de un Ã­tem seleccionado. */
-export function DetailPanel({ item }: DetailPanelProps) {
+/** Panel inferior APU — muestra el desglose de un ítem seleccionado. */
+export function DetailPanel({ item, onUpdate }: DetailPanelProps) {
   const [apu, setApu] = useState<APUComponentRead[]>([])
   const [loading, setLoading] = useState(false)
   const [isAddingInsumo, setIsAddingInsumo] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [auditAction, setAuditAction] = useState<{
+    type: 'item_price' | 'comp_price',
+    targetId: string,
+    newValue: string,
+    apuId?: string
+  } | null>(null)
 
   const fetchAPU = () => {
     if (!item) { setApu([]); return }
@@ -123,10 +44,43 @@ export function DetailPanel({ item }: DetailPanelProps) {
     if (!item) return
     try {
       await updateItem(item.id, { description_es: val })
-      // La prop item es de solo lectura, no actualizamos el estado local aquÃ­,
-      // idealmente el componente padre lo refrescarÃ­a, pero evitamos crashear.
+      if (onUpdate) onUpdate({ ...item, description_es: val })
     } catch (e) {
-      console.error('Error al actualizar descripciÃ³n', e)
+      console.error('Error al actualizar descripción', e)
+    }
+  }
+
+  const handleUpdateItemPriceRequest = (val: string) => {
+    if (!item) return
+    setAuditAction({ type: 'item_price', targetId: item.id, newValue: val })
+  }
+
+  const handleUpdateItemPriceConfirm = async (username: string, source: string) => {
+    if (!item || !auditAction) return
+    const num = parseFloat(auditAction.newValue)
+    try {
+      await updateItem(item.id, { 
+        unit_price: num, 
+        fuente_precios: source,
+        is_verified: false,
+        verificado_por: null,
+        fecha_verificacion: null
+      }, username)
+      if (onUpdate) {
+        onUpdate({ 
+          ...item, 
+          unit_price: num, 
+          fuente_precios: source,
+          is_verified: false,
+          verificado_por: null,
+          fecha_verificacion: null,
+          modificado_por: username,
+          updated_at: new Date().toISOString()
+        })
+      }
+      setAuditAction(null)
+    } catch (e) {
+      console.error('Error al actualizar precio del ítem', e)
     }
   }
 
@@ -135,7 +89,7 @@ export function DetailPanel({ item }: DetailPanelProps) {
       await updateItem(component_id, { description_es: val })
       fetchAPU()
     } catch (e) {
-      console.error('Error al actualizar descripciÃ³n de componente', e)
+      console.error('Error al actualizar descripción de componente', e)
     }
   }
 
@@ -150,12 +104,17 @@ export function DetailPanel({ item }: DetailPanelProps) {
     }
   }
 
-  const handleUpdatePrecio = async (component_id: string, val: string) => {
-    const num = parseFloat(val)
-    if (isNaN(num)) return
+  const handleUpdatePrecioRequest = (component_id: string, val: string) => {
+    setAuditAction({ type: 'comp_price', targetId: component_id, newValue: val })
+  }
+
+  const handleUpdatePrecioConfirm = async (username: string, source: string) => {
+    if (!auditAction) return
+    const num = parseFloat(auditAction.newValue)
     try {
-      await updateItem(component_id, { unit_price: num, fuente_precios: 'CUSTOM' })
+      await updateItem(auditAction.targetId, { unit_price: num, fuente_precios: source }, username)
       fetchAPU()
+      setAuditAction(null)
     } catch (e) {
       console.error('Error al actualizar precio', e)
     }
@@ -181,12 +140,47 @@ export function DetailPanel({ item }: DetailPanelProps) {
 
   const handleToggleVerified = async () => {
     if (!item) return
+    if (item.is_verified) {
+      try {
+        await updateItem(item.id, { 
+          is_verified: false, 
+          verificado_por: null,
+          fecha_verificacion: null
+        })
+        if (onUpdate) {
+          onUpdate({
+            ...item,
+            is_verified: false,
+            verificado_por: null,
+            fecha_verificacion: null
+          })
+        }
+      } catch (e) {
+        console.error('Error al quitar verificacion', e)
+      }
+    } else {
+      setIsVerifying(true)
+    }
+  }
+
+  const handleVerify = async (username: string) => {
+    if (!item) return
+    const now = new Date().toISOString()
     try {
-      await updateItem(item.id, { is_verified: !item.is_verified })
-      // Ideally trigger a refresh of the item in the parent, but here we just wait
-      // Actually we should let the user see the change instantly if possible,
-      // but item is passed as prop. A full reload might be needed in parent.
-      item.is_verified = !item.is_verified
+      await updateItem(item.id, { 
+        is_verified: true, 
+        verificado_por: username,
+        fecha_verificacion: now
+      })
+      if (onUpdate) {
+        onUpdate({
+          ...item,
+          is_verified: true,
+          verificado_por: username,
+          fecha_verificacion: now
+        })
+      }
+      setIsVerifying(false)
     } catch (e) {
       console.error('Error al verificar', e)
     }
@@ -198,7 +192,7 @@ export function DetailPanel({ item }: DetailPanelProps) {
       await addAPUComponent(item.id, {
         component_id,
         quantity: coef,
-        unit: 'un', // Will be ignored by backend since it uses component unit actually, wait, the backend model requires it.
+        unit: 'un',
         source: 'CUSTOM'
       })
       setIsAddingInsumo(false)
@@ -213,7 +207,7 @@ export function DetailPanel({ item }: DetailPanelProps) {
     return (
       <div className="dpanel">
         <div className="dpanel__empty">
-          SeleccionÃ¡ un Ã­tem para ver su AnÃ¡lisis de Precio Unitario (APU).
+          Seleccioná un ítem para ver su Análisis de Precio Unitario (APU).
         </div>
       </div>
     )
@@ -228,10 +222,12 @@ export function DetailPanel({ item }: DetailPanelProps) {
           <span style={{ minWidth: 200 }}>
             <InlineEdit value={item.description_es} onSave={handleUpdateItemDesc} />
           </span>
-          <span style={{ color: 'var(--text-secondary)', margin: '0 4px' }}>Â·</span>
+          <span style={{ color: 'var(--text-secondary)', margin: '0 4px' }}>·</span>
           <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>
-            {apu.length > 0 ? `${apu.length} insumos Â· ` : ''}
-            {item.unit_price != null ? `â‚² ${fmt(item.unit_price)}/${item.unit}` : 'sin precio'}
+            {apu.length > 0 ? `${apu.length} insumos · ` : ''}
+            <InlineEdit value={item.unit_price} onSave={handleUpdateItemPriceRequest} type="number" align="right">
+              {item.unit_price != null ? `₲ ${fmt(item.unit_price)}/${item.unit}` : 'sin precio'}
+            </InlineEdit>
           </span>
         </div>
         <div className="dpanel__strip-tools">
@@ -245,38 +241,52 @@ export function DetailPanel({ item }: DetailPanelProps) {
               display: 'flex', alignItems: 'center', gap: 4
             }}
           >
-            {item.is_verified ? '✓ Verificado' : '⚠️ Verificar'}
+            {item.is_verified 
+              ? `✓ Verificado por ${item.verificado_por || 'Usuario'} el ${item.fecha_verificacion ? new Date(item.fecha_verificacion).toLocaleDateString('es-PY') : ''}` 
+              : '⚠️ Verificar'}
           </button>
+          <div title={`Cargado por: ${item.creado_por}\nÚltima modificación: ${item.modificado_por || item.creado_por} el ${new Date(item.updated_at).toLocaleString('es-PY')}`}>
+             <Icon name="info" size={14} style={{ color: 'var(--text-secondary)', cursor: 'help' }} />
+          </div>
           <Icon name="pin" size={14} style={{ cursor: 'pointer' }} />
         </div>
       </div>
 
       <div className="dpanel__body">
         {loading && (
-          <div style={{ padding: 16, color: 'var(--text-secondary)', fontSize: 12 }}>Cargando APUâ€¦</div>
+          <div style={{ padding: 16, color: 'var(--text-secondary)', fontSize: 12 }}>Cargando APU...</div>
         )}
         {!loading && apu.length === 0 && (
           <div style={{ padding: 16, color: 'var(--text-secondary)', fontSize: 12 }}>
-            Sin componentes APU registrados para este Ã­tem.
+            Sin componentes APU registrados para este ítem.
           </div>
         )}
         {!loading && apu.length > 0 && (
           <table className="apu-tbl">
             <thead>
               <tr>
+                <th style={{ width: 24 }}></th>
                 <th style={{ width: 42 }}>FAC</th>
-                <th style={{ width: 120 }}>CÃ“DIGO</th>
+                <th style={{ width: 120 }}>CÓDIGO</th>
                 <th>INSUMO</th>
-                <th style={{ width: 50 }}>UND</th>
-                <th className="num" style={{ width: 80 }}>COEF.</th>
-                <th style={{ width: 110 }}>FUENTE COEF.</th>
-                <th className="num" style={{ width: 110 }}>P. UNIT (â‚²)</th>
-                <th style={{ width: 110 }}>FUENTE PRECIO</th>
+                <th style={{ width: 60 }}>UND</th>
+                <th className="num" style={{ width: 70 }}>COEF.</th>
+                <th style={{ width: 100 }}>FUENTE COEF.</th>
+                <th className="num" style={{ width: 110 }}>P. UNIT (₲)</th>
+                <th style={{ width: 90 }}>FUENTE PRECIO</th>
               </tr>
             </thead>
             <tbody>
               {apu.map(r => (
                 <tr key={r.apu_component_id}>
+                  <td style={{ padding: '0 4px' }}>
+                    <div 
+                      className="info-trigger" 
+                      title={`Cargado por: ${r.creado_por || 'Sistema'}\nÚltima modificación: ${r.modificado_por || r.creado_por || 'Sistema'} el ${r.updated_at ? new Date(r.updated_at).toLocaleString('es-PY') : 'N/A'}`}
+                    >
+                      <Icon name="info" size={14} style={{ color: 'var(--text-secondary)', cursor: 'help' }} />
+                    </div>
+                  </td>
                   <td><Chip faceta={r.clase} /></td>
                   <td className="num">{r.codigo}</td>
                   <td>
@@ -299,13 +309,13 @@ export function DetailPanel({ item }: DetailPanelProps) {
                       value={r.fuente_coef} 
                       onSave={v => handleUpdateFuenteCoef(r.apu_component_id, v)}
                     >
-                      <SourceBadge source={r.fuente_coef ?? 'â€”'} />
+                      <SourceBadge source={r.fuente_coef ?? '—'} />
                     </InlineEdit>
                   </td>
                   <td className="num">
                     <InlineEdit 
                       value={r.precio} 
-                      onSave={v => handleUpdatePrecio(r.component_id, v)} 
+                      onSave={v => handleUpdatePrecioRequest(r.component_id, v)} 
                       type="number" 
                       align="right" 
                     />
@@ -315,7 +325,7 @@ export function DetailPanel({ item }: DetailPanelProps) {
                       value={r.fuente_precio} 
                       onSave={v => handleUpdateFuentePrecio(r.component_id, v)}
                     >
-                      <SourceBadge source={r.fuente_precio ?? 'â€”'} />
+                      <SourceBadge source={r.fuente_precio ?? '—'} />
                     </InlineEdit>
                   </td>
                 </tr>
@@ -340,6 +350,22 @@ export function DetailPanel({ item }: DetailPanelProps) {
         <AddInsumoModal 
           onClose={() => setIsAddingInsumo(false)} 
           onAdd={handleAddInsumo} 
+        />
+      )}
+      {isVerifying && (
+        <VerifyModal 
+          onClose={() => setIsVerifying(false)} 
+          onConfirm={handleVerify} 
+        />
+      )}
+      {auditAction && (
+        <AuditModal
+          title="Confirmar Cambio de Precio"
+          message={`Estás modificando el precio a ₲ ${parseFloat(auditAction.newValue).toLocaleString('es-PY')}. Este cambio afectará a todos los ítems que utilicen este insumo.`}
+          confirmText="Confirmar Cambio"
+          onClose={() => setAuditAction(null)}
+          onConfirm={auditAction.type === 'item_price' ? handleUpdateItemPriceConfirm : handleUpdatePrecioConfirm}
+          initialSource={item?.fuente_precios || 'CUSTOM'}
         />
       )}
     </div>

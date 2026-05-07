@@ -24,6 +24,8 @@ export function CreateItemModal({ onClose, onSuccess }: { onClose: () => void, o
         ...data,
         bim_taggable: true, // Assume user created items are taggable
         is_verified: false,
+        verificado_por: null,
+        fecha_verificacion: null,
         currency: 'PYG'
       })
       onSuccess(item)

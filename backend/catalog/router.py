@@ -5,7 +5,7 @@ No llama a repository directamente — siempre pasa por service.
 Referencia: docs/ARQUITECTURA.md sección 2.7
 """
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Header
 from sqlmodel import Session
 
 from catalog import service
@@ -76,13 +76,14 @@ def update_item(
     item_id: str,
     data: CatalogItemUpdate,
     session: Session = Depends(get_session),
+    x_user: str | None = Header(None)
 ) -> CatalogItemRead:
     """Actualiza campos de un ítem existente.
 
     ⚠️ Si se edita unit_price, el cambio es global: afecta a todos
     los APU que usen este ítem como componente.
     """
-    return service.actualizar_item(session, item_id, data)
+    return service.actualizar_item(session, item_id, data, user=x_user or "user:anonymous")
 
 
 @router.post("/items", response_model=CatalogItemRead, status_code=201, summary="Crear un ítem")

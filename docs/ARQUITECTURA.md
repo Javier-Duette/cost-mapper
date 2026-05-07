@@ -28,13 +28,13 @@
 │                          │   API Gateway    │                      │
 │                          │   (FastAPI)      │                      │
 │                          └────────┬─────────┘                      │
-│              ┌──────────┬─────────┼──────────┬──────────┐          │
-│              ▼          ▼         ▼          ▼          ▼          │
-│        ┌──────────┐ ┌────────┐ ┌───────┐ ┌────────┐ ┌────────┐   │
-│        │ catalog  │ │  ifc   │ │mapper │ │ budget │ │library │   │
-│        │ module   │ │importer│ │       │ │        │ │& export│   │
-│        └────┬─────┘ └───┬────┘ └───┬───┘ └───┬────┘ └───┬────┘   │
-│             └───────────┴──────────┴──────────┴──────────┘        │
+│              ┌──────────┬─────────┼──────────┬──────────┬──────────┐          │
+│              ▼          ▼         ▼          ▼          ▼          ▼          │
+│        ┌──────────┐ ┌────────┐ ┌───────┐ ┌────────┐ ┌────────┐ ┌────────┐   │
+│        │ catalog  │ │  ifc   │ │mapper │ │ budget │ │library │ │settings│   │
+│        │ module   │ │importer│ │       │ │        │ │& export│ │        │   │
+│        └────┬─────┘ └───┬────┘ └───┬───┘ └───┬────┘ └───┬────┘ └────┬───┘   │
+│             └───────────┴──────────┴──────────┴──────────┴──────────┘        │
 │                                    │                               │
 │                          ┌─────────▼────────┐                      │
 │                          │   PostgreSQL DB   │                      │
@@ -222,7 +222,16 @@ Solo se incluyen ítems con `bim_taggable = true` de las facetas seleccionadas.
 
 ---
 
-#### 2.8 `exporter` — Exportación de informes
+#### 2.8 `settings` — Configuración del sistema
+**Responsabilidad:** gestión de catálogos maestros y listas oficiales para auditoría y validación.
+**Entradas:** payload CRUD para usuarios de verificación y fuentes de precios.
+**Salidas:** listas de usuarios y fuentes activos.
+**Tablas que toca:** `settings_users`, `settings_sources`.
+**Regla de negocio clave:** proporciona los datos que alimentan los selectores del `AuditModal` en el catálogo.
+
+---
+
+#### 2.9 `exporter` — Exportación de informes
 
 **Responsabilidad:** generar los formatos de entregable del presupuesto a partir de los datos calculados por `budget`.
 
@@ -240,7 +249,7 @@ Solo se incluyen ítems con `bim_taggable = true` de las facetas seleccionadas.
 
 ---
 
-### 2.9 Convención de estructura interna de módulos
+### 2.10 Convención de estructura interna de módulos
 
 Cada módulo del backend sigue una estructura de **4 archivos** fija (ADR-009). Esta convención facilita que cualquier desarrollador o agente de IA encuentre rápidamente el código relevante sin necesidad de explorar el árbol completo.
 
@@ -271,7 +280,7 @@ backend/catalog/
 
 ---
 
-### 2.10 Estrategia de migraciones (Alembic)
+### 2.11 Estrategia de migraciones (Alembic)
 
 Las migraciones de schema usan **Alembic** con el patrón de "baseline sin-op":
 

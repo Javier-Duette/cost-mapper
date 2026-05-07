@@ -37,10 +37,13 @@ export async function getItemAPU(id: string): Promise<APUComponentRead[]> {
 }
 
 /** Actualiza un ítem del catálogo (precio, descripción, fuente). */
-export async function updateItem(id: string, data: Partial<CatalogItem>): Promise<CatalogItem> {
+export async function updateItem(id: string, data: Partial<CatalogItem>, user?: string): Promise<CatalogItem> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (user) headers['X-User'] = user
+
   const res = await fetch(`${BASE}/items/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(data)
   })
   if (!res.ok) throw new Error(`PUT /items/${id} falló: ${res.status}`)

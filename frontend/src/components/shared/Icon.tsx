@@ -26,6 +26,7 @@ const ICONS: Record<string, string> = {
   reset:        `<path d="M4 12 a8 8 0 0 1 13.5 -5.5"/><polyline points="14,3 17.5,6.5 14,10"/>`,
   wireframe:    `<path d="M12 3.5 L20.5 7.5 L20.5 16.5 L12 20.5 L3.5 16.5 L3.5 7.5 Z" stroke-dasharray="2 2"/>`,
   file_ifc:     `<path d="M6 3.5 H15 L19 7.5 V20.5 H6 Z"/><path d="M14.5 3.5 V8 H19"/><text x="9" y="16" font-size="5" fill="currentColor" stroke="none" font-weight="600">IFC</text>`,
+  info:         `<circle cx="12" cy="12" r="9"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>`,
 }
 
 interface IconProps {

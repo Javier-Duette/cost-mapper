@@ -1,10 +1,32 @@
-﻿# DEVLOG â€” Cost-Mapper V2
+# DEVLOG â€” Cost-Mapper V2
 
 > **PropÃ³sito de este archivo:** Log cronolÃ³gico de sesiones de trabajo. Al final de cada sesiÃ³n se agrega una entrada con la fecha, quÃ© se implementÃ³ o decidiÃ³, quÃ© problemas aparecieron y cuÃ¡l es el siguiente paso concreto. No es un documento formal â€” es el puente entre sesiones para que cualquier agente (o colaborador) sepa exactamente dÃ³nde quedÃ³ el proyecto sin tener que releer todo.
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 â€” Titulo`) Â· implementado Â· problemas Â· decisiones cambiadas Â· prÃ³ximo paso.
 
-## 2026-05-07 12:20 â€” EjecuciÃ³n real de ETL TCPO desde la UI
+## 2026-05-07 17:15 — Sistema de Auditoría, Configuraciones y Estandarización
+
+**Implementado:**
+- **Sistema de Auditoría de Precios:** Integración de `AuditModal.tsx` que exige nombre de usuario y fuente ante cualquier cambio de precio, con advertencia de impacto global.
+- **Historial Visual (Audit Trail):** Incorporación de iconos de información `(i)` con tooltips detallados (quién cargó, quién modificó y cuándo) en el encabezado del panel y filas de la tabla APU.
+- **Módulo de Settings (Backend):** Nuevo módulo `backend/settings/` con soporte CRUD completo para tablas `settings_users` y `settings_sources`.
+- **Estandarización de Campos:** Reemplazo de inputs de texto libre por listas desplegables (select) en el flujo de auditoría, eliminando duplicados e inconsistencias.
+- **Vista de Gestión de Configuración:** Nueva interfaz en la sección de "Configuración" para gestionar (crear, editar, eliminar) los usuarios y fuentes oficiales del sistema.
+- **Refactorización Shared:** Extracción de `InlineEdit.tsx` a componentes compartidos para reutilización sistémica.
+
+**Problemas resueltos:**
+- **Inconsistencia de Datos:** Se eliminó la posibilidad de ingresar nombres de fuentes o usuarios con errores tipográficos mediante el uso de catálogos cerrados.
+- **Encoding UTF-8:** Limpieza masiva de caracteres corruptos en `App.tsx` y `DetailPanel.tsx` causados por ediciones en entornos Windows.
+- **Reactividad:** Se implementó `refreshKey` en `CatalogView` para forzar la actualización de la lista al modificar ítems en el panel inferior sin recargar página.
+
+**Decisiones cambiadas:**
+- Se formaliza el uso de catálogos de configuración para campos de auditoría en lugar de texto libre.
+
+**Próximo paso:** Implementar la creación manual de ítems de trabajo (Work Items) y expandir el sistema de configuración a tipos de cambio.
+
+---
+
+## 2026-05-07 12:20 — Ejecución real de ETL TCPO desde la UI
 
 **Implementado:**
 ## 2026-05-07 14:25 — Optimización de Costos ETL y Corrección de Traducciones

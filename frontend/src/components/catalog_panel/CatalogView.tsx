@@ -23,12 +23,13 @@ interface CatalogViewProps {
   onSelect: (id: string, item: CatalogItem) => void
   projectId: string | null
   onAddToProject: (item: CatalogItem) => Promise<void>
+  refreshKey?: number
 }
 
 /** Vista de Catálogo: árbol de facetas NBR + tabla de ítems con datos reales del backend. */
 export function CatalogView({
   search, activeFaceta, onSelectFaceta, relevantOnly,
-  selectedId, onSelect, projectId, onAddToProject,
+  selectedId, onSelect, projectId, onAddToProject, refreshKey
 }: CatalogViewProps) {
   const [items, setItems] = useState<CatalogItem[]>([])
   const [total, setTotal] = useState(0)
@@ -57,7 +58,7 @@ export function CatalogView({
     } finally {
       setLoading(false)
     }
-  }, [search, activeFaceta, relevantOnly, needsQuery])
+  }, [search, activeFaceta, relevantOnly, needsQuery, refreshKey])
 
   useEffect(() => { void load() }, [load])
 
