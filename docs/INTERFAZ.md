@@ -13,25 +13,22 @@ La interfaz es una **aplicación web de escritorio** (desktop-first). No hay ver
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │  [≡] Cost-Mapper    [▼ Proyecto Activo ▼]           [usuario]  [⚙] │  ← HEADER
-├────┬─────────────────────────────────────┬────────────────────────── ┤
-│    │                                     │                           │
-│    │                                     │                           │
-│  S │         ÁREA PRINCIPAL              │      VISOR 3D IFC         │
-│  I │                                     │      (@thatopen)          │
-│  D │   (contenido de la sección activa)  │                           │
-│  E │                                     │   Colapsable — se oculta  │
-│  B │                                     │   si no hay IFC cargado   │
-│  A ├─────────────────────────────────────┴───────────────────────────┤
-│  R │  ↕  PANEL DE DETALLE  (expandible desde abajo)                  │
-│    │     APU del ítem / detalle del elemento IFC seleccionado        │
+├────┬─────────────────────────────────────────────────────────────────┤
+│    │                                                                 │
+│    │                                                                 │
+│  S │                                                                 │
+│  I │                                                                 │
+│  D │                      ÁREA PRINCIPAL                             │
+│  E │                                                                 │
+│  B │                                                                 │
+│  A │                                                                 │
+│  R └─────────────────────────────────────────────────────────────────┘
 └────┴──────────────────────────────────────────────────────────────────┘
 ```
 
 **Dimensiones de cada zona:**
 - Sidebar: 56px de ancho (solo iconos). Sin etiquetas de texto para maximizar el área de trabajo.
-- Área principal: ocupa todo el centro, ancho flexible. Se expande al 100% cuando los paneles están colapsados.
-- Visor 3D: panel derecho, ~380px por defecto, redimensionable con drag. **Inicia colapsado por defecto en la vista Presupuesto** para maximizar el espacio de la tabla. Se oculta completamente cuando no hay modelo IFC cargado.
-- Panel de detalle: colapsado por defecto (~32px — solo la barra con el título del ítem) en todas las vistas. Al hacer clic en un ítem se expande a ~280px de altura. El usuario puede redimensionarlo con drag.
+- Área principal: ocupa todo el centro, tomando el 100% del espacio restante. El Visor 3D y el Panel Inferior ya no son globales, sino que viven dentro de secciones específicas (ej. Mapeo IFC) para evitar saturación visual.
 
 **Tema visual:** Oscuro, inspirado en Revit. Fondo base `#1E1E1E`, superficie de paneles `#252526`, bordes `#3E3E42`, texto primario `#CCCCCC`, acento principal azul `#0078D4` (azul Revit/VS Code).
 
@@ -66,7 +63,7 @@ Barra vertical izquierda de 56px con iconos. Al pasar el cursor muestra tooltip 
 
 **Nota para diseño:** los iconos del sidebar deben ser diseñados como parte del sistema de iconografía del proyecto. Ver sección 13.
 
-Al cambiar de sección, el contenido del área principal cambia completamente. El Visor 3D y el Panel de Detalle permanecen en su lugar, pero **se colapsan automáticamente al entrar a vistas de alta densidad de datos (como Presupuesto)** para dar espacio, abriéndose solo "On-Demand" si el usuario hace clic en una fila.
+Al cambiar de sección, el contenido del área principal cambia completamente. Si una sección requiere Visor 3D o Panel de Detalles, los instanciará internamente.
 
 ---
 
@@ -106,7 +103,9 @@ Controles:
 - Filtro por faceta
 - Indicador de ítems sin precio con botón "Completar precios" que lleva al catálogo filtrado
 
-**Selección bidireccional "On-Demand":** Como el visor y el panel inician colapsados en esta vista, la tabla ocupa toda la pantalla tipo Dashboard. Al hacer clic en una fila del presupuesto, el Visor 3D **se despliega**, resaltando los elementos IFC asignados a ese ítem. Al hacer clic en un elemento en el visor 3D, la tabla se desplaza y resalta la fila correspondiente.
+**Métricas y Gráficos:** Tarjetas superiores con el Costo Total, Avance, o Gráfico de distribución por Faceta NBR.
+
+**Selección:** al hacer clic en una fila del presupuesto, el usuario puede acceder a sus detalles, pero no hay visor 3D ni panel en esta vista. Si el usuario desea ubicar un elemento en el espacio, debe utilizar la herramienta en "Mapeo IFC".
 
 **Alerta de presupuesto incompleto:** si hay ítems con `unit_price = NULL`, un banner amarillo en la parte superior indica cuántos ítems no tienen precio y bloquea la exportación hasta que se completen.
 
@@ -191,40 +190,15 @@ Configuración del proyecto activo y del sistema.
 
 ---
 
-## 10. Panel de detalle (zona inferior)
+## 10. Panel de detalle y Visor 3D (Componentes confinados)
 
-Panel expandible en la parte inferior del layout. Está presente en todas las secciones.
+Originalmente globales, el Panel de Detalle y el Visor 3D ahora son **componentes internos** de ciertas secciones.
 
-**Contenido según el contexto:**
+**Visor 3D:**
+Solo vive en **Mapeo IFC**. Ocupa la mitad derecha de la pantalla en esa vista. Presenta los estados de "Sin modelo IFC" y "Con modelo cargado" tal como se diseñaron, pero sin persistir a través de la app.
 
-| Sección activa | Contenido del panel |
-|----------------|---------------------|
-| Catálogo | Composición APU del ítem seleccionado (tabla editable) |
-| Presupuesto | Composición APU del ítem seleccionado + elementos IFC asignados |
-| Mapeo IFC | Detalle del elemento IFC: tipo, nombre, nivel, parámetros cualitativos, asignaciones |
-| Biblioteca | Detalle del ítem: descripción completa, APU, fuentes |
-
-**Comportamiento:**
-- Colapsado por defecto (solo muestra título del ítem seleccionado en la barra).
-- Se expande automáticamente al seleccionar un ítem por primera vez en la sesión.
-- El usuario puede redimensionar con drag vertical.
-- Botón de pin para mantenerlo expandido aunque se cambie de sección.
-
----
-
-## 11. Visor 3D IFC (zona derecha)
-
-Panel derecho fijo con el visor 3D del modelo IFC del proyecto activo.
-
-**Estado sin modelo IFC:** el panel muestra un placeholder con el mensaje "No hay modelo IFC cargado. Importá uno desde la sección Mapeo." El área principal toma todo el ancho disponible.
-
-**Estado con modelo cargado:** vista isométrica por defecto. Controles mínimos visibles: orbitar · zoom · resetear vista · toggle wireframe. Sin barras de herramientas complejas — la interacción principal es la selección.
-
-**Selección bidireccional:**
-- Clic en elemento 3D → resalta la fila del ítem en el área principal. El resto del modelo aparece translúcido.
-- Selección de ítem en tabla → resalta los elementos 3D asignados a ese ítem.
-
-**Colapso:** botón `◀` en el borde izquierdo del panel para ocultarlo y dar más espacio al área principal. Estado recordado por sesión.
+**Panel de Detalle APU:**
+Vive en la parte inferior de **Catálogo** y **Mapeo IFC**. Mantiene sus estados colapsado (32px) y expandido (280px), mostrando la tabla de APU o los atributos BIM del elemento seleccionado.
 
 ---
 

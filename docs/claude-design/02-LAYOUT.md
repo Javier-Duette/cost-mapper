@@ -9,19 +9,19 @@
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │  [≡] Cost-Mapper    [▼ Nombre del proyecto ▼]        [usuario]  [⚙] │  ← HEADER (48px)
-├────┬────────────────────────────────────────┬─────────────────────── ┤
-│    │                                        │                        │
-│    │                                        │                        │
-│  S │                                        │   VISOR 3D IFC         │
-│  I │         ÁREA PRINCIPAL                 │   (@thatopen)          │
-│  D │                                        │                        │
-│  E │   (Catálogo / Presupuesto / Mapeo /    │   ~380px por defecto   │
-│  B │    Biblioteca / Informes / Ajustes)    │   Redimensionable      │
-│  A │                                        │   Colapsable           │
-│  R ├────────────────────────────────────────┴────────────────────────┤
-│    │  ↕  PANEL DE DETALLE                                            │
-│    │     (colapsado: 32px · expandido: 280px · redimensionable)      │
-└────┴────────────────────────────────────────────────────────────────-┘
+├────┬─────────────────────────────────────────────────────────────────┤
+│    │                                                                 │
+│    │                                                                 │
+│  S │                                                                 │
+│  I │                                                                 │
+│  D │                     ÁREA PRINCIPAL                              │
+│  E │               (Ocupa todo el resto de la pantalla)              │
+│  B │                                                                 │
+│  A │                                                                 │
+│  R │                                                                 │
+│    │                                                                 │
+│    │                                                                 │
+└────┴─────────────────────────────────────────────────────────────────┘
 56px
 ```
 
@@ -97,13 +97,20 @@
 
 ## Zona 3: Área principal
 
-**Ancho:** flexible. Ocupa todo el espacio entre el sidebar y el visor 3D.
+**Ancho:** 100% del espacio restante. Ocupa todo el espacio a la derecha del sidebar.
 
 **Color de fondo:** `#1E1E1E` (bg-base).
 
-**Contenido:** cambia completamente al cambiar la sección del sidebar. Ver `03-SECCIONES.md` para el detalle de cada una.
+**Contenido:** cambia completamente al cambiar la sección del sidebar. 
 
-**Cuando el visor 3D está oculto:** el área principal se expande hasta el borde derecho de la ventana.
+## Zonas dinámicas (Visor 3D y Panel de Detalle)
+
+Originalmente planteados como zonas globales, el feedback de diseño y UX determinó que **el Visor 3D y el Panel de Detalle deben ser componentes estrictamente confinados a las secciones que los necesitan** para evitar sobrecarga visual y el síndrome de "paneles escondidos".
+
+**Ubicación Estricta:**
+- El **Visor 3D** SOLO existe dentro de la sección "Mapeo IFC".
+- El **Panel de Detalle APU** SOLO existe en la sección "Catálogo" y "Mapeo IFC".
+- Para más detalles sobre cómo se estructuran estas vistas divididas internamente, referirse a `03-SECCIONES.md`.
 
 **Estructura interna de cada sección:**
 ```
@@ -116,60 +123,7 @@
 
 ---
 
-## Zona 4: Visor 3D IFC
 
-**Ancho por defecto:** 380px.
-
-**Redimensionable:** el usuario puede arrastrar el borde izquierdo del panel para cambiar el ancho. Mínimo 240px, máximo 50% del ancho disponible.
-
-**Colapsable:** botón `◀` en el borde izquierdo del panel. Al hacer clic, el panel se oculta completamente y el área principal toma todo el ancho. El botón se convierte en `▶` adosado al borde derecho de la ventana. 
-**Regla por Sección:** En la vista "Mapeo IFC", el visor inicia abierto por defecto. En "Presupuesto", "Catálogo" y las demás, **inicia colapsado por defecto** para evitar sobrecarga visual, abriéndose solo si el usuario hace clic en un ítem para inspeccionarlo en el modelo.
-
-**Color de fondo:** `#1E1E1E` (mismo que el área principal — el visor llena el espacio).
-
-**Estado sin modelo IFC:**
-```
-┌────────────────────────────────────┐
-│                                    │
-│         [ícono IFC vacío]          │
-│                                    │
-│    No hay modelo IFC cargado.      │
-│                                    │
-│    Importá uno desde la sección    │
-│    "Mapeo IFC".                    │
-│                                    │
-└────────────────────────────────────┘
-```
-El ícono y el texto están centrados vertical y horizontalmente. Fondo: `#1E1E1E`.
-
-**Controles del visor (cuando hay modelo cargado):**
-- Toolbar flotante en la esquina inferior derecha del panel: 4 íconos — Orbitar · Zoom a extents · Reset vista · Toggle wireframe
-- Los controles son compactos (24×24px) sobre un fondo semitransparente `rgba(37,37,38,0.8)`
-
----
-
-## Zona 5: Panel de detalle
-
-**Posición:** barra horizontal en la parte inferior, abarcando todo el ancho (sidebar + área principal + visor 3D).
-
-**Estado colapsado:**
-- Altura: 32px
-- Muestra: ícono ↕ a la izquierda + nombre del ítem seleccionado en `text-secondary` + botón "expandir" a la derecha
-- Al hacer clic en cualquier parte de la barra, se expande
-
-**Estado expandido:**
-- Altura por defecto: 280px
-- Redimensionable verticalmente con drag en el borde superior
-- Mínimo: 160px. Máximo: 50% del alto disponible
-- Botón de pin (📌) en la barra: mantiene el panel expandido aunque se cambie de sección
-- Botón de colapso (↓) en la barra: vuelve al estado de 32px
-
-**Color de fondo del panel:** `#252526`, borde superior `1px solid #3E3E42`.
-
-**Contenido:** varía según la sección activa. Ver `04-COMPONENTES.md` para el detalle del panel APU y el panel de elemento IFC.
-**Regla por Sección:** Inicia colapsado en casi todas las secciones. Solo se expande automáticamente si el usuario hace un clic específico sobre un ítem en el Catálogo, Presupuesto o Mapeo IFC.
-
----
 
 ## Comportamiento responsive del layout
 

@@ -21,27 +21,27 @@ Es la pantalla por defecto. Muestra la base de datos completa de ítems (TCPO + 
    - **Estilo de Tabla:** Diseño denso (compacto), filas con bordes tenues `1px solid #3E3E42`, hover sutil `#2A2D2E`.
    - **Comportamiento:** Doble clic en Precio Unitario, Moneda o Fuente activa edición inline (input directo en la celda).
 
+3. **Panel de Desglose APU (Bottom Sheet):**
+   - Panel fijo en la parte inferior de la tabla. Al hacer clic en un ítem de la tabla, muestra la composición APU detallada.
+
 ---
 
 ## 2. Presupuesto (La calculadora del proyecto)
 
-Muestra los costos calculados para el proyecto activo. En esta vista, el **Visor 3D y el Panel de APU inician colapsados por defecto** para evitar sobrecarga y darle a la tabla una apariencia amplia y limpia, tipo "Dashboard".
+Muestra los costos calculados para el proyecto activo. En esta vista, el **Visor 3D y el Panel de APU no existen**. La pantalla es 100% dedicada a una vista amplia tipo "Dashboard" financiero.
 
 **Estructura Visual:**
-1. **Header de Sección y Dashboard Superior:**
-   - Título "Presupuesto: [Nombre del Proyecto]"
+1. **Dashboard Superior (Métricas):**
+   - Tarjetas de resumen: "Total Costo Directo", "Porcentaje Asignado al BIM", etc.
    - Toggle switch visual: Ver por Ítem / Ver por Elemento IFC
    - Filtros rápidos por faceta.
    - Banner superior amarillo (estado de alerta) si existen ítems asignados sin precio, con botón de "Completar precios".
 
-2. **Tabla Jerárquica Expandida:**
-   - Como los paneles laterales están colapsados, la tabla ocupa todo el ancho, dando una vista cómoda de los costos.
+2. **Tabla Jerárquica Expansiva:**
+   - La tabla ocupa todo el ancho y alto restante.
    - **Agrupamiento:** Las filas se agrupan por Faceta NBR (ej. un header de fila colapsable "3E - Resultados" con subtotal acumulado).
    - **Columnas:** Código NBR, Descripción, Unidad, Cantidad (calculada del 3D), Precio Unitario, Subtotal.
    - **Footer:** Fila fija en la parte inferior de la tabla con el "Total Costo Directo".
-
-3. **Interacción:** 
-   - Al hacer clic en un ítem de la tabla, el Visor 3D y el Panel Inferior se despliegan automáticamente para revelar la conexión BIM 5D de esa fila.
 
 ---
 
@@ -55,15 +55,18 @@ Es el centro de operaciones BIM, donde la geometría se une a los costos.
 - Texto: "Importa un archivo IFC para comenzar la asignación de costos".
 - Botón prominente primario: "Subir modelo IFC".
 
-**Estructura Visual (Post-importación):**
+**Estructura Visual (Post-importación — Pantalla Dividida en 3):**
 1. **Header y Navegación Interna:**
    - Tabs de segmentación: 
      - ✅ Auto-asignados (con contador)
      - ⚠️ Sin asignar (con contador resaltado)
      - 🔴 Conflictos (solo si es > 0)
-2. **Tabla de Mapeo (Tab "Sin asignar" como ejemplo):**
-   - **Columnas:** Tipo IFC (ej. IfcWall), Nombre del elemento, Nivel/Planta, Sugerencias (íconos de atajo o texto grisado de posibles ítems).
-   - **Interacción:** Al seleccionar una fila, el Visor 3D resalta el elemento, y el Panel de Detalle inferior muestra opciones para buscar o aceptar ítems sugeridos.
+2. **Tabla de Mapeo (Izquierda):**
+   - **Columnas:** Tipo IFC (ej. IfcWall), Nombre del elemento, Nivel/Planta, Sugerencias.
+3. **Visor 3D (Derecha):**
+   - Ocupa la mitad derecha de la pantalla. Resalta los elementos seleccionados en la tabla.
+4. **Panel Inspector (Inferior):**
+   - Muestra las propiedades BIM del elemento seleccionado y opciones para buscar o aceptar ítems sugeridos.
 
 ---
 
