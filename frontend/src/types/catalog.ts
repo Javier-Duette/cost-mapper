@@ -1,5 +1,5 @@
 /** Facetas NBR 15965 principales (BIM-relevantes en construcción). */
-export type Faceta = '3E' | '4U' | '2C' | '2N' | '2Q'
+export type Faceta = '3E' | '3R' | '4U' | '2C' | '2N' | '2Q'
 
 /** Respuesta del endpoint GET /api/catalog/items/:id y listados. */
 export interface CatalogItem {

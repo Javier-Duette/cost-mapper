@@ -151,7 +151,7 @@ If no matching tables found, return: []
 _model: genai.GenerativeModel | None = None
 
 
-def init(api_key: str, model_name: str = "gemini-2.0-flash") -> None:
+def init(api_key: str, model_name: str = "gemini-2.5-flash") -> None:
     """Inicializa el cliente Gemini. Llamar una vez al inicio."""
     global _model
     genai.configure(api_key=api_key)

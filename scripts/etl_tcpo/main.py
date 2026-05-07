@@ -135,7 +135,7 @@ def detect(pages: str, save_crops: bool):
 @click.option("--pages", required=True, help="Páginas a procesar. Ej: '36-50' o '36,40,45'")
 @click.option("--force", is_flag=True, default=False, help="Re-procesar páginas ya completadas.")
 @click.option("--dry-run", is_flag=True, default=False, help="Extraer pero NO insertar en DB.")
-@click.option("--model", default="gemini-2.0-flash", show_default=True, help="Modelo Gemini a usar.")
+@click.option("--model", default="gemini-2.5-flash", show_default=True, help="Modelo Gemini a usar.")
 @click.option("--single-pass", "single_pass", is_flag=True, default=False,
               help="Desactivar optimizacion 2-pasos: extrae todo sin consultar DB primero.")
 def run(pages: str, force: bool, dry_run: bool, model: str, single_pass: bool):

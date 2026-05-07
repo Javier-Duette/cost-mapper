@@ -6,6 +6,7 @@ import type { CatalogItem, Faceta } from '../../types/catalog'
 
 const TREE: { id: Faceta; label: string }[] = [
   { id: '3E', label: 'Resultados de construcción' },
+  { id: '3R', label: 'Recursos de construcción' },
   { id: '4U', label: 'Servicios de obra' },
   { id: '2C', label: 'Componentes / Materiales' },
   { id: '2N', label: 'Mano de obra' },

@@ -1,7 +1,7 @@
 import { Icon } from './Icon'
 import type { Faceta } from '../../types/catalog'
 
-const FACETAS: Faceta[] = ['3E', '4U', '2C', '2N', '2Q']
+const FACETAS: Faceta[] = ['3E', '3R', '4U', '2C', '2N', '2Q']
 
 interface SectionHeaderProps {
   title: string

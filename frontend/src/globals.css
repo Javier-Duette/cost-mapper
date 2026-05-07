@@ -32,11 +32,13 @@
   --error-subtle:   #3D0000;
 
   --faceta-3E: #1565C0;
+  --faceta-3R: #00838F;
   --faceta-4U: #2E7D32;
   --faceta-2C: #E65100;
   --faceta-2N: #F9A825;
   --faceta-2Q: #6A1B9A;
   --faceta-3E-bg: rgba(21, 101, 192, 0.18);
+  --faceta-3R-bg: rgba(0, 131, 143, 0.18);
   --faceta-4U-bg: rgba(46, 125, 50, 0.18);
   --faceta-2C-bg: rgba(230, 81, 0, 0.18);
   --faceta-2N-bg: rgba(249, 168, 37, 0.18);
@@ -197,6 +199,7 @@ html, body, #root {
   letter-spacing: 0.02em; user-select: none;
 }
 .chip--3E { color: #5BA0E8; background: var(--faceta-3E-bg); }
+.chip--3R { color: #26C6DA; background: var(--faceta-3R-bg); }
 .chip--4U { color: #6BBF6E; background: var(--faceta-4U-bg); }
 .chip--2C { color: #FF9D4D; background: var(--faceta-2C-bg); }
 .chip--2N { color: #FFC85C; background: var(--faceta-2N-bg); }
@@ -221,6 +224,7 @@ html, body, #root {
   background: var(--bg-surface-raised); color: var(--text-secondary);
 }
 .chip-toggle.is-on--3E { background: var(--faceta-3E-bg); color: #5BA0E8; border-color: rgba(91,160,232,0.4); }
+.chip-toggle.is-on--3R { background: var(--faceta-3R-bg); color: #26C6DA; border-color: rgba(38,198,218,0.4); }
 .chip-toggle.is-on--4U { background: var(--faceta-4U-bg); color: #6BBF6E; border-color: rgba(107,191,110,0.4); }
 .chip-toggle.is-on--2C { background: var(--faceta-2C-bg); color: #FF9D4D; border-color: rgba(255,157,77,0.4); }
 .chip-toggle.is-on--2N { background: var(--faceta-2N-bg); color: #FFC85C; border-color: rgba(255,200,92,0.4); }
