@@ -13,6 +13,7 @@ from catalog.router import router as catalog_router
 from projects.router import router as projects_router
 from library.router import router as library_router
 from budget.router import router as budget_router
+from etl_runner import router as etl_router
 from projects.models import Project
 from db.session import create_db_and_tables
 from sqlmodel import Session, select
@@ -79,6 +80,7 @@ app.include_router(catalog_router)
 app.include_router(projects_router)
 app.include_router(library_router)
 app.include_router(budget_router)
+app.include_router(etl_router)
 
 
 @app.get("/", tags=["Health"])

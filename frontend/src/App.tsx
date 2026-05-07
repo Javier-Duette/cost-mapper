@@ -7,6 +7,7 @@ import { CatalogView } from './components/catalog_panel/CatalogView'
 import { BudgetView } from './components/budget_panel/BudgetView'
 import { MappingView } from './components/mapping_panel/MappingView'
 import { ReportsView } from './components/reports_panel/ReportsView'
+import { EtlView } from './components/settings_panel/EtlView'
 import { Viewer3D } from './components/ifc_viewer/Viewer3D'
 import { Icon } from './components/shared/Icon'
 import { ToastContainer, useToast } from './components/shared/Toast'
@@ -21,7 +22,7 @@ const SECTION_TITLE: Record<Section, string> = {
   mapping:  'Mapeo IFC',
   library:  'Biblioteca',
   reports:  'Informes',
-  settings: 'Ajustes del proyecto',
+  settings: 'Importar TCPO V15',
 }
 
 export default function App() {
@@ -133,14 +134,12 @@ export default function App() {
 
           {section === 'reports' && <ReportsView onPreviewPdf={() => {}} />}
 
-          {(section === 'library' || section === 'settings') && (
+          {section === 'settings' && <EtlView />}
+
+          {section === 'library' && (
             <div className="section__body">
               <div className="empty-state">
-                <Icon
-                  name={section === 'library' ? 'library' : 'settings'}
-                  size={48}
-                  style={{ color: 'var(--bg-surface-raised)' }}
-                />
+                <Icon name="library" size={48} style={{ color: 'var(--bg-surface-raised)' }} />
                 <div className="empty-state__title">{SECTION_TITLE[section]}</div>
                 <div className="empty-state__sub">Esta sección está planificada para una próxima iteración.</div>
               </div>
