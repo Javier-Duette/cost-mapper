@@ -64,7 +64,7 @@ cost-mapper/
 │   ├── budget/            ← módulo cálculo de presupuesto
 │   ├── library/           ← módulo biblioteca + keynote file
 │   ├── exporter/          ← módulo exportación PDF/Excel
-│   ├── db/                ← conexión PostgreSQL, modelos SQLAlchemy
+│   ├── db/                ← conexión PostgreSQL, configuración SQLModel
 │   └── tests/             ← pytest
 │
 ├── frontend/              ← TypeScript · React · Tailwind CSS

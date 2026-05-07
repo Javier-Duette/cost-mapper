@@ -64,7 +64,7 @@ Si una tarea implica un cambio arquitectónico, documentarlo **antes** de codifi
 ### Para implementar algo nuevo:
 1. Verificar que no contradiga ningún ADR en `docs/adrs/`
 2. Si la decisión no está documentada → crear ADR (ver más abajo)
-3. Implementar con la convención de 5 archivos por módulo
+3. Implementar con la convención de 4 archivos por módulo (ADR-009)
 4. Cerrar la sesión correctamente
 
 ### Para modificar algo existente:

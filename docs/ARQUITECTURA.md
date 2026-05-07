@@ -199,35 +199,32 @@ Solo se incluyen ítems con `bim_taggable = true` de las facetas seleccionadas. 
 
 ### 2.7 Convención de estructura interna de módulos
 
-Cada módulo del backend sigue una estructura de **5 archivos** fija. Esta convención facilita que cualquier desarrollador o agente de IA encuentre rápidamente el código relevante sin necesidad de explorar el árbol completo.
+Cada módulo del backend sigue una estructura de **4 archivos** fija (ADR-009). Esta convención facilita que cualquier desarrollador o agente de IA encuentre rápidamente el código relevante sin necesidad de explorar el árbol completo.
 
 ```
 backend/<modulo>/
 ├── router.py       ← endpoints FastAPI (rutas HTTP, validación de request/response)
 ├── service.py      ← lógica de negocio (orquesta repository + reglas del dominio)
-├── models.py       ← modelos SQLAlchemy (tablas de DB de este módulo)
-├── repository.py   ← acceso a DB (queries SQL crudas o SQLAlchemy, sin lógica)
-└── schemas.py      ← modelos Pydantic (serialización request/response a la API)
+├── models.py       ← modelos SQLModel (SQLAlchemy + Pydantic combinados — ADR-009)
+└── repository.py   ← acceso a DB (queries SQL crudas o SQLModel, sin lógica)
 ```
 
 **Responsabilidades y límites:**
 - `router.py` no llama a `repository.py` directamente — siempre pasa por `service.py`.
 - `service.py` no construye queries SQL — llama métodos de `repository.py`.
-- `models.py` define únicamente las tablas que este módulo **posee** (ver regla 1 de módulo: ningún módulo escribe en la tabla de otro). Puede importar modelos de otros módulos para relaciones FK, pero solo en lectura.
+- `models.py` define los modelos SQLModel que este módulo **posee** (ver regla 1 de módulo: ningún módulo escribe en la tabla de otro). Los modelos con `table=True` mapean a tablas de DB; los modelos sin `table=True` (ej: `CatalogItemCreate`, `CatalogItemUpdate`) se usan para validación de request/response. Puede importar modelos de otros módulos para relaciones FK, pero solo en lectura.
 - `repository.py` no tiene lógica de negocio — solo SELECT/INSERT/UPDATE/DELETE.
-- `schemas.py` no importa `models.py` — son capas separadas para evitar acoplar la representación de DB con la representación de API.
 
 **Ejemplo — módulo `catalog`:**
 ```
 backend/catalog/
 ├── router.py     → GET /catalog/items, PUT /catalog/items/{id}, GET /catalog/items/{id}/apu
 ├── service.py    → buscar_items(), actualizar_precio(), obtener_apu_completo()
-├── models.py     → CatalogItem, APUComponent (SQLAlchemy)
-├── repository.py → get_by_nbr_code(), search_fulltext(), update_price()
-└── schemas.py    → CatalogItemResponse, APUComponentResponse, PriceUpdateRequest
+├── models.py     → CatalogItem (table=True), CatalogItemCreate, CatalogItemUpdate, APUComponent (table=True)
+└── repository.py → get_by_nbr_code(), search_fulltext(), update_price()
 ```
 
-*Lección de OCE: su módulo `bim_hub` sigue exactamente este patrón. La separación permite reemplazar el ORM (SQLAlchemy → SQLModel) sin tocar `router.py` ni `schemas.py`.*
+*Evolución: la convención original de OCE usaba 5 archivos con `schemas.py` separado. ADR-009 consolida `models.py` + `schemas.py` en un solo archivo usando SQLModel, que combina SQLAlchemy y Pydantic en una sola clase.*
 
 ---
 
@@ -357,5 +354,6 @@ Estas reglas garantizan que los módulos sean modificables de forma independient
 | `MODELO-DE-DATOS.md` | Define las tablas que cada módulo lee y escribe                 |
 | `docs/adrs/ADR-004.md` | Flujo IFC completo — justifica el diseño del módulo ifc_importer y mapper |
 | `docs/adrs/ADR-006.md` | Requisito de modularidad — justifica las reglas de módulo       |
+| `docs/adrs/ADR-009.md` | Migración a SQLModel — justifica la estructura de 4 archivos por módulo |
 | `INTERFAZ.md`        | Decisiones de comportamiento del frontend                       |
 | `LECCIONES-V0.md`    | Scripts ETL rescatables del prototipo anterior                  |
