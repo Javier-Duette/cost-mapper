@@ -105,7 +105,7 @@ Controles:
 
 **Métricas y Gráficos:** Tarjetas superiores con el Costo Total, Avance, o Gráfico de distribución por Faceta NBR.
 
-**Selección:** al hacer clic en una fila del presupuesto, el usuario puede acceder a sus detalles, pero no hay visor 3D ni panel en esta vista. Si el usuario desea ubicar un elemento en el espacio, debe utilizar la herramienta en "Mapeo IFC".
+**Selección:** al hacer clic en una fila del presupuesto, el usuario puede acceder a sus detalles, pero no hay visor 3D en esta vista. Si el usuario desea ubicar un elemento en el espacio, debe utilizar la herramienta en "Mapeo IFC".
 
 **Alerta de presupuesto incompleto:** si hay ítems con `unit_price = NULL`, un banner amarillo en la parte superior indica cuántos ítems no tienen precio y bloquea la exportación hasta que se completen.
 
