@@ -4,7 +4,7 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 — Titulo`) · implementado · problemas · decisiones cambiadas · próximo paso.
 
-## 2026-05-07 — ETL panel en UI + facetas NBR corregidas + estabilización backend
+## 2026-05-07 22:00 — ETL panel en UI + facetas NBR corregidas + estabilización backend
 
 **Implementado:**
 - `backend/etl_runner.py`: router FastAPI standalone (`/api/etl/run` POST y `/api/etl/status` GET). Usa `subprocess.run` en `run_in_threadpool` para evitar el bug de asyncio ProactorEventLoop en Windows con pipes.
