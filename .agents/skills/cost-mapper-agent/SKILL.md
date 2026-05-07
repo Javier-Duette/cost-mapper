@@ -85,7 +85,7 @@ Si una tarea implica un cambio arquitectónico, documentarlo **antes** de codifi
 ## Crear o actualizar un ADR
 
 Cuando se toma una decisión de arquitectura, crear un nuevo archivo `docs/adrs/ADR-0XX.md`
-con esta estructura. El último ADR existente es el **ADR-009**; el siguiente es ADR-010.
+con esta estructura. El último ADR existente es el **ADR-012**; el siguiente es ADR-013.
 
 ```markdown
 ## ADR-00X — [Título de la decisión]
@@ -136,5 +136,6 @@ Ver `CLAUDE.md` sección "Cierre de sesión — protocolo obligatorio" para los 
 | `budget` | Calcula presupuesto (cantidades × precios) | solo lectura |
 | `library` | Biblioteca del proyecto + keynote file | `project_library` |
 | `exporter` | Genera PDF/Excel del presupuesto | solo lectura |
+| `etl_runner` | Trigger HTTP para el pipeline ETL (router standalone, sin DB directa) | — |
 
 Ver `docs/ARQUITECTURA.md` para el detalle de entradas/salidas de cada módulo.
