@@ -20,6 +20,20 @@ El sistema permite: importar un modelo IFC de Revit → mapear elementos 3D a í
 
 ---
 
+## Roles de Agente IA (Constructor vs Inspector)
+
+Por defecto, **tú asumes el rol de Constructor**. Tu trabajo es resolver problemas, escribir código y mantener un contexto eficiente para lograr tareas.
+**No audites ni leas el repositorio entero a menos que sea estrictamente necesario**, para evitar la saturación de la ventana de contexto.
+
+**Rol Secundario: Inspector (`cost-mapper-inspector`)**
+Existe una skill dedicada a auditorías profundas. El usuario puede invocarla explícitamente diciendo *"ejecuta el inspector"* o *"haz una auditoría"*. Cuando se invoca:
+- El agente asume el rol de fiscal/QA Senior.
+- No arregla código, **solo encuentra inconsistencias, enlaces rotos, faltas a la arquitectura y desfases documentales.**
+- Reporta los hallazgos al usuario y se desactiva.
+- *Nota:* Si el usuario no lo pide expresamente, mantente en tu rol de Constructor enfocado.
+
+---
+
 ## Leer antes de tocar código
 
 Los ADRs son la razón de por qué el sistema es como es. Un cambio que contradiga un ADR sin revisarlo primero es un error. Leer en este orden:
