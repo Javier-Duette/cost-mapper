@@ -6,6 +6,33 @@
 
 ---
 
+## 2026-05-07 06:15 — Construcción del Frontend React/TypeScript
+
+**Implementado:**
+- Scaffold completo de Vite + React 18 + TypeScript en `frontend/` (package.json, vite.config.ts, tsconfig.app.json, tsconfig.node.json, index.html).
+- `src/globals.css` — todos los tokens del design system extraídos de `docs/design-system/theme.css` + estilos de layout, tablas, chips, sidebar, header, KPI strip, banners, modales, viewer 3D.
+- `src/types/catalog.ts` — tipos TypeScript para `CatalogItem`, `APUComponent`, `CatalogSearchResult`, `Faceta`, `Section`.
+- `src/api/catalog.ts` — cliente HTTP tipado para los 3 endpoints de `catalog/`: `searchItems`, `getItem`, `getItemAPU`.
+- Componentes compartidos: `Icon.tsx` (22 íconos inline SVG), `Chip.tsx` (facetas NBR + badge de fuente), `formatters.ts` (fmt con locale es-PY).
+- Layout: `Header.tsx` (brand + selector de proyecto con popover), `Sidebar.tsx` (nav 5 secciones + settings + tooltip), `SectionHeader.tsx` (título + búsqueda + toggles de faceta + switch Solo PY).
+- Vistas: `CatalogView.tsx` (árbol de facetas + tabla con datos reales del backend), `BudgetView.tsx` (banner + KPI strip + tabla agrupada por faceta, datos mock hasta implementar `budget/`), `DetailPanel.tsx` (APU con datos reales del endpoint `/apu`), `MappingView.tsx` (empty state placeholder), `ReportsView.tsx` (3 tarjetas de exportación), `Viewer3D.tsx` (cubo CSS animado placeholder para @thatopen).
+- `App.tsx` — layout switching dinámico: `layout-with-panel` para Catálogo, `layout-with-viewer-panel` para Mapeo, base para el resto. Estado de selección separado por vista.
+- `.claude/launch.json` — configuración del preview server.
+- TypeScript limpio (`tsc --noEmit` sin errores).
+- Verificado en browser: todas las secciones renderizan correctamente.
+
+**Problemas resueltos:**
+- `npm create vite` no acepta stdin piped en Windows → scaffold manual de los archivos de configuración.
+- CSS import requería `vite-env.d.ts` con `/// <reference types="vite/client" />` para que TypeScript no reportara error.
+- `CatalogView.onSelect` necesitaba pasar el objeto `CatalogItem` completo al App para alimentar el `DetailPanel`.
+
+**Decisiones cambiadas:**
+- Ninguna arquitectural. El `BudgetView` usa datos mock intencionalmente hasta que el módulo `budget/` del backend esté implementado — documentado con comentario en el archivo.
+
+**Próximo paso:** Levantar el backend (`uvicorn main:app --reload`) y verificar la integración real del Catálogo con datos TCPO/NBR. Luego implementar el módulo `budget/` en el backend para reemplazar los mocks del `BudgetView`.
+
+---
+
 ## 2026-05-07 00:53 — Cierre de Sesión y Handoff a Claude Code
 
 **Implementado:**

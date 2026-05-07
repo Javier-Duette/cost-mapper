@@ -46,6 +46,8 @@ Los ADRs son la razón de por qué el sistema es como es. Un cambio que contradi
 | [ADR-004](docs/adrs/ADR-004.md) | Flujo de trabajo IFC | Explica todo el ciclo importación → mapeo → presupuesto y los dos módulos críticos |
 | [ADR-005](docs/adrs/ADR-005.md) | Formatos de exportación | Explica qué formatos hay en MVP y cuáles son post-MVP |
 | [ADR-006](docs/adrs/ADR-006.md) | Extensibilidad y documentación | Explica este archivo, el DEVLOG y las reglas de módulo |
+| [ADR-007](docs/adrs/ADR-007.md) | Flujo de caja y fases de ejecución | Post-MVP — no implementar sin leer este ADR |
+| [ADR-008](docs/adrs/ADR-008.md) | Repositorio y protocolo de control de versiones | **CRÍTICO** — define las reglas de git obligatorias del proyecto |
 | [ADR-009](docs/adrs/ADR-009.md) | Migración a SQLModel | Explica por qué `models.py` combina SQLAlchemy + Pydantic y por qué no hay `schemas.py` |
 
 Todos en: `docs/adrs/` — índice completo en [`docs/adrs/README.md`](docs/adrs/README.md)
