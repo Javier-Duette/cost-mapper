@@ -25,19 +25,23 @@ Es la pantalla por defecto. Muestra la base de datos completa de ítems (TCPO + 
 
 ## 2. Presupuesto (La calculadora del proyecto)
 
-Muestra los costos calculados para el proyecto activo, derivados de la asignación del modelo IFC.
+Muestra los costos calculados para el proyecto activo. En esta vista, el **Visor 3D y el Panel de APU inician colapsados por defecto** para evitar sobrecarga y darle a la tabla una apariencia amplia y limpia, tipo "Dashboard".
 
 **Estructura Visual:**
-1. **Header de Sección:**
+1. **Header de Sección y Dashboard Superior:**
    - Título "Presupuesto: [Nombre del Proyecto]"
    - Toggle switch visual: Ver por Ítem / Ver por Elemento IFC
    - Filtros rápidos por faceta.
    - Banner superior amarillo (estado de alerta) si existen ítems asignados sin precio, con botón de "Completar precios".
 
-2. **Tabla Jerárquica:**
+2. **Tabla Jerárquica Expandida:**
+   - Como los paneles laterales están colapsados, la tabla ocupa todo el ancho, dando una vista cómoda de los costos.
    - **Agrupamiento:** Las filas se agrupan por Faceta NBR (ej. un header de fila colapsable "3E - Resultados" con subtotal acumulado).
    - **Columnas:** Código NBR, Descripción, Unidad, Cantidad (calculada del 3D), Precio Unitario, Subtotal.
    - **Footer:** Fila fija en la parte inferior de la tabla con el "Total Costo Directo".
+
+3. **Interacción:** 
+   - Al hacer clic en un ítem de la tabla, el Visor 3D y el Panel Inferior se despliegan automáticamente para revelar la conexión BIM 5D de esa fila.
 
 ---
 

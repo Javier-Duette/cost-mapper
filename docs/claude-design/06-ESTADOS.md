@@ -10,6 +10,7 @@ El núcleo de la experiencia BIM 5D de Cost-Mapper es la conexión visual inmedi
 
 - **De Tabla a 3D:** 
   - Al seleccionar una fila en la tabla de "Presupuesto" o "Mapeo IFC", el ítem o elemento queda resaltado con un fondo de selección (`#2A2D2E` con borde azul tenue).
+  - Si el Visor 3D o el Panel Inferior estaban colapsados (su estado por defecto en Presupuesto), **se expanden automáticamente** con una transición suave (`--dur-med: 220ms` usando los tokens de ejemplo).
   - Automáticamente, en el Visor 3D, todos los elementos físicos vinculados a esa fila se resaltan en el color de acento (`#0078D4` o un overlay con transparencia). 
   - El resto del modelo 3D cambia a un estado "translúcido" (ghost mode) con un `20%` de opacidad para dar contexto sin estorbar.
 - **De 3D a Tabla:**

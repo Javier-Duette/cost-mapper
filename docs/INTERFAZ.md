@@ -29,9 +29,9 @@ La interfaz es una **aplicación web de escritorio** (desktop-first). No hay ver
 
 **Dimensiones de cada zona:**
 - Sidebar: 56px de ancho (solo iconos). Sin etiquetas de texto para maximizar el área de trabajo.
-- Área principal: ocupa todo el centro, ancho flexible.
-- Visor 3D: panel derecho, ~380px por defecto, redimensionable con drag. Se oculta completamente cuando no hay modelo IFC cargado — el área principal toma todo el ancho.
-- Panel de detalle: colapsado por defecto (~32px — solo la barra con el título del ítem). Al hacer clic en un ítem se expande a ~280px de altura. El usuario puede redimensionarlo con drag.
+- Área principal: ocupa todo el centro, ancho flexible. Se expande al 100% cuando los paneles están colapsados.
+- Visor 3D: panel derecho, ~380px por defecto, redimensionable con drag. **Inicia colapsado por defecto en la vista Presupuesto** para maximizar el espacio de la tabla. Se oculta completamente cuando no hay modelo IFC cargado.
+- Panel de detalle: colapsado por defecto (~32px — solo la barra con el título del ítem) en todas las vistas. Al hacer clic en un ítem se expande a ~280px de altura. El usuario puede redimensionarlo con drag.
 
 **Tema visual:** Oscuro, inspirado en Revit. Fondo base `#1E1E1E`, superficie de paneles `#252526`, bordes `#3E3E42`, texto primario `#CCCCCC`, acento principal azul `#0078D4` (azul Revit/VS Code).
 
@@ -66,7 +66,7 @@ Barra vertical izquierda de 56px con iconos. Al pasar el cursor muestra tooltip 
 
 **Nota para diseño:** los iconos del sidebar deben ser diseñados como parte del sistema de iconografía del proyecto. Ver sección 13.
 
-Al cambiar de sección solo cambia el contenido del área principal. El visor 3D y el panel de detalle permanecen en su lugar.
+Al cambiar de sección, el contenido del área principal cambia completamente. El Visor 3D y el Panel de Detalle permanecen en su lugar, pero **se colapsan automáticamente al entrar a vistas de alta densidad de datos (como Presupuesto)** para dar espacio, abriéndose solo "On-Demand" si el usuario hace clic en una fila.
 
 ---
 
@@ -106,7 +106,7 @@ Controles:
 - Filtro por faceta
 - Indicador de ítems sin precio con botón "Completar precios" que lleva al catálogo filtrado
 
-**Selección bidireccional con visor 3D:** al hacer clic en una fila del presupuesto, el visor 3D resalta los elementos IFC asignados a ese ítem (el resto aparece translúcido). Al hacer clic en un elemento en el visor 3D, la tabla se desplaza y resalta la fila correspondiente.
+**Selección bidireccional "On-Demand":** Como el visor y el panel inician colapsados en esta vista, la tabla ocupa toda la pantalla tipo Dashboard. Al hacer clic en una fila del presupuesto, el Visor 3D **se despliega**, resaltando los elementos IFC asignados a ese ítem. Al hacer clic en un elemento en el visor 3D, la tabla se desplaza y resalta la fila correspondiente.
 
 **Alerta de presupuesto incompleto:** si hay ítems con `unit_price = NULL`, un banner amarillo en la parte superior indica cuántos ítems no tienen precio y bloquea la exportación hasta que se completen.
 

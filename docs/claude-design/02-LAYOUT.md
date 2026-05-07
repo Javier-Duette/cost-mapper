@@ -122,7 +122,8 @@
 
 **Redimensionable:** el usuario puede arrastrar el borde izquierdo del panel para cambiar el ancho. Mínimo 240px, máximo 50% del ancho disponible.
 
-**Colapsable:** botón `◀` en el borde izquierdo del panel. Al hacer clic, el panel se oculta completamente y el área principal toma todo el ancho. El botón se convierte en `▶` adosado al borde derecho de la ventana. El estado de colapso se guarda en la sesión.
+**Colapsable:** botón `◀` en el borde izquierdo del panel. Al hacer clic, el panel se oculta completamente y el área principal toma todo el ancho. El botón se convierte en `▶` adosado al borde derecho de la ventana. 
+**Regla por Sección:** En la vista "Mapeo IFC", el visor inicia abierto por defecto. En "Presupuesto", "Catálogo" y las demás, **inicia colapsado por defecto** para evitar sobrecarga visual, abriéndose solo si el usuario hace clic en un ítem para inspeccionarlo en el modelo.
 
 **Color de fondo:** `#1E1E1E` (mismo que el área principal — el visor llena el espacio).
 
@@ -166,6 +167,7 @@ El ícono y el texto están centrados vertical y horizontalmente. Fondo: `#1E1E1
 **Color de fondo del panel:** `#252526`, borde superior `1px solid #3E3E42`.
 
 **Contenido:** varía según la sección activa. Ver `04-COMPONENTES.md` para el detalle del panel APU y el panel de elemento IFC.
+**Regla por Sección:** Inicia colapsado en casi todas las secciones. Solo se expande automáticamente si el usuario hace un clic específico sobre un ítem en el Catálogo, Presupuesto o Mapeo IFC.
 
 ---
 
