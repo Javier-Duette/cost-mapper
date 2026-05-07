@@ -4,6 +4,21 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 — Titulo`) · implementado · problemas · decisiones cambiadas · próximo paso.
 
+## 2026-05-07 12:20 — Ejecución real de ETL TCPO desde la UI
+
+**Implementado:**
+- Ejecución completa del pipeline ETL (extracción con Gemini Vision) procesando las páginas 36 a 38 de la TCPO V15 directamente desde la UI del navegador (`EtlView`).
+- Se validó el correcto funcionamiento del flag "Forzar" para evadir la caché de Gemini local cuando sea necesario reprocesar una página.
+- La base de datos SQLite (`costmapper_dev.db`) fue poblada exitosamente incrementando los ítems de catálogo reales con `is_work_item = 1`.
+
+**Problemas resueltos:**
+- Ninguno. El pipeline funcionó end-to-end según lo previsto por la arquitectura de 2-pasos.
+
+**Decisiones cambiadas:**
+- Ninguna.
+
+**Próximo paso:** Revisar los nuevos ítems de catálogo insertados desde la vista "Catálogo" de la UI y comenzar la implementación de agregar ítems al presupuesto (`POST /api/projects/{id}/library`).
+
 ## 2026-05-07 22:00 — ETL panel en UI + facetas NBR corregidas + estabilización backend
 
 **Implementado:**
