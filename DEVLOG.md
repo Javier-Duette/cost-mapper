@@ -422,3 +422,21 @@ La frase "crear un backup" fue interpretada por el agente como copia de carpeta 
 - **Panel de desglose APU va en la zona inferior** (no en el sidebar izquierdo como en V0). Soluciona el problema de compresiÃ³n de columnas que tenÃ­a la V0.
 
 **PrÃ³ximo paso:** DiseÃ±o de interfaz con Claude Design (leer `INTERFAZ.md` + `STACK-TECNOLOGICO.md` antes de iniciar). Luego: inicializaciÃ³n del repositorio de cÃ³digo y primer commit con la estructura de carpetas del `CLAUDE.md`.
+
+## 2026-05-07 15:45 - Edición Inline, Creación Manual y Verificación de Ítems en Catálogo
+
+**Implementado:**
+- Se corrigió el nombre en el sidebar "Catálogo de Ítems" que tenía errores de codificación.
+- Se implementó la **Edición Inline** en el Panel APU (DetailPanel.tsx): ahora se puede hacer clic sobre el precio, coeficiente o descripción para editarlos directamente. Los cambios establecen automáticamente la fuente como "CUSTOM".
+- Se agregó el campo is_verified a la base de datos catalog_items y se implementó un botón en la UI para **Verificar APUs** importados del TCPO. Si se edita un APU verificado, este pierde su estado de verificación automáticamente.
+- Se implementaron las ventanas modales para **Creación de Ítems Manuales** (CreateItemModal) y **Añadir Insumo Manual a un APU** (AddInsumoModal), con el objetivo de sortear las limitaciones de extracción cuando las tablas del PDF están cortadas.
+- Se añadió capacidad de redimensionar (arrastrar hacia arriba) el Panel APU inferior para visualizar más insumos a la vez.
+
+**Problemas resueltos:**
+- Se solucionó un problema de codificación UTF-8 en outer.py, service.py y epository.py del módulo catalog.
+- Se ajustaron los tipos de TypeScript para la asignación correcta de is_verified y campos fuente.
+
+**Decisiones cambiadas:**
+- Se introdujo el concepto de "Validación Humana" (is_verified) como paso obligatorio antes de poder confiar en un ítem extraído del ETL, especialmente debido a las tablas fracturadas del PDF.
+
+**Próximo paso:** Implementar la transferencia de ítems verificados al presupuesto del proyecto (POST /api/projects/{id}/library).

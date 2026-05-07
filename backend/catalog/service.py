@@ -1,8 +1,8 @@
 """
-Service del módulo catalog — lógica de negocio.
+Service del mÃ³dulo catalog â€” lÃ³gica de negocio.
 
 Orquesta repository y aplica reglas de dominio.
-Referencia: docs/ARQUITECTURA.md sección 2.1
+Referencia: docs/ARQUITECTURA.md secciÃ³n 2.1
 """
 
 from decimal import Decimal
@@ -31,7 +31,7 @@ def buscar_items(
     offset: int = 0,
     limit: int = 50,
 ) -> dict:
-    """Búsqueda paginada de ítems con filtros.
+    """BÃºsqueda paginada de Ã­tems con filtros.
 
     Returns:
         dict con 'items', 'total', 'offset', 'limit'.
@@ -59,19 +59,19 @@ def buscar_items(
 
 
 def obtener_item(session: Session, item_id: str) -> CatalogItem:
-    """Obtiene un ítem por ID o lanza 404."""
+    """Obtiene un Ã­tem por ID o lanza 404."""
     item = repository.get_by_id(session, item_id)
     if not item:
-        raise HTTPException(status_code=404, detail=f"Ítem {item_id} no encontrado.")
+        raise HTTPException(status_code=404, detail=f"Ãtem {item_id} no encontrado.")
     return item
 
 
 def obtener_apu_completo(session: Session, item_id: str) -> list[APUComponentRead]:
-    """Obtiene la composición APU de un ítem.
+    """Obtiene la composiciÃ³n APU de un Ã­tem.
 
-    Verifica que el ítem exista antes de consultar la APU.
+    Verifica que el Ã­tem exista antes de consultar la APU.
     """
-    # Verificar existencia del ítem padre
+    # Verificar existencia del Ã­tem padre
     obtener_item(session, item_id)
     return repository.get_apu_components(session, item_id)
 
@@ -82,10 +82,10 @@ def actualizar_item(
     data: CatalogItemUpdate,
     user: str = "user:anonymous",
 ) -> CatalogItem:
-    """Edita un ítem existente.
+    """Edita un Ã­tem existente.
 
-    Regla de negocio (ARQUITECTURA.md sección 2.1):
-    El cambio es global — si se edita el precio de un insumo,
+    Regla de negocio (ARQUITECTURA.md secciÃ³n 2.1):
+    El cambio es global â€” si se edita el precio de un insumo,
     afecta a todos los APU que lo usen como componente.
     El router debe avisar al usuario del alcance del cambio.
     """
@@ -98,9 +98,9 @@ def crear_item(
     data: CatalogItemCreate,
     user: str = "user:anonymous",
 ) -> CatalogItem:
-    """Crea un ítem nuevo en el catálogo.
+    """Crea un Ã­tem nuevo en el catÃ¡logo.
 
-    Genera UUID v4 (Capa 3 — ítems locales, ADR-001).
+    Genera UUID v4 (Capa 3 â€” Ã­tems locales, ADR-001).
     """
     item = CatalogItem(
         id=_uuid(),
@@ -124,3 +124,58 @@ def crear_item(
         updated_at=_now(),
     )
     return repository.create(session, item)
+
+def obtener_apu_componente(session: Session, apu_id: str) -> "APUComponent":
+    """Obtiene un componente APU por su ID."""
+    from catalog.models import APUComponent
+    apu = session.get(APUComponent, apu_id)
+    if not apu:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="APU component not found")
+    return apu
+
+def actualizar_apu_componente(
+    session: Session,
+    apu_id: str,
+    data: "APUComponentUpdate",
+) -> "APUComponent":
+    """Edita un componente APU existente (coeficiente o fuente)."""
+    apu = obtener_apu_componente(session, apu_id)
+    apu = repository.update_apu_component(session, apu, data)
+    
+    # Invalidate parent verification
+    parent = obtener_item(session, apu.item_id)
+    parent.is_verified = False
+    session.add(parent)
+    session.commit()
+    
+    return apu
+
+
+def agregar_componente_apu(
+    session: Session,
+    item_id: str,
+    data: "APUComponentCreate"
+) -> "APUComponent":
+    from catalog.models import APUComponent, _uuid
+    # Verify parent exists
+    parent = obtener_item(session, item_id)
+    # Validate component exists
+    component = obtener_item(session, data.component_id)
+
+    apu = APUComponent(
+        id=_uuid(),
+        item_id=item_id,
+        component_id=data.component_id,
+        quantity=data.quantity,
+        unit=data.unit,
+        source=data.source
+    )
+    apu = repository.add_apu_component(session, apu)
+    
+    # Invalidate parent verification
+    parent.is_verified = False
+    session.add(parent)
+    session.commit()
+    
+    return apu

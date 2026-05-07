@@ -1,8 +1,8 @@
-"""
-Repository del módulo catalog — acceso a DB.
+﻿"""
+Repository del mÃ³dulo catalog â€” acceso a DB.
 
-Solo queries. Sin lógica de negocio.
-Referencia: docs/ARQUITECTURA.md sección 2.7
+Solo queries. Sin lÃ³gica de negocio.
+Referencia: docs/ARQUITECTURA.md secciÃ³n 2.7
 """
 
 from decimal import Decimal
@@ -19,12 +19,12 @@ from catalog.models import (
 
 
 def get_by_id(session: Session, item_id: str) -> CatalogItem | None:
-    """Obtiene un ítem por su UUID."""
+    """Obtiene un Ã­tem por su UUID."""
     return session.get(CatalogItem, item_id)
 
 
 def get_by_nbr_code(session: Session, nbr_code: str) -> CatalogItem | None:
-    """Obtiene un ítem por su código NBR."""
+    """Obtiene un Ã­tem por su cÃ³digo NBR."""
     statement = select(CatalogItem).where(CatalogItem.nbr_code == nbr_code)
     return session.exec(statement).first()
 
@@ -39,10 +39,10 @@ def search(
     offset: int = 0,
     limit: int = 50,
 ) -> list[CatalogItem]:
-    """Búsqueda paginada de ítems con filtros opcionales.
+    """BÃºsqueda paginada de Ã­tems con filtros opcionales.
 
-    Por defecto filtra is_work_item=True (ítems TCPO presupuestables).
-    Pasar is_work_item=False para incluir nodos de clasificación NBR.
+    Por defecto filtra is_work_item=True (Ã­tems TCPO presupuestables).
+    Pasar is_work_item=False para incluir nodos de clasificaciÃ³n NBR.
     Ver ADR-011.
     """
     statement = select(CatalogItem).where(CatalogItem.is_work_item == is_work_item)
@@ -72,7 +72,7 @@ def count(
     relevant_py: bool | None = None,
     is_work_item: bool = True,
 ) -> int:
-    """Cuenta total de ítems que coinciden con los filtros (para paginación)."""
+    """Cuenta total de Ã­tems que coinciden con los filtros (para paginaciÃ³n)."""
     from sqlalchemy import func
 
     statement = select(func.count()).select_from(CatalogItem).where(
@@ -99,11 +99,11 @@ def get_nbr_tree(
     facet: str | None = None,
     bim_taggable: bool | None = None,
 ) -> list[CatalogItem]:
-    """Retorna nodos del árbol de clasificación NBR para keynotes y navegación.
+    """Retorna nodos del Ã¡rbol de clasificaciÃ³n NBR para keynotes y navegaciÃ³n.
 
-    Incluye TODOS los nodos (is_work_item ignorado) — tanto nodos intermedios
-    como ítems hoja. La relación padre-hijo se reconstruye via parent_nbr_code.
-    Ver MODELO-DE-DATOS.md sección 10 (query de keynote file).
+    Incluye TODOS los nodos (is_work_item ignorado) â€” tanto nodos intermedios
+    como Ã­tems hoja. La relaciÃ³n padre-hijo se reconstruye via parent_nbr_code.
+    Ver MODELO-DE-DATOS.md secciÃ³n 10 (query de keynote file).
     """
     statement = select(CatalogItem)
 
@@ -117,9 +117,9 @@ def get_nbr_tree(
 
 
 def get_apu_components(session: Session, item_id: str) -> list[APUComponentRead]:
-    """Obtiene la composición APU de un ítem.
+    """Obtiene la composiciÃ³n APU de un Ã­tem.
 
-    Equivale a la query de MODELO-DE-DATOS.md sección 2:
+    Equivale a la query de MODELO-DE-DATOS.md secciÃ³n 2:
     SELECT ci.facet, ci.nbr_code, ci.description_es, ci.unit,
            ac.quantity, ci.unit_price, ci.currency, ci.fuente_precios,
            ac.id
@@ -145,7 +145,8 @@ def get_apu_components(session: Session, item_id: str) -> list[APUComponentRead]
             coef=apu.quantity,
             precio=component.unit_price,
             currency=component.currency,
-            fuente=component.fuente_precios,
+            fuente_precio=component.fuente_precios,
+            fuente_coef=apu.source,
             apu_component_id=apu.id,
             component_id=component.id,
         )
@@ -154,7 +155,7 @@ def get_apu_components(session: Session, item_id: str) -> list[APUComponentRead]
 
 
 def create(session: Session, item: CatalogItem) -> CatalogItem:
-    """Persiste un nuevo ítem en la DB."""
+    """Persiste un nuevo Ã­tem en la DB."""
     session.add(item)
     session.commit()
     session.refresh(item)
@@ -167,7 +168,7 @@ def update(
     data: CatalogItemUpdate,
     modificado_por: str,
 ) -> CatalogItem:
-    """Actualiza campos de un ítem existente.
+    """Actualiza campos de un Ã­tem existente.
 
     Solo actualiza los campos que vienen con valor (no None).
     Siempre actualiza modificado_por y updated_at.
@@ -185,3 +186,24 @@ def update(
     session.commit()
     session.refresh(item)
     return item
+
+def update_apu_component(
+    session: Session, db_apu: APUComponent, data: "APUComponentUpdate"
+) -> APUComponent:
+    """Actualiza una relacin APU."""
+    update_data = data.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_apu, key, value)
+
+    session.add(db_apu)
+    session.commit()
+    session.refresh(db_apu)
+    return db_apu
+
+
+def add_apu_component(session: Session, apu: APUComponent) -> APUComponent:
+    """Añade un nuevo componente APU a la base de datos."""
+    session.add(apu)
+    session.commit()
+    session.refresh(apu)
+    return apu

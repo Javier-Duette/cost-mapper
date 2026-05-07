@@ -60,7 +60,6 @@ function ToastItem({ msg, onDismiss }: { msg: ToastMessage; onDismiss: (id: numb
   return (
     <div style={{
       pointerEvents: 'auto',
-      background: 'var(--bg-surface-raised)',
       border: `1px solid ${color}`,
       borderLeft: `3px solid ${color}`,
       borderRadius: 'var(--radius-sm)',

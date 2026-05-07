@@ -145,6 +145,10 @@ class CatalogItem(SQLModel, table=True):
         default=False,
         description="true = ítem de trabajo TCPO presupuestable. false = nodo de clasificación NBR (sin precio).",
     )
+    is_verified: bool = Field(
+        default=False,
+        description="Indica si un usuario humano verificó la exactitud de este ítem y su APU.",
+    )
 
     # --- Auditoría ---
     modificado_por: str | None = Field(
@@ -258,6 +262,7 @@ class CatalogItemUpdate(SQLModel):
     fuente_precios: str | None = None
     fuente_factores: str | None = None
     relevant_py: bool | None = None
+    is_verified: bool | None = None
 
 
 class CatalogItemRead(SQLModel):
@@ -277,6 +282,7 @@ class CatalogItemRead(SQLModel):
     bim_taggable: bool
     relevant_py: bool
     oficial: bool
+    is_verified: bool
     is_work_item: bool
     parent_nbr_code: str | None
     creado_por: str
@@ -295,6 +301,21 @@ class APUComponentRead(SQLModel):
     coef: Decimal       # quantity
     precio: Decimal | None  # unit_price del componente
     currency: str | None
-    fuente: str | None  # fuente_precios del componente
+    fuente_precio: str | None  # fuente_precios del componente
+    fuente_coef: str | None    # source del apu_component
     apu_component_id: str  # id del APUComponent (para edición)
     component_id: str      # id del catalog_item componente
+
+class APUComponentUpdate(SQLModel):
+    """Request body para edición parcial de un componente APU (coeficientes)."""
+
+    quantity: Decimal | None = None
+    source: str | None = None
+
+class APUComponentCreate(SQLModel):
+    """Request body para agregar un insumo a un APU."""
+
+    component_id: str = Field(max_length=36)
+    quantity: Decimal
+    unit: str = Field(max_length=50)
+    source: str = Field(max_length=20)

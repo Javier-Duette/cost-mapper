@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { searchItems } from '../../api/catalog'
 import { Chip, SourceBadge } from '../shared/Chip'
 import { fmt } from '../shared/formatters'
+import { CreateItemModal } from '../shared/CreateItemModal'
 import type { CatalogItem, Faceta } from '../../types/catalog'
 
 const TREE: { id: Faceta; label: string }[] = [
@@ -34,6 +35,7 @@ export function CatalogView({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [addingId, setAddingId] = useState<string | null>(null)
+  const [isCreatingItem, setIsCreatingItem] = useState(false)
 
   const needsQuery = !activeFaceta && !search
 
@@ -84,6 +86,15 @@ export function CatalogView({
             <span className="cat__tree-label">{n.label}</span>
           </div>
         ))}
+        
+        <div style={{ marginTop: 24, padding: '0 16px' }}>
+          <button 
+            onClick={() => setIsCreatingItem(true)}
+            style={{ width: '100%', padding: '8px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}
+          >
+            + Nuevo Ítem
+          </button>
+        </div>
       </aside>
 
       <div className="cat__list">
@@ -112,6 +123,7 @@ export function CatalogView({
                 <th style={{ width: 60 }}>UND</th>
                 <th className="num" style={{ width: 130 }}>P. UNIT (₲)</th>
                 <th style={{ width: 110 }}>FUENTE</th>
+                <th style={{ width: 44, textAlign: 'center' }}>OK</th>
                 <th style={{ width: 44 }} />
               </tr>
             </thead>
@@ -129,6 +141,9 @@ export function CatalogView({
                   <td className="num">{fmt(r.unit_price)}</td>
                   <td>
                     <SourceBadge source={r.fuente_precios ?? (r.oficial ? 'TCPO v15' : 'Custom')} />
+                  </td>
+                  <td style={{ textAlign: 'center', color: r.is_verified ? 'var(--success)' : 'var(--border-color)' }}>
+                    {r.is_verified ? '✓' : '•'}
                   </td>
                   <td style={{ padding: '0 6px', textAlign: 'center' }}>
                     {projectId && (
@@ -162,6 +177,17 @@ export function CatalogView({
           </div>
         )}
       </div>
+
+      {isCreatingItem && (
+        <CreateItemModal 
+          onClose={() => setIsCreatingItem(false)} 
+          onSuccess={(item) => {
+            setIsCreatingItem(false)
+            load() // Reload current query to show new item
+            onSelect(item.id, item) // Select it automatically
+          }}
+        />
+      )}
     </div>
   )
 }

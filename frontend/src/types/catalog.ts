@@ -1,4 +1,4 @@
-/** Facetas NBR 15965 principales (BIM-relevantes en construcción). */
+﻿/** Facetas NBR 15965 principales (BIM-relevantes en construcciÃƒÂ³n). */
 export type Faceta = '3E' | '3R' | '4U' | '2C' | '2N' | '2Q'
 
 /** Respuesta del endpoint GET /api/catalog/items/:id y listados. */
@@ -17,6 +17,8 @@ export interface CatalogItem {
   bim_taggable: boolean
   relevant_py: boolean
   oficial: boolean
+  is_verified: boolean
+  is_work_item: boolean
   parent_nbr_code: string | null
   creado_por: string
   modificado_por: string | null
@@ -35,7 +37,8 @@ export interface APUComponentRead {
   coef: number
   precio: number | null
   currency: string | null
-  fuente: string | null
+  fuente_precio: string | null
+  fuente_coef: string | null
 }
 
 /** Respuesta paginada del endpoint GET /api/catalog/items. */

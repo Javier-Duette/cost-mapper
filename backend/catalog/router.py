@@ -10,7 +10,9 @@ from sqlmodel import Session
 
 from catalog import service
 from catalog.models import (
+    APUComponentCreate,
     APUComponentRead,
+    APUComponentUpdate,
     CatalogItemCreate,
     CatalogItemRead,
     CatalogItemUpdate,
@@ -93,3 +95,23 @@ def create_item(
     Se genera un UUID v4 automáticamente (Capa 3 — ítems locales, ADR-001).
     """
     return service.crear_item(session, data)
+
+@router.patch("/apu/{apu_id}", summary="Editar un componente APU")
+def update_apu_component(
+    apu_id: str,
+    data: APUComponentUpdate,
+    session: Session = Depends(get_session),
+) -> dict:
+    """Actualiza campos de un componente APU (ej. coeficiente, fuente)."""
+    apu = service.actualizar_apu_componente(session, apu_id, data)
+    return {"id": apu.id, "quantity": apu.quantity, "source": apu.source}
+
+@router.post("/items/{item_id}/apu", summary="Aadir un insumo al APU", status_code=201)
+def add_apu_component(
+    item_id: str,
+    data: APUComponentCreate,
+    session: Session = Depends(get_session),
+) -> dict:
+    """Aade un nuevo componente al desglose APU de un tem."""
+    apu = service.agregar_componente_apu(session, item_id, data)
+    return {"id": apu.id, "quantity": apu.quantity, "source": apu.source}

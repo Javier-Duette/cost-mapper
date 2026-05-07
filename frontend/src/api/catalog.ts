@@ -35,3 +35,45 @@ export async function getItemAPU(id: string): Promise<APUComponentRead[]> {
   if (!res.ok) throw new Error(`GET /items/${id}/apu falló: ${res.status}`)
   return res.json() as Promise<APUComponentRead[]>
 }
+
+/** Actualiza un ítem del catálogo (precio, descripción, fuente). */
+export async function updateItem(id: string, data: Partial<CatalogItem>): Promise<CatalogItem> {
+  const res = await fetch(`${BASE}/items/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  if (!res.ok) throw new Error(`PUT /items/${id} falló: ${res.status}`)
+  return res.json() as Promise<CatalogItem>
+}
+
+/** Actualiza un componente APU (coeficiente, fuente de coeficiente). */
+export async function updateAPUComponent(apuId: string, data: { quantity?: number; source?: string }): Promise<void> {
+  const res = await fetch(`${BASE}/apu/${apuId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  if (!res.ok) throw new Error(`PATCH /apu/${apuId} falló: ${res.status}`)
+}
+
+/** Crea un nuevo ítem en el catálogo. */
+export async function createItem(data: Omit<CatalogItem, 'id' | 'uuid_status' | 'created_at' | 'updated_at' | 'creado_por' | 'modificado_por' | 'parent_nbr_code' | 'oficial' | 'is_work_item'>): Promise<CatalogItem> {
+  const res = await fetch(`${BASE}/items`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  if (!res.ok) throw new Error(`POST /items falló: ` + res.status)
+  return res.json() as Promise<CatalogItem>
+}
+
+/** Añade un insumo al APU de un ítem. */
+export async function addAPUComponent(itemId: string, data: { component_id: string; quantity: number; unit: string; source: string }): Promise<void> {
+  const res = await fetch(`${BASE}/items/${itemId}/apu`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  if (!res.ok) throw new Error(`POST /items/${itemId}/apu falló: ` + res.status)
+}
