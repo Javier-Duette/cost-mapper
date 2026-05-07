@@ -43,12 +43,12 @@
 
                     ┌──────────────────────────────┐
                     │       PIPELINE ETL (Python)  │
-                    │  scripts/ numerados          │
-                    │  TCPO · Mandu'a · Traducciones│
+                    │  scripts/etl_tcpo/           │
+                    │  TCPO V15 · PDF → catálogo   │
                     └──────────────┬───────────────┘
                                    │ carga inicial y actualizaciones
                                    ▼
-                          PostgreSQL (catalog_items)
+                          SQLite/PostgreSQL (catalog_items)
 ```
 
 ---
@@ -57,19 +57,22 @@
 
 ### 1. Pipeline ETL — carga del catálogo
 
-Scripts Python numerados que corren **fuera del servidor**, como tareas de mantenimiento. No forman parte del servidor web. Populan `catalog_items` y `apu_components` desde las fuentes oficiales.
+Herramienta CLI Python en `scripts/etl_tcpo/` que corre **fuera del servidor**, como tarea de mantenimiento. No forma parte del servidor web. Popula `catalog_items` y `apu_components` extrayendo datos del PDF TCPO V15 rasterizado con Gemini Vision.
 
-| Script               | Responsabilidad                                                    |
-| -------------------- | ------------------------------------------------------------------ |
-| `01_init_db.py`      | Crea el schema PostgreSQL con índices. Se ejecuta una sola vez.    |
-| `02_cargar_mandua.py`| Carga el catálogo Mandu'a (precios PY). Re-ejecutable para updates.|
-| `03_cargar_tcpo.py`  | Carga partidas TCPO desde el Excel. Setea `creado_por = "catalog_tcpo"`. |
-| `04_traducir.py`     | Traducción PT→ES con Gemini. Cachéa por MD5 del texto original.    |
-| `05_clasificar.py`   | Clasificación de relevancia PY. Puede correr junto con traducción. |
+| Módulo               | Responsabilidad                                                         |
+| -------------------- | ----------------------------------------------------------------------- |
+| `detector.py`        | Renderiza páginas con `pymupdf`, detecta tablas con OpenCV, devuelve recortes PIL. |
+| `extractor.py`       | Envía cada recorte a Gemini Vision (`gemini-2.5-flash`), parsea JSON con esquema fijo. Arquitectura 2-pasos: Pass 1 extrae solo códigos → Pass 2 extrae los no conocidos. |
+| `loader.py`          | Valida e inserta en `catalog_items` + `apu_components` con `is_work_item=True`, `unit_price=NULL`. Incluye `get_existing_codes()` para el filtro del Paso 1. |
+| `main.py`            | CLI con comandos `run`, `detect`, `status`. Flags: `--pages`, `--dry-run`, `--force`, `--single-pass`. |
 
-**Contrato de salida:** filas en `catalog_items` con `unit_price = NULL` y `fuente_precios = NULL` para ítems que aún no tienen precio local. El resto de campos completos.
+**Contrato de salida:** filas en `catalog_items` con `is_work_item=True`, `unit_price=NULL` y `fuente_precios=NULL`. Descripciones en PT y ES (Gemini traduce en el mismo llamado de extracción).
 
-**Referencia:** `LECCIONES-V0.md` sección 4 — estos scripts son rescatables de V0 con adaptaciones menores.
+**Invocación desde la UI:** el módulo `etl_runner.py` del backend expone `/api/etl/run` y `/api/etl/status` que ejecutan esta CLI como subproceso.
+
+**Dependencias ETL:** `pymupdf`, `opencv-python`, `Pillow`, `google-generativeai`, `click`.
+
+**Referencia:** ADR-012 — estrategia de extracción PDF + Gemini Vision.
 
 ---
 
@@ -201,7 +204,25 @@ Solo se incluyen ítems con `bim_taggable = true` de las facetas seleccionadas.
 
 ---
 
-#### 2.7 `exporter` — Exportación de informes
+#### 2.7 `etl_runner` — Trigger de ETL desde la UI
+
+**Responsabilidad:** exponer endpoints HTTP para que la UI pueda disparar y monitorear el pipeline ETL sin usar la terminal.
+
+**Nota estructural:** este módulo es un router standalone (`backend/etl_runner.py`), no sigue la convención de 4 archivos porque no tiene acceso directo a la DB — delega toda la lógica al CLI de `scripts/etl_tcpo/`.
+
+**Entradas:**
+- `POST /api/etl/run` — `{ pages, dry_run, force }` — ejecuta `scripts/etl_tcpo/main.py run` como subproceso
+- `GET /api/etl/status` — devuelve resumen de `scripts/data/tcpo_progress.json`
+
+**Salidas:**
+- `{ ok: bool, output: string }` — stdout completo del proceso ETL
+- `{ total_items: int, pages: {...} }` — estado actual del progreso
+
+**Implementación:** usa `subprocess.run` síncrono en `fastapi.concurrency.run_in_threadpool` para evitar el bug de asyncio ProactorEventLoop en Windows con pipes.
+
+---
+
+#### 2.8 `exporter` — Exportación de informes
 
 **Responsabilidad:** generar los formatos de entregable del presupuesto a partir de los datos calculados por `budget`.
 
@@ -219,7 +240,7 @@ Solo se incluyen ítems con `bim_taggable = true` de las facetas seleccionadas.
 
 ---
 
-### 2.7 Convención de estructura interna de módulos
+### 2.9 Convención de estructura interna de módulos
 
 Cada módulo del backend sigue una estructura de **4 archivos** fija (ADR-009). Esta convención facilita que cualquier desarrollador o agente de IA encuentre rápidamente el código relevante sin necesidad de explorar el árbol completo.
 
@@ -250,7 +271,7 @@ backend/catalog/
 
 ---
 
-### 2.8 Estrategia de migraciones (Alembic)
+### 2.10 Estrategia de migraciones (Alembic)
 
 Las migraciones de schema usan **Alembic** con el patrón de "baseline sin-op":
 
@@ -322,7 +343,17 @@ Presupuesto del proyecto agrupado por faceta NBR. Resalta ítems con `unit_price
 
 ---
 
-#### 3.5 `shared` — Componentes reutilizables
+#### 3.5 `settings_panel` — Panel de importación ETL
+
+Interfaz para ejecutar el pipeline ETL TCPO desde el navegador sin usar la terminal.
+
+**Estado actual (MVP implementado):** `EtlView.tsx` — cards de estadísticas (ítems en catálogo, páginas OK/parciales/errores), input de páginas, checkboxes Dry-run/Forzar, botón Ejecutar, log de output con borde coloreado según resultado.
+
+Llama a `POST /api/etl/run` y `GET /api/etl/status` del módulo `etl_runner`.
+
+---
+
+#### 3.6 `shared` — Componentes reutilizables
 
 Componentes de uso transversal a todas las vistas:
 
@@ -344,11 +375,17 @@ Componentes de uso transversal a todas las vistas:
 ### Flujo A — Primera vez: cargar catálogo
 
 ```
-ETL scripts (local)
-  → 01_init_db     → schema PostgreSQL creado
-  → 03_cargar_tcpo → catalog_items populado (unit_price = NULL)
-  → 04_traducir    → description_es completo
-  → 02_cargar_mandua → precios PY disponibles para matching manual
+Opción 1: desde la UI
+  Usuario abre sección "Importar TCPO V15" (settings_panel/EtlView)
+  → ingresa rango de páginas del PDF TCPO V15
+  → activa Dry-run para previsualizar sin tocar DB
+  → ejecuta → backend llama a scripts/etl_tcpo/main.py run
+  → Gemini Vision extrae tablas → loader inserta en catalog_items
+
+Opción 2: desde la terminal
+  cd scripts/etl_tcpo
+  python main.py run --pages 37-50
+  → mismo pipeline, sin pasar por el backend
 ```
 
 ### Flujo B — Preparar un proyecto nuevo

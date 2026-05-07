@@ -81,14 +81,30 @@ Antes de la lista, los filtros que se aplicaron a cada decisión:
 
 ### Gemini API (Google)
 
-**Rol:** traducción PT→ES de descripciones TCPO y clasificación de relevancia Paraguay. Corre únicamente en el pipeline ETL, no en el servidor web.
+**Rol:** extracción de tablas del PDF TCPO V15 rasterizado (Gemini Vision), traducción PT→ES en el mismo llamado de extracción. Corre únicamente en el pipeline ETL, no en el servidor web.
+
+**Modelo actual:** `gemini-2.5-flash` — los modelos `gemini-2.0-flash` y `gemini-2.0-flash-lite` fueron deprecados para nuevos usuarios.
 
 **Por qué Gemini:**
-- V0 demostró que Gemini 2.5 Flash produce traducciones de calidad técnica a escala (~40.000 partidas) con un costo de API razonable (`LECCIONES-V0.md` sección 5).
-- La estrategia de traducción + clasificación en un solo llamado (D-006/D-007 de V0) está probada y optimizada.
-- No es una dependencia de runtime: si la API no está disponible, el sistema sigue funcionando con los datos ya traducidos.
+- `gemini-2.5-flash` soporta entradas multimodales (imagen + texto) con capacidad de OCR y comprensión estructural, necesarios para extraer tablas de un PDF rasterizado de baja calidad.
+- V0 demostró que produce traducciones de calidad técnica a escala (~40.000 partidas) con un costo de API razonable (`LECCIONES-V0.md` sección 5).
+- No es una dependencia de runtime: si la API no está disponible, el sistema sigue funcionando con los datos ya extraídos.
 
 **Restricción:** Gemini es el único componente no open source del stack. Se acepta porque su uso está estrictamente acotado al pipeline ETL offline, no al servidor en producción. Si en el futuro se necesita una alternativa local, el cliente Gemini puede reemplazarse por un cliente de Ollama u otro LLM local sin tocar el resto del sistema.
+
+---
+
+### pymupdf + OpenCV + Pillow
+
+**Rol:** pre-procesamiento del PDF para el pipeline ETL. No forman parte del servidor web.
+
+| Librería | Rol específico |
+|----------|----------------|
+| `pymupdf` | Renderiza páginas del PDF TCPO V15 a imagen raster (alta resolución) |
+| `opencv-python` | Detecta contornos externos de tablas en la imagen rasterizada |
+| `Pillow` | Recorta las regiones de tabla detectadas y prepara los bytes JPEG para Gemini |
+
+**Alternativas descartadas:** extracción directa de texto PDF (pdfplumber, pdfminer) — el TCPO V15 es un PDF escaneado sin capa de texto. El único camino viable es rasterizar y usar visión por computadora.
 
 ---
 
@@ -170,7 +186,21 @@ Estas no son librerías sino estándares que el sistema implementa. Se listan aq
 | ORM / query builder     | **SQLModel** (SQLAlchemy + Pydantic combinados) | ADR-009 — elimina la duplicación `models.py` + `schemas.py`. 4 archivos por módulo en lugar de 5. |
 | Base de datos (dev/test)| **SQLite** en desarrollo, PostgreSQL en producción | SQLModel crea las tablas automáticamente en el lifespan de FastAPI. Migrar a PG solo requiere cambiar la URL de conexión. |
 | Gestor de paquetes JS   | **npm** (estándar)  | Elegido al inicializar el proyecto frontend con Vite.                                                    |
-| Build tool frontend     | **Vite 5**          | Hot reload instantáneo, soporte TypeScript nativo, proxy `/api` → `localhost:8000` para desarrollo.      |
+| Build tool frontend     | **Vite 5**          | Hot reload instantáneo, soporte TypeScript nativo, proxy `/api` → `localhost:8002` para desarrollo.      |
+
+## Scripts de arranque
+
+### `iniciar.bat` (raíz del proyecto)
+
+Script de arranque para Windows. Abre dos ventanas de terminal separadas (backend en puerto 8002, frontend en 5173) y lanza el navegador en `http://localhost:5173`. Alternativa a tener que recordar los comandos de Uvicorn y npm.
+
+```bat
+iniciar.bat   ← doble clic desde el Explorador de archivos
+```
+
+El backend detecta automáticamente si existe un virtualenv en `backend\.venv\` y lo activa antes de levantar Uvicorn.
+
+---
 
 ## Lo que NO está decidido todavía
 
@@ -202,8 +232,9 @@ Estas no son librerías sino estándares que el sistema implementa. Se listan aq
 │  SQLite (dev) / PostgreSQL (prod)  →  base de datos      │
 ├──────────────────────────────────────────────────────────┤
 │  PIPELINE ETL (offline)                                  │
-│  Python scripts          →  carga TCPO + Mandu'a         │
-│  Gemini API              →  traducción + clasificación PY│
+│  Python scripts (etl_tcpo/) →  extracción TCPO V15 PDF   │
+│  pymupdf + OpenCV + Pillow  →  detección de tablas       │
+│  Gemini API (gemini-2.5-flash) → extracción + traducción │
 ├──────────────────────────────────────────────────────────┤
 │  ESTÁNDARES OPEN BIM                                     │
 │  IFC · NBR 15965 · bSDD · ISO 12006-2                    │

@@ -4,6 +4,34 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 — Titulo`) · implementado · problemas · decisiones cambiadas · próximo paso.
 
+## 2026-05-07 — ETL panel en UI + facetas NBR corregidas + estabilización backend
+
+**Implementado:**
+- `backend/etl_runner.py`: router FastAPI standalone (`/api/etl/run` POST y `/api/etl/status` GET). Usa `subprocess.run` en `run_in_threadpool` para evitar el bug de asyncio ProactorEventLoop en Windows con pipes.
+- `backend/main.py`: registrado `etl_router` con `app.include_router(etl_router)`.
+- `frontend/src/components/settings_panel/EtlView.tsx`: UI completa para ejecutar el ETL desde el navegador. Cards de estadísticas (ítems en catálogo, páginas OK/parciales/errores), input de páginas, checkboxes Dry-run/Forzar, botón Ejecutar, log de output con borde verde (OK) o rojo (error).
+- `frontend/src/App.tsx`: integrado `EtlView` en sección `settings`. Título cambiado a `'Importar TCPO V15'`.
+- `frontend/vite.config.ts`: proxy `/api` actualizado a `http://localhost:8002` (era 8000).
+- `scripts/etl_tcpo/extractor.py` y `main.py`: modelo Gemini actualizado a `gemini-2.5-flash` (los modelos `gemini-2.0-flash` y `gemini-2.0-flash-lite` fueron deprecados para nuevos usuarios).
+- `frontend/src/types/catalog.ts`: tipo `Faceta` ampliado con `'3R'`.
+- `frontend/src/components/catalog_panel/CatalogView.tsx`: labels de facetas corregidos según NBR 15965: `3E=Elementos`, `3R=Resultados del Trabajo`, `4U=Unidades de Construcción`, `2C=Componentes`, `2N=Funciones / Mano de obra`, `2Q=Equipos`. Faceta `3R` agregada al árbol.
+- `frontend/src/components/shared/SectionHeader.tsx`: `3R` agregado al array de chips de faceta.
+- `frontend/src/globals.css`: tokens CSS y clases para `3R` (color cyan `#26C6DA`).
+- `iniciar.bat`: script de arranque en la raíz del proyecto — abre backend (puerto 8002) y frontend (5173) en ventanas separadas y lanza el navegador en `localhost:5173`.
+
+**Problemas resueltos:**
+- `asyncio.create_subprocess_exec` con PIPE cuelga indefinidamente en Windows (ProactorEventLoop). Solución: `subprocess.run` síncrono en `run_in_threadpool`.
+- Múltiples procesos zombie en puerto 8000 de sesiones anteriores imposibilitando bind. Solución: cambio a puerto 8002 + `iniciar.bat` para arranque limpio.
+- Los labels de facetas en el frontend usaban el nombre del Grupo 3 de NBR ("Resultados de la Construcción") como label de la subfaceta `3E`. Corregido a los nombres reales de las facetas según el estándar.
+- La faceta `3R` no aparecía en el catálogo aunque había ítems con ese código. Causa: `3R` no estaba en el tipo `Faceta`, en el árbol, ni en el header. Agregado en los tres lugares.
+
+**Decisiones cambiadas:**
+- Ningún ADR nuevo. Los cambios son operacionales (port, modelo Gemini, fix de labels).
+
+**Próximo paso:** Procesar secciones completas del TCPO con el ETL desde la UI (quitar dry-run, correr páginas reales).
+
+---
+
 ## 2026-05-07 — ETL TCPO: extracción 2-pasos completa
 
 **Implementado:**

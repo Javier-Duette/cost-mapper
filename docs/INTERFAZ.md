@@ -59,7 +59,7 @@ Barra vertical izquierda de 56px con iconos. Al pasar el cursor muestra tooltip 
 | **Mapeo IFC** | Cubo 3D con vínculo / conector | Importación del IFC y asignación de ítems |
 | **Biblioteca** | Colección de ítems / carpeta organizada | Biblioteca de ítems del proyecto + generador de keynotes |
 | **Informes** | Documento con gráfico / exportar | Exportación del presupuesto (PDF, Excel) |
-| **Ajustes** | Engranaje / tuerca | Configuración del proyecto y del sistema |
+| **Ajustes** | Engranaje / tuerca | Importación del catálogo TCPO V15 (MVP). Post-MVP: configuración del proyecto y del sistema. |
 
 **Nota para diseño:** los iconos del sidebar deben ser diseñados como parte del sistema de iconografía del proyecto. Ver sección 13.
 
@@ -79,7 +79,7 @@ La última columna tiene un botón `+` invisible en reposo que se hace visible a
 
 Controles encima de la tabla:
 - Barra de búsqueda de texto libre (busca en descripción ES y PT)
-- Filtro por faceta (chips seleccionables: 3E · 4U · 2C · 2N · 2Q)
+- Filtro por faceta (chips seleccionables: 3E · 3R · 4U · 2C · 2N · 2Q)
 - Toggle: Solo relevantes PY
 
 **Estado vacío:** sin faceta ni búsqueda activa, la tabla muestra un empty state — no carga los 10k ítems del catálogo automáticamente.
@@ -188,13 +188,27 @@ Exportación del presupuesto en distintos formatos.
 
 ---
 
-## 9. Sección: Ajustes
+## 9. Sección: Ajustes (actual: Importar TCPO V15)
 
-Configuración del proyecto activo y del sistema.
+En MVP esta sección aloja el panel de importación ETL del catálogo TCPO. La configuración general del proyecto y del sistema se planifica para post-MVP.
 
-**Ajustes del proyecto:** nombre, descripción, ubicación, tipo de obra, moneda base, datos del cliente.
+**Panel ETL (implementado):**
 
-**Ajustes del sistema (post-MVP):** gestión de usuarios, roles, preferencias de idioma.
+Cards de estadísticas en fila horizontal:
+- Ítems en catálogo (total con `is_work_item=true`)
+- Páginas OK / Parciales / Errores (desde `tcpo_progress.json`)
+
+Controles:
+- Input de texto libre "PÁGINAS" — acepta `37`, `37-50` o `37,40,45`
+- Checkbox Dry-run (por defecto: activado) — ejecuta sin modificar la DB
+- Checkbox Forzar — reprocesa páginas ya extraídas
+- Botón "▶ Ejecutar"
+
+Log de output:
+- Textarea de solo lectura con el stdout completo del proceso ETL
+- Borde verde si OK, rojo si error, gris mientras corre
+
+**Post-MVP:** esta sección tendrá nombre del proyecto, ubicación, tipo de obra, moneda base, gestión de usuarios y roles.
 
 ---
 
@@ -259,7 +273,7 @@ Buscar · Filtrar · Ordenar · Expandir/Colapsar panel · Cerrar · Confirmar �
 Elemento asignado · Elemento sin asignar · Elemento en conflicto · Elemento seleccionado
 
 **Facetas NBR (iconos opcionales para los chips de filtro):**
-Resultado (3E) · Espacio (4U) · Componente/Material (2C) · Mano de obra (2N) · Equipo (2Q)
+Elementos (3E) · Resultados del Trabajo (3R) · Unidades de Construcción (4U) · Componentes (2C) · Funciones / Mano de obra (2N) · Equipos (2Q)
 
 ### Instrucción para Claude Design
 
