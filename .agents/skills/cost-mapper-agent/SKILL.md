@@ -1,5 +1,5 @@
 ---
-name: cost-mapper
+name: cost-mapper-agent
 description: >
   Skill para trabajar en el proyecto Cost-Mapper V2 — aplicación web open source
   de gestión de costos BIM 5D para Paraguay (IFC → NBR 15965 → TCPO V15 → presupuesto).
@@ -13,13 +13,16 @@ description: >
   "cómo arranco hoy" o cualquier variación similar en el contexto de este proyecto.
 ---
 
-# Cost-Mapper — Skill de sesión de trabajo
+# Cost-Mapper Agent — Skill de sesión de trabajo
 
 ## Qué hace este skill
 
 Orienta al agente en el estado actual del proyecto Cost-Mapper V2, guía el flujo
 de trabajo documentación-primero, y asegura que cada sesión cierre con la documentación
 actualizada y el trabajo guardado en GitHub.
+
+> [!IMPORTANT]
+> **Regla de mantenimiento:** Si durante una sesión se modifica el flujo de trabajo del agente IA (por ejemplo, cambiando reglas en `CLAUDE.md`, protocolos de cierre o estructuras documentales), **es obligatorio** actualizar este archivo (`.agents/skills/cost-mapper-agent/SKILL.md`) para reflejar los cambios y mantener la coherencia.
 
 ---
 
