@@ -6,6 +6,26 @@
 
 ---
 
+## 2026-05-07 05:10 — Botón "Agregar al proyecto" + sistema de toasts
+
+**Implementado:**
+- `frontend/src/api/library.ts` — cliente HTTP para `POST/GET/PATCH/DELETE /api/projects/{id}/library`. Clase `DuplicateItemError` para manejar el 409 del backend.
+- `frontend/src/types/library.ts` — tipos `LibraryEntryCreate` y `LibraryEntryRead`.
+- `frontend/src/components/shared/Toast.tsx` — componente `ToastContainer` + hook `useToast`. Toasts con animación de entrada, auto-dismiss a los 3s, colores semánticos (success/warning/error).
+- `CatalogView.tsx` — columna extra con botón "+" en cada fila. Aparece en hover, azul al pasar el cursor. Maneja estado `addingId` para deshabilitar durante la petición.
+- `App.tsx` — handler `handleAddToProject` con `useCallback`: llama `addToLibrary`, muestra toast de éxito o warning si ya existe. `ToastContainer` montado en raíz de la app.
+- `globals.css` — estilos `.btn-add-to-project`: visible solo en hover de fila, transición suave.
+- `CLAUDE.md` + `.agents/skills/cost-mapper-agent/SKILL.md` — protocolo de auto-discovery de skills documentado.
+
+**Verificado en browser:**
+- Agregar ítem nuevo → toast verde "X agregado al proyecto"
+- Agregar ítem duplicado → toast amarillo "El ítem ya está en el proyecto"
+- Backend confirma 2 entradas en `project_library`
+
+**Próximo paso:** permitir editar `manual_quantity` desde el `DetailPanel` o desde una columna de la tabla de presupuesto, para que el flujo Catálogo → Presupuesto con cantidades esté completo.
+
+---
+
 ## 2026-05-07 02:10 — Cierre de documentación: ADR-010 + actualización de docs/
 
 **Implementado:**

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { Header } from './components/shared/Header'
 import { Sidebar } from './components/shared/Sidebar'
 import { SectionHeader } from './components/shared/SectionHeader'
@@ -9,7 +9,9 @@ import { MappingView } from './components/mapping_panel/MappingView'
 import { ReportsView } from './components/reports_panel/ReportsView'
 import { Viewer3D } from './components/ifc_viewer/Viewer3D'
 import { Icon } from './components/shared/Icon'
+import { ToastContainer, useToast } from './components/shared/Toast'
 import { listProjects } from './api/projects'
+import { addToLibrary, DuplicateItemError } from './api/library'
 import type { CatalogItem, Faceta, Section } from './types/catalog'
 import type { Project } from './types/projects'
 
@@ -29,6 +31,7 @@ export default function App() {
   const [search, setSearch]             = useState('')
   const [activeFacetas, setActiveFacetas] = useState<Faceta[]>([])
   const [relevantOnly, setRelevantOnly] = useState(true)
+  const { messages: toasts, toast, dismiss } = useToast()
 
   useEffect(() => {
     listProjects()
@@ -38,6 +41,20 @@ export default function App() {
       })
       .catch(console.error)
   }, [])
+
+  const handleAddToProject = useCallback(async (item: CatalogItem) => {
+    if (!project) return
+    try {
+      await addToLibrary(project.id, { item_id: item.id })
+      toast(`"${item.description_es}" agregado al proyecto`, 'success')
+    } catch (e) {
+      if (e instanceof DuplicateItemError) {
+        toast('El ítem ya está en el proyecto', 'warning')
+      } else {
+        toast('Error al agregar el ítem', 'error')
+      }
+    }
+  }, [project, toast])
 
   /* Catalog state */
   const [catFaceta, setCatFaceta]       = useState<Faceta | null>(null)
@@ -97,6 +114,8 @@ export default function App() {
               relevantOnly={relevantOnly}
               selectedId={catSelectedId}
               onSelect={(id, item) => handleCatSelect(id, item)}
+              projectId={project?.id ?? null}
+              onAddToProject={handleAddToProject}
             />
           )}
 
@@ -140,6 +159,8 @@ export default function App() {
           <DetailPanel item={section === 'catalog' ? catSelectedItem : null} />
         </div>
       )}
+
+      <ToastContainer messages={toasts} onDismiss={dismiss} />
     </div>
   )
 }

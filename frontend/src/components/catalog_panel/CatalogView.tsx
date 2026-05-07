@@ -19,16 +19,20 @@ interface CatalogViewProps {
   relevantOnly: boolean
   selectedId: string | null
   onSelect: (id: string, item: CatalogItem) => void
+  projectId: string | null
+  onAddToProject: (item: CatalogItem) => Promise<void>
 }
 
 /** Vista de Catálogo: árbol de facetas NBR + tabla de ítems con datos reales del backend. */
 export function CatalogView({
-  search, activeFaceta, onSelectFaceta, relevantOnly, selectedId, onSelect,
+  search, activeFaceta, onSelectFaceta, relevantOnly,
+  selectedId, onSelect, projectId, onAddToProject,
 }: CatalogViewProps) {
   const [items, setItems] = useState<CatalogItem[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [addingId, setAddingId] = useState<string | null>(null)
 
   const needsQuery = !activeFaceta && !search
 
@@ -53,6 +57,17 @@ export function CatalogView({
   }, [search, activeFaceta, relevantOnly, needsQuery])
 
   useEffect(() => { void load() }, [load])
+
+  const handleAdd = async (e: React.MouseEvent, item: CatalogItem) => {
+    e.stopPropagation()
+    if (!projectId || addingId) return
+    setAddingId(item.id)
+    try {
+      await onAddToProject(item)
+    } finally {
+      setAddingId(null)
+    }
+  }
 
   return (
     <div className="cat">
@@ -96,6 +111,7 @@ export function CatalogView({
                 <th style={{ width: 60 }}>UND</th>
                 <th className="num" style={{ width: 130 }}>P. UNIT (₲)</th>
                 <th style={{ width: 110 }}>FUENTE</th>
+                <th style={{ width: 44 }} />
               </tr>
             </thead>
             <tbody>
@@ -113,11 +129,23 @@ export function CatalogView({
                   <td>
                     <SourceBadge source={r.fuente_precios ?? (r.oficial ? 'TCPO v15' : 'Custom')} />
                   </td>
+                  <td style={{ padding: '0 6px', textAlign: 'center' }}>
+                    {projectId && (
+                      <button
+                        className="btn-add-to-project"
+                        title="Agregar al proyecto"
+                        disabled={addingId === r.id}
+                        onClick={e => handleAdd(e, r)}
+                      >
+                        {addingId === r.id ? '…' : '+'}
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 24 }}>
+                  <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 24 }}>
                     {total === 0
                       ? 'Sin resultados — ajustá los filtros'
                       : `Mostrando 0 de ${total} — refinar búsqueda`}
