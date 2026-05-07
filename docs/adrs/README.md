@@ -19,6 +19,7 @@
 | 009 | Migración del backend a SQLModel                    | Aceptado             | [ADR-009](ADR-009.md) |
 | 010 | Presupuesto manual pre-IFC con `manual_quantity`    | Aceptado             | [ADR-010](ADR-010.md) |
 | 011 | Distinción nodos NBR vs ítems TCPO con `is_work_item` | Aceptado           | [ADR-011](ADR-011.md) |
+| 012 | Extracción TCPO V15 con LLM Vision y crop local de tablas | Aceptado       | [ADR-012](ADR-012.md) |
 
 ## Documentos pendientes derivados de estos ADRs
 

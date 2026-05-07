@@ -6,6 +6,27 @@
 
 ---
 
+## 2026-05-07 17:30 — ETL TCPO: herramienta de extracción con Gemini Vision (ADR-012)
+
+**Implementado:**
+- ADR-012: documenta la estrategia de extracción del PDF TCPO V15 rasterizado — detección local de tablas con OpenCV + crop + Gemini Vision para extracción+traducción.
+- `scripts/etl_tcpo/` — herramienta standalone con 4 módulos:
+  - `detector.py`: renderiza páginas con `pymupdf`, detecta tablas con contornos externos OpenCV, devuelve recortes PIL limpios.
+  - `extractor.py`: envía cada recorte a `gemini-2.0-flash` con prompt específico para TCPO, parsea JSON con esquema fijo.
+  - `loader.py`: valida e inserta en `catalog_items` + `apu_components` con `is_work_item=True`, `unit_price=NULL`.
+  - `main.py`: CLI click con comandos `run`, `detect`, `status`.
+- Verificado en página 36: **4 tablas detectadas** con recortes perfectos, incluyendo tabla con doble columna de consumos.
+- `progress.json` y `debug_crops/` agregados a `.gitignore`.
+- Dependencias: `pymupdf`, `opencv-python`, `Pillow`, `google-generativeai`, `click`.
+
+**Problemas resueltos:**
+- Imports relativos vs absolutos: la herramienta se corre desde `scripts/etl_tcpo/` con `python main.py`.
+- Encoding Windows cp1252: eliminados caracteres especiales del output CLI.
+
+**Próximo paso:** Probar `python main.py run --pages 36 --dry-run` con GEMINI_API_KEY en .env para verificar extracción end-to-end. Luego procesar secciones completas del TCPO prioritarias para Paraguay.
+
+---
+
 ## 2026-05-07 16:00 — ADR-011: campo is_work_item para separar nodos NBR de ítems TCPO
 
 **Implementado:**
