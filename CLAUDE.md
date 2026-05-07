@@ -32,6 +32,7 @@ Los ADRs son la razón de por qué el sistema es como es. Un cambio que contradi
 | [ADR-004](docs/adrs/ADR-004.md) | Flujo de trabajo IFC | Explica todo el ciclo importación → mapeo → presupuesto y los dos módulos críticos |
 | [ADR-005](docs/adrs/ADR-005.md) | Formatos de exportación | Explica qué formatos hay en MVP y cuáles son post-MVP |
 | [ADR-006](docs/adrs/ADR-006.md) | Extensibilidad y documentación | Explica este archivo, el DEVLOG y las reglas de módulo |
+| [ADR-009](docs/adrs/ADR-009.md) | Migración a SQLModel | Explica por qué `models.py` combina SQLAlchemy + Pydantic y por qué no hay `schemas.py` |
 
 Todos en: `docs/adrs/` — índice completo en [`docs/adrs/README.md`](docs/adrs/README.md)
 
@@ -134,19 +135,18 @@ No existe terminar una sesión sin pushear. Si el trabajo está incompleto, se c
 
 ## Convenciones de código
 
-**Estructura de módulos backend (5 archivos fijos):**
+**Estructura de módulos backend (4 archivos fijos — ADR-009):**
 
-Cada módulo en `backend/<modulo>/` tiene exactamente estos 5 archivos:
+Cada módulo en `backend/<modulo>/` tiene exactamente estos 4 archivos:
 
 ```
 router.py       ← rutas FastAPI. No llama repository directamente.
 service.py      ← lógica de negocio. Llama a repository.
-models.py       ← tablas SQLAlchemy que este módulo posee.
+models.py       ← modelos SQLModel (SQLAlchemy + Pydantic combinados). Ver ADR-009.
 repository.py   ← queries DB. Sin lógica de negocio.
-schemas.py      ← Pydantic request/response. No importa models.py.
 ```
 
-Ver `docs/ARQUITECTURA.md` sección 2.7 para detalle y ejemplo.
+Ver `docs/ARQUITECTURA.md` sección 2.7 y `docs/adrs/ADR-009.md` para detalle.
 
 **Python (backend + scripts):**
 - Estilo: PEP 8, formateado con `black`
@@ -176,6 +176,7 @@ Tipos: `feat` · `fix` · `refactor` · `docs` · `test` · `chore`
 | Archivo / carpeta | ADR a leer primero | Razón |
 |-------------------|--------------------|-------|
 | `backend/db/` · schema PostgreSQL | ADR-001, MODELO-DE-DATOS.md | Los UUIDs y FKs tienen decisiones no obvias |
+| `backend/<modulo>/models.py` | ADR-009 | SQLModel combina SQLAlchemy + Pydantic — cambiar estructura requiere entender el modelo unificado |
 | `scripts/03_cargar_tcpo.py` | ADR-002, ADR-003 | El formato VOLARE V14 tiene particularidades documentadas |
 | `scripts/04_traducir.py` · `05_clasificar.py` | ADR-002 | La estrategia de clasificación semántica está documentada — no cambiar el enfoque sin revisarla |
 | `backend/ifc_importer/` | ADR-004 | El flujo de ingesta IFC tiene reglas de sincronización en reimportaciones |

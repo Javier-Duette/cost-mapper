@@ -16,7 +16,7 @@
 | 006 | Extensibilidad y documentación para desarrolladores | Aceptado             | [ADR-006](ADR-006.md) |
 | 007 | Flujo de caja y fases de ejecución                  | Propuesto (post-MVP) | [ADR-007](ADR-007.md) |
 | 008 | Repositorio y protocolo de control de versiones     | Aceptado             | [ADR-008](ADR-008.md) |
-| 009 | Migración del backend a SQLModel                    | Propuesto            | [ADR-009](ADR-009.md) |
+| 009 | Migración del backend a SQLModel                    | Aceptado             | [ADR-009](ADR-009.md) |
 
 ## Documentos pendientes derivados de estos ADRs
 
