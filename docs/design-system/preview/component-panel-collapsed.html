@@ -1,0 +1,36 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .stage { background:#1E1E1E; padding:24px 24px 8px; }
+  .panel-strip {
+    background:#252526; border-top:1px solid #3E3E42; border-bottom:1px solid #3E3E42;
+    height:32px; display:flex; align-items:center; padding:0 14px; gap:10px;
+    font-size:12px; color:#9D9D9D; cursor:pointer;
+  }
+  .panel-strip:hover { background:#2D2D30; }
+  .panel-strip__left, .panel-strip__right { display:flex; align-items:center; gap:8px; }
+  .panel-strip__center { flex:1; display:flex; align-items:center; gap:8px; color:#CCCCCC; }
+  .panel-strip__center .codetag { font-family:'JetBrains Mono',monospace; color:#9D9D9D; font-size:11px; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="panel-strip">
+    <span class="panel-strip__left">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9D9D9D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9.5 12,3.5 18,9.5"/><polyline points="6,20.5 12,14.5 18,20.5"/></svg>
+    </span>
+    <span class="panel-strip__center">
+      <span class="chip chip--3E">3E</span>
+      <span class="codetag">3E.04.07.001</span>
+      <span>Muro de mampostería 15cm</span>
+      <span style="color:#6B6B6B">·</span>
+      <span style="color:#9D9D9D">28 insumos · ₲ 485.000/m²</span>
+    </span>
+    <span class="panel-strip__right">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9D9D9D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3.5 L20.5 10 L17 11 L13.5 16 L8 10.5 L13 7 Z"/><line x1="8" y1="10.5" x2="3.5" y2="20.5"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9D9D9D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9.5 12,15.5 18,9.5"/></svg>
+    </span>
+  </div>
+</div>
+<div class="card" style="padding:14px 24px"><div class="mono">Panel de Detalle colapsado · 32px · click en cualquier zona expande · ítem seleccionado en text-secondary</div></div>
+</body></html>

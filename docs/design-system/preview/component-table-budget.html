@@ -1,0 +1,59 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .tbl-wrap { background:#1E1E1E; border-top:1px solid #3E3E42; border-bottom:1px solid #3E3E42; }
+  table.bgt { width:100%; border-collapse:collapse; font-size:13px; color:#CCCCCC; }
+  .bgt thead th {
+    height:32px; padding:0 12px; text-align:left; font-size:12px; font-weight:600;
+    color:#9D9D9D; background:#252526; border-bottom:1px solid #3E3E42;
+  }
+  .bgt thead th.num { text-align:right; }
+  .bgt tbody td { height:36px; padding:0 12px; border-bottom:1px solid #2D2D30; vertical-align:middle; }
+  .bgt tbody tr:hover { background:#3E3E42; }
+  .bgt tbody tr.sel { background:#1C3A5E; color:#FFFFFF; }
+  .bgt .num { text-align:right; font-family:'JetBrains Mono',monospace; }
+  .group-hdr td {
+    background:#2D2D30; color:#CCCCCC; font-weight:600; font-size:12px;
+    border-bottom:1px solid #3E3E42; height:30px;
+  }
+  .group-hdr .chev { display:inline-block; width:14px; color:#9D9D9D; }
+  .group-hdr .sub { font-family:'JetBrains Mono',monospace; color:#9D9D9D; font-weight:500; }
+  .ftr td {
+    background:#252526; color:#FFFFFF; font-weight:600; font-size:14px;
+    border-top:1px solid #3E3E42; height:40px;
+  }
+  .desc { color:#CCCCCC; }
+  .desc small { color:#9D9D9D; font-size:11px; display:block; margin-top:2px; }
+</style>
+</head>
+<body>
+<div class="tbl-wrap">
+<table class="bgt">
+  <thead>
+    <tr>
+      <th style="width:48px">FAC</th>
+      <th style="width:130px">CÓDIGO NBR</th>
+      <th>DESCRIPCIÓN</th>
+      <th style="width:60px">UND</th>
+      <th class="num" style="width:90px">CANT.</th>
+      <th class="num" style="width:120px">P. UNIT (₲)</th>
+      <th class="num" style="width:140px">SUBTOTAL (₲)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr class="group-hdr"><td colspan="6"><span class="chev">▾</span> 3E · Resultados de construcción · 8 ítems</td><td class="num sub">186.420.500</td></tr>
+    <tr><td><span class="chip chip--3E">3E</span></td><td class="num">3E.04.07.001</td><td class="desc">Muro de mampostería 15cm <small>Ladrillo cerámico hueco · Nivel 1-2</small></td><td>m²</td><td class="num">142,80</td><td class="num">485.000</td><td class="num">69.258.000</td></tr>
+    <tr class="sel"><td><span class="chip chip--3E">3E</span></td><td class="num">3E.04.07.005</td><td class="desc">Losa H°A° 12cm <small>Hormigón fck=21 MPa · Nivel 1</small></td><td>m²</td><td class="num">86,40</td><td class="num">920.000</td><td class="num">79.488.000</td></tr>
+    <tr><td><span class="chip chip--3E">3E</span></td><td class="num">3E.05.02.012</td><td class="desc">Revoque interior fino<small>Mortero 1:4 · una cara</small></td><td>m²</td><td class="num">142,80</td><td class="num">125.000</td><td class="num">17.850.000</td></tr>
+    <tr class="group-hdr"><td colspan="6"><span class="chev">▾</span> 2C · Componentes / Materiales · 24 ítems</td><td class="num sub">94.150.000</td></tr>
+    <tr><td><span class="chip chip--2C">2C</span></td><td class="num">2C.03.01.045</td><td class="desc">Cemento Portland CP-II <small>Bolsa 50 kg</small></td><td>bls</td><td class="num">280</td><td class="num">62.000</td><td class="num">17.360.000</td></tr>
+    <tr><td><span class="chip chip--2C">2C</span></td><td class="num">2C.06.04.118</td><td class="desc">Hierro Ø10mm CA-50 <small>Barra 12m</small></td><td>kg</td><td class="num">1.840</td><td class="num">8.500</td><td class="num">15.640.000</td></tr>
+    <tr class="ftr">
+      <td colspan="6" style="text-align:right">TOTAL COSTO DIRECTO</td>
+      <td class="num">₲ 280.570.500</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+<div class="card" style="padding:14px 24px"><div class="mono">Tabla de Presupuesto agrupada por Faceta NBR · fila seleccionada en accent-subtle · subtotales por grupo · footer fijo con total</div></div>
+</body></html>

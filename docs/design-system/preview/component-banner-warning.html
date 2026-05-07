@@ -1,0 +1,31 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .stage { padding:18px 24px; background:#1E1E1E; }
+  .banner {
+    display:flex; align-items:center; gap:10px;
+    background:#3D2B00; border:1px solid #5A3F00;
+    color:#FFC85C; font-size:13px;
+    padding:10px 14px; border-radius:4px;
+  }
+  .banner svg { flex-shrink:0; }
+  .banner__msg { flex:1; }
+  .banner__msg strong { color:#FFE08A; font-weight:600; }
+  .banner button {
+    background:transparent; border:1px solid #FFC85C; color:#FFC85C;
+    height:26px; padding:0 12px; border-radius:4px; font-size:12px; font-weight:500;
+    cursor:pointer; font-family:inherit;
+  }
+  .banner button:hover { background:rgba(255,200,92,0.1); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="banner">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 L21 19.5 L3 19.5 Z"/><line x1="12" y1="10" x2="12" y2="14"/><circle cx="12" cy="17" r="0.4" fill="currentColor" stroke="none"/></svg>
+    <span class="banner__msg">Tu presupuesto contiene <strong>12 ítems sin precio</strong>. Algunos cálculos están incompletos.</span>
+    <button>Completar precios</button>
+  </div>
+</div>
+<div class="card" style="padding:14px 24px"><div class="mono">Banner de advertencia · fondo warning-subtle · texto en warning brillante · CTA borde 1px</div></div>
+</body></html>

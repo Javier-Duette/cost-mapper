@@ -1,0 +1,53 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .stage { display:flex; height:300px; background:#1E1E1E; }
+  .sb {
+    width:56px; background:#252526; border-right:1px solid #3E3E42;
+    display:flex; flex-direction:column; align-items:center;
+    padding:16px 0 12px; gap:8px;
+    position:relative;
+  }
+  .sb__btn {
+    width:40px; height:40px; border-radius:20px;
+    display:flex; align-items:center; justify-content:center;
+    color:#9D9D9D; cursor:pointer; position:relative;
+    transition: background 100ms ease, color 100ms ease;
+  }
+  .sb__btn:hover { background:#3E3E42; color:#CCCCCC; }
+  .sb__btn--active { color:#FFFFFF; }
+  .sb__btn--active::before {
+    content:""; position:absolute; right:-8px; top:8px; bottom:8px;
+    width:4px; background:#0078D4; border-radius:0 2px 2px 0;
+  }
+  .sb__btn--active svg { color:#0078D4; }
+  .sb__spacer { flex:1; }
+  .tip {
+    position:absolute; left:64px; top:90px;
+    background:#2D2D30; border:1px solid #3E3E42; color:#CCCCCC;
+    font-size:12px; padding:4px 10px; border-radius:4px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.5); white-space:nowrap;
+  }
+  .tip::before { content:""; position:absolute; left:-5px; top:50%; transform:translateY(-50%) rotate(45deg); width:8px; height:8px; background:#2D2D30; border-left:1px solid #3E3E42; border-bottom:1px solid #3E3E42; }
+  .legend { padding:14px 24px; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <nav class="sb">
+    <div class="sb__btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="8" y1="18" x2="20" y2="18"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/></svg></div>
+    <div class="sb__btn sb__btn--active"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="16" rx="1.5"/><line x1="3.5" y1="9" x2="20.5" y2="9"/><line x1="9" y1="9" x2="9" y2="20"/><line x1="14" y1="13" x2="17.5" y2="13"/><line x1="15.75" y1="11.25" x2="15.75" y2="14.75"/><line x1="14" y1="17" x2="17.5" y2="17"/></svg></div>
+    <div class="sb__btn" style="background:#3E3E42;color:#CCCCCC"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 L20 7.5 L20 16.5 L12 20.5 L4 16.5 L4 7.5 Z"/><path d="M12 3.5 L12 11.5"/><path d="M4 7.5 L12 11.5 L20 7.5"/><circle cx="12" cy="11.5" r="1.4" fill="currentColor" stroke="none"/></svg></div>
+    <div class="sb__btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5 a1.5 1.5 0 0 1 1.5 -1.5 H10 a1.5 1.5 0 0 1 1.5 1.5 V20 H5.5 a1.5 1.5 0 0 1 -1.5 -1.5 Z"/><path d="M12.5 5.5 a1.5 1.5 0 0 1 1.5 -1.5 H18.5 a1.5 1.5 0 0 1 1.5 1.5 V18.5 a1.5 1.5 0 0 1 -1.5 1.5 H12.5 Z"/></svg></div>
+    <div class="sb__btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 H15 L19 7.5 V20 a0.5 0.5 0 0 1 -0.5 0.5 H6 a0.5 0.5 0 0 1 -0.5 -0.5 V4 A0.5 0.5 0 0 1 6 3.5 Z"/><path d="M14.5 3.5 V8 H19"/><line x1="9" y1="17" x2="9" y2="14"/><line x1="12.5" y1="17" x2="12.5" y2="11.5"/><line x1="16" y1="17" x2="16" y2="13"/></svg></div>
+    <div class="sb__spacer"></div>
+    <div class="sb__btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.5"/><path d="M12 3.5 L13.2 5.7 L15.6 5 L16.4 7.4 L18.8 7.8 L18.4 10.4 L20.5 12 L18.4 13.6 L18.8 16.2 L16.4 16.6 L15.6 19 L13.2 18.3 L12 20.5 L10.8 18.3 L8.4 19 L7.6 16.6 L5.2 16.2 L5.6 13.6 L3.5 12 L5.6 10.4 L5.2 7.8 L7.6 7.4 L8.4 5 L10.8 5.7 Z"/></svg></div>
+    <div class="tip">Mapeo IFC</div>
+  </nav>
+  <div style="flex:1;padding:20px 24px;color:#9D9D9D;font-size:12px">
+    <div style="font-size:13px;color:#CCCCCC;margin-bottom:6px">Sidebar 56px</div>
+    Catálogo · Presupuesto (activo) · Mapeo IFC (hover) · Biblioteca · Informes · Ajustes (anclado abajo). Sólo íconos, tooltip a la derecha con 300ms delay.
+    <div style="margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#6B6B6B">Pastilla activa 4×40px adosada al borde derecho — VS Code-style.</div>
+  </div>
+</div>
+</body></html>

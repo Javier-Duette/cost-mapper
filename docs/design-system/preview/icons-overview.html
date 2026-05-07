@@ -1,0 +1,32 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .grid {
+    display:grid; grid-template-columns:repeat(8,1fr); gap:14px;
+    color:#CCCCCC;
+  }
+  .ico {
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    padding:10px 4px; border-radius:4px;
+  }
+  .ico:hover { background:#252526; }
+  .ico svg { color:#9D9D9D; }
+  .ico:hover svg { color:#CCCCCC; }
+  .ico .lbl { font-family:'JetBrains Mono',monospace; font-size:9.5px; color:#6B6B6B; text-align:center; line-height:1.2; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="grid" id="grid"></div>
+  <div class="mono" style="border-top:1px solid var(--border-subtle);padding-top:8px">22 íconos monoline · stroke 1.5px · viewBox 24×24 · stroke-linejoin round</div>
+</div>
+<script>
+  const names = ["catalog","budget","mapping","library","reports","settings","search","filter","sort","chevron_down","close","check","check_double","warning","import","export","edit","save","add","delete","3d_orbit","3d_wireframe"];
+  const grid = document.getElementById("grid");
+  names.forEach(n => {
+    const div = document.createElement("div"); div.className="ico";
+    div.innerHTML = `<img src="../assets/icons/icon_${n}.svg" width="22" height="22" style="filter:invert(78%)"><span class="lbl">${n}</span>`;
+    grid.appendChild(div);
+  });
+</script>
+</body></html>

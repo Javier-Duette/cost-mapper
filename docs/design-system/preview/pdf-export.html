@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Presupuesto — PDF Export Mockup</title>
+<style>
+/* Print-quality monochrome A4 mockup. Self-contained — no external CSS. */
+@page { size: A4; margin: 18mm 16mm 20mm; }
+
+html, body { margin:0; padding:0; background:#E0E0E0; font-family: 'Times New Roman', 'Liberation Serif', serif; color:#000; }
+
+.page {
+  width: 210mm; min-height: 297mm; padding: 18mm 16mm 20mm;
+  background: #fff; margin: 0 auto;
+  box-sizing: border-box;
+  font-size: 9.5pt; line-height: 1.35;
+  color: #111;
+}
+
+/* ---------- Cover header ---------- */
+.cover-band { border-top: 2pt solid #000; border-bottom: 1pt solid #000; padding: 8pt 0 6pt; margin-bottom: 14pt; display:flex; justify-content:space-between; align-items:flex-start; gap: 18pt; }
+.cover-band__brand { display:flex; align-items:center; gap:10pt; }
+.cover-band__logo {
+  width: 28pt; height: 28pt; border: 1.5pt solid #000;
+  display:flex; align-items:center; justify-content:center; font-weight:700; font-size: 14pt;
+  font-family: Arial, sans-serif;
+}
+.cover-band__brand-name { font-family: Arial, Helvetica, sans-serif; font-weight:700; font-size: 11pt; letter-spacing:0.04em; }
+.cover-band__brand-sub { font-family: Arial, Helvetica, sans-serif; font-size: 7.5pt; color:#444; }
+
+.cover-band__doc { text-align:right; font-family: Arial, Helvetica, sans-serif; }
+.cover-band__doc-title { font-weight:700; font-size: 11pt; letter-spacing:0.06em; text-transform:uppercase; }
+.cover-band__doc-meta { font-size: 8pt; color:#444; margin-top:2pt; }
+
+/* ---------- Project block ---------- */
+.proj { display:grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 0; border:1pt solid #000; margin-bottom: 14pt; }
+.proj__cell { padding: 6pt 9pt; border-right:1pt solid #000; }
+.proj__cell:last-child { border-right:0; }
+.proj__lbl { font-family: Arial, sans-serif; font-size: 7pt; text-transform:uppercase; letter-spacing:0.06em; color:#555; margin-bottom: 1pt; }
+.proj__val { font-family: Arial, sans-serif; font-size: 9.5pt; font-weight:600; color:#000; }
+.proj__val small { font-weight:400; color:#444; font-size: 8pt; display:block; margin-top:1pt; }
+
+/* ---------- Section title ---------- */
+.section-title { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; margin: 14pt 0 6pt; padding-bottom: 3pt; border-bottom: 1pt solid #000; }
+
+/* ---------- Summary table ---------- */
+.summary { width:100%; border-collapse:collapse; font-size: 9pt; margin-bottom: 4pt; }
+.summary th, .summary td { padding: 4pt 8pt; border-bottom: 0.5pt solid #999; }
+.summary th { font-family: Arial, sans-serif; font-size: 7.5pt; text-transform:uppercase; letter-spacing:0.05em; text-align:left; background:#F2F2F2; border-bottom:1pt solid #000; }
+.summary th.num, .summary td.num { text-align:right; font-variant-numeric: tabular-nums; }
+.summary tr.total td { border-top: 1pt solid #000; border-bottom:1.5pt solid #000; font-weight:700; background:#F8F8F8; }
+
+/* ---------- Detail table ---------- */
+.detail { width:100%; border-collapse:collapse; font-size: 8.5pt; }
+.detail thead th { font-family: Arial, sans-serif; font-size: 7pt; text-transform:uppercase; letter-spacing:0.04em; padding: 4pt 5pt; text-align:left; background:#000; color:#fff; }
+.detail thead th.num { text-align:right; }
+.detail tbody td { padding: 3pt 5pt; border-bottom: 0.4pt solid #BBB; vertical-align: top; }
+.detail tbody td.num { text-align:right; font-variant-numeric: tabular-nums; }
+.detail tbody td.code { font-family: 'Courier New', monospace; font-size: 8pt; white-space: nowrap; }
+
+.detail tr.group td {
+  background:#E8E8E8; font-weight:700; padding: 5pt 5pt; font-size: 8pt;
+  text-transform:uppercase; letter-spacing:0.04em; border-top:1pt solid #000; border-bottom:1pt solid #000;
+}
+.detail tr.subtotal td { background:#F2F2F2; font-weight:700; border-top:0.5pt solid #555; }
+.detail .desc-meta { font-size: 7.5pt; color:#555; margin-top:1pt; }
+
+.fac-tag {
+  display:inline-block; min-width: 14pt; padding: 0 3pt; font-family: Arial, sans-serif;
+  font-size: 7pt; font-weight:700; text-align:center; border:0.5pt solid #000;
+  margin-right: 3pt;
+}
+
+.detail tr.grand-total td {
+  background:#000; color:#fff; font-weight:700; font-family: Arial, sans-serif;
+  padding: 7pt 5pt; font-size: 10pt; letter-spacing:0.04em;
+}
+
+/* ---------- Footer ---------- */
+.footer { margin-top: 18pt; padding-top: 6pt; border-top: 0.5pt solid #999; display:flex; justify-content:space-between; font-family: Arial, sans-serif; font-size: 7.5pt; color:#666; }
+.footer__sig { display:flex; gap:24pt; align-items:flex-end; margin-top: 30pt; padding-top: 22pt; }
+.footer__sig div { border-top: 0.5pt solid #000; padding-top: 3pt; min-width: 140pt; text-align:center; font-size: 8pt; color:#000; }
+
+/* ---------- Notes block ---------- */
+.notes { margin-top: 12pt; padding: 8pt 10pt; border:0.5pt solid #555; font-size: 8pt; line-height:1.45; color:#222; }
+.notes b { font-family: Arial, sans-serif; font-size: 7.5pt; text-transform:uppercase; letter-spacing:0.05em; display:block; margin-bottom: 3pt; }
+
+@media print {
+  html, body { background:#fff; }
+  .page { margin:0; padding:0; box-shadow:none; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="cover-band">
+    <div class="cover-band__brand">
+      <div class="cover-band__logo">CM</div>
+      <div>
+        <div class="cover-band__brand-name">COST-MAPPER</div>
+        <div class="cover-band__brand-sub">Presupuesto BIM 5D · NBR 15965</div>
+      </div>
+    </div>
+    <div class="cover-band__doc">
+      <div class="cover-band__doc-title">Presupuesto detallado</div>
+      <div class="cover-band__doc-meta">N° 2026-014 · Emitido 06 may. 2026 · Pág. 1 / 24</div>
+    </div>
+  </div>
+
+  <!-- PROJECT BLOCK -->
+  <div class="proj">
+    <div class="proj__cell">
+      <div class="proj__lbl">Proyecto</div>
+      <div class="proj__val">Vivienda unifamiliar — Lambaré
+        <small>Calle Pillares 1438 esq. Iturbe · Lambaré, Central</small>
+      </div>
+    </div>
+    <div class="proj__cell">
+      <div class="proj__lbl">Comitente</div>
+      <div class="proj__val">Arq. F. Benítez Rojas
+        <small>RUC 80112458-3</small>
+      </div>
+    </div>
+    <div class="proj__cell">
+      <div class="proj__lbl">Sup. construida</div>
+      <div class="proj__val">142,80 m²
+        <small>Modelo IFC v3 · 06/05/2026</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="section-title">1. Resumen por faceta NBR</div>
+  <table class="summary">
+    <thead>
+      <tr>
+        <th style="width:14%">Faceta</th>
+        <th>Descripción</th>
+        <th class="num" style="width:11%">Ítems</th>
+        <th class="num" style="width:21%">Subtotal (₲)</th>
+        <th class="num" style="width:10%">%</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="fac-tag">3E</span> 3E</td><td>Resultados de construcción</td><td class="num">8</td><td class="num">186.420.500</td><td class="num">66,4 %</td></tr>
+      <tr><td><span class="fac-tag">2C</span> 2C</td><td>Componentes / Materiales</td><td class="num">24</td><td class="num">94.150.000</td><td class="num">33,6 %</td></tr>
+      <tr><td><span class="fac-tag">2N</span> 2N</td><td>Mano de obra</td><td class="num">6</td><td class="num">—</td><td class="num">—</td></tr>
+      <tr class="total"><td colspan="3">Total costo directo</td><td class="num">₲ 280.570.500</td><td class="num">100 %</td></tr>
+    </tbody>
+  </table>
+
+  <!-- DETAIL -->
+  <div class="section-title">2. Detalle por ítem</div>
+  <table class="detail">
+    <thead>
+      <tr>
+        <th style="width:7%">FAC</th>
+        <th style="width:14%">Código NBR</th>
+        <th>Descripción</th>
+        <th style="width:6%">Und</th>
+        <th class="num" style="width:8%">Cant.</th>
+        <th class="num" style="width:13%">P. unit. (₲)</th>
+        <th class="num" style="width:14%">Subtotal (₲)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="group"><td colspan="7">3E · Resultados de construcción</td></tr>
+
+      <tr><td><span class="fac-tag">3E</span></td><td class="code">3E.04.07.001</td>
+        <td>Muro de mampostería 15cm
+          <div class="desc-meta">Ladrillo cerámico hueco · Nivel 1-2</div>
+        </td>
+        <td>m²</td><td class="num">142,80</td><td class="num">485.000</td><td class="num">69.258.000</td></tr>
+
+      <tr><td><span class="fac-tag">3E</span></td><td class="code">3E.04.07.005</td>
+        <td>Losa H°A° 12cm
+          <div class="desc-meta">Hormigón fck=21 MPa · Nivel 1</div>
+        </td>
+        <td>m²</td><td class="num">86,40</td><td class="num">920.000</td><td class="num">79.488.000</td></tr>
+
+      <tr><td><span class="fac-tag">3E</span></td><td class="code">3E.05.02.012</td>
+        <td>Revoque interior fino
+          <div class="desc-meta">Mortero 1:4 · una cara</div>
+        </td>
+        <td>m²</td><td class="num">142,80</td><td class="num">125.000</td><td class="num">17.850.000</td></tr>
+
+      <tr><td><span class="fac-tag">3E</span></td><td class="code">3E.06.01.020</td>
+        <td>Pintura latex interior
+          <div class="desc-meta">Dos manos sobre revoque</div>
+        </td>
+        <td>m²</td><td class="num">142,80</td><td class="num">49.000</td><td class="num">6.997.200</td></tr>
+
+      <tr><td><span class="fac-tag">3E</span></td><td class="code">3E.07.04.030</td>
+        <td>Contrapiso de hormigón
+          <div class="desc-meta">8cm · alisado</div>
+        </td>
+        <td>m²</td><td class="num">86,40</td><td class="num">152.000</td><td class="num">13.132.800</td></tr>
+
+      <tr class="subtotal"><td colspan="6">Subtotal 3E · Resultados de construcción (5 de 8 ítems mostrados)</td><td class="num">186.420.500</td></tr>
+
+      <tr class="group"><td colspan="7">2C · Componentes / Materiales</td></tr>
+
+      <tr><td><span class="fac-tag">2C</span></td><td class="code">2C.03.01.045</td>
+        <td>Cemento Portland CP-II
+          <div class="desc-meta">Bolsa 50 kg</div>
+        </td>
+        <td>bls</td><td class="num">280</td><td class="num">62.000</td><td class="num">17.360.000</td></tr>
+
+      <tr><td><span class="fac-tag">2C</span></td><td class="code">2C.06.04.118</td>
+        <td>Hierro Ø10mm CA-50
+          <div class="desc-meta">Barra 12m</div>
+        </td>
+        <td>kg</td><td class="num">1.840</td><td class="num">8.500</td><td class="num">15.640.000</td></tr>
+
+      <tr><td><span class="fac-tag">2C</span></td><td class="code">2C.06.04.122</td>
+        <td>Hierro Ø8mm CA-50
+          <div class="desc-meta">Barra 12m</div>
+        </td>
+        <td>kg</td><td class="num">920</td><td class="num">8.200</td><td class="num">7.544.000</td></tr>
+
+      <tr class="subtotal"><td colspan="6">Subtotal 2C · Componentes / Materiales (3 de 24 ítems mostrados)</td><td class="num">94.150.000</td></tr>
+
+      <tr class="grand-total"><td colspan="6">TOTAL COSTO DIRECTO</td><td class="num">₲ 280.570.500</td></tr>
+    </tbody>
+  </table>
+
+  <!-- NOTES -->
+  <div class="notes">
+    <b>Observaciones</b>
+    El presente presupuesto contiene 12 ítems sin precio asignado al momento de la emisión, los cuales no fueron incluidos en el total. Las fuentes de precios corresponden a TCPO v15 salvo indicación contraria. Cantidades extraídas del modelo IFC v3 mediante mapeo automático de elementos. Documento generado por Cost-Mapper v2.0 — datos sujetos a verificación in situ.
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer__sig">
+    <div>Profesional responsable</div>
+    <div>Comitente</div>
+  </div>
+  <div class="footer">
+    <span>Cost-Mapper v2.0 · cost-mapper.py</span>
+    <span>Documento N° 2026-014 · Pág. 1 / 24</span>
+  </div>
+
+</div>
+</body></html>

@@ -183,6 +183,17 @@ Tipos: `feat` · `fix` · `refactor` · `docs` · `test` · `chore`
 | `backend/mapper/` | ADR-004 | La lógica de `classification_source` determina el comportamiento en reimportaciones |
 | `docs/adrs/` | — | Solo agregar ADRs nuevos o actualizar el estado. No editar decisiones ya aceptadas sin consenso. |
 | `.git/` · operaciones de historial | ADR-008 | Nunca reescribir historial (`rebase -i`, `push --force`, `reset --hard` con commits pusheados). Ver protocolo de git arriba. |
+| `docs/design-system/` | — | Código estático generado por Claude Design. Es **sólo lectura**. NO editar manualmente. Úsalo como referencia visual. |
+
+---
+
+## Flujo de Trabajo: Sistema de Diseño (Claude Design)
+
+Cuando el diseñador (o Claude Design) provea una actualización del diseño, entregará un archivo `.zip` en la raíz del repositorio. El protocolo de actualización es estricto:
+
+1. **Extraer y Limpiar:** El agente debe borrar la carpeta `docs/design-system/` actual (si existe) y descomprimir el nuevo `.zip` allí.
+2. **Borrar el Zip:** Eliminar inmediatamente el archivo `.zip` de la raíz para no ensuciar el repositorio.
+3. **Traducir, No Copiar:** Los archivos HTML/CSS dentro de `docs/design-system/` **NO** se copian tal cual a `frontend/`. Se utilizan como **referencia estricta** para refactorizar o construir los componentes correspondientes en React/Vite dentro de `frontend/src/components/`, extrayendo los Design Tokens (`colors_and_type.css` o `theme.css`) al sistema global de estilos de React.
 
 ---
 
