@@ -18,6 +18,7 @@
 | 008 | Repositorio y protocolo de control de versiones     | Aceptado             | [ADR-008](ADR-008.md) |
 | 009 | Migración del backend a SQLModel                    | Aceptado             | [ADR-009](ADR-009.md) |
 | 010 | Presupuesto manual pre-IFC con `manual_quantity`    | Aceptado             | [ADR-010](ADR-010.md) |
+| 011 | Distinción nodos NBR vs ítems TCPO con `is_work_item` | Aceptado           | [ADR-011](ADR-011.md) |
 
 ## Documentos pendientes derivados de estos ADRs
 

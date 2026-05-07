@@ -35,11 +35,17 @@ def search(
     query: str | None = None,
     facet: str | None = None,
     relevant_py: bool | None = None,
+    is_work_item: bool = True,
     offset: int = 0,
     limit: int = 50,
 ) -> list[CatalogItem]:
-    """Búsqueda paginada de ítems con filtros opcionales."""
-    statement = select(CatalogItem)
+    """Búsqueda paginada de ítems con filtros opcionales.
+
+    Por defecto filtra is_work_item=True (ítems TCPO presupuestables).
+    Pasar is_work_item=False para incluir nodos de clasificación NBR.
+    Ver ADR-011.
+    """
+    statement = select(CatalogItem).where(CatalogItem.is_work_item == is_work_item)
 
     if facet:
         statement = statement.where(CatalogItem.facet == facet)
@@ -48,7 +54,6 @@ def search(
         statement = statement.where(CatalogItem.relevant_py == relevant_py)
 
     if query:
-        # Búsqueda por texto en descripción o código NBR
         like_pattern = f"%{query}%"
         statement = statement.where(
             col(CatalogItem.description_es).ilike(like_pattern)
@@ -65,11 +70,14 @@ def count(
     query: str | None = None,
     facet: str | None = None,
     relevant_py: bool | None = None,
+    is_work_item: bool = True,
 ) -> int:
     """Cuenta total de ítems que coinciden con los filtros (para paginación)."""
     from sqlalchemy import func
 
-    statement = select(func.count()).select_from(CatalogItem)
+    statement = select(func.count()).select_from(CatalogItem).where(
+        CatalogItem.is_work_item == is_work_item
+    )
 
     if facet:
         statement = statement.where(CatalogItem.facet == facet)
@@ -83,6 +91,29 @@ def count(
         )
 
     return session.exec(statement).one()
+
+
+def get_nbr_tree(
+    session: Session,
+    *,
+    facet: str | None = None,
+    bim_taggable: bool | None = None,
+) -> list[CatalogItem]:
+    """Retorna nodos del árbol de clasificación NBR para keynotes y navegación.
+
+    Incluye TODOS los nodos (is_work_item ignorado) — tanto nodos intermedios
+    como ítems hoja. La relación padre-hijo se reconstruye via parent_nbr_code.
+    Ver MODELO-DE-DATOS.md sección 10 (query de keynote file).
+    """
+    statement = select(CatalogItem)
+
+    if facet:
+        statement = statement.where(CatalogItem.facet == facet)
+    if bim_taggable is not None:
+        statement = statement.where(CatalogItem.bim_taggable == bim_taggable)
+
+    statement = statement.order_by(CatalogItem.nbr_code)
+    return list(session.exec(statement).all())
 
 
 def get_apu_components(session: Session, item_id: str) -> list[APUComponentRead]:

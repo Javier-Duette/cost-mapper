@@ -140,6 +140,12 @@ class CatalogItem(SQLModel, table=True):
         description="Origen de rendimientos APU. Ej: 'tcpo' | 'mopc'",
     )
 
+    # --- Tipo de registro (ADR-011) ---
+    is_work_item: bool = Field(
+        default=False,
+        description="true = ítem de trabajo TCPO presupuestable. false = nodo de clasificación NBR (sin precio).",
+    )
+
     # --- Auditoría ---
     modificado_por: str | None = Field(
         default=None,
@@ -271,6 +277,7 @@ class CatalogItemRead(SQLModel):
     bim_taggable: bool
     relevant_py: bool
     oficial: bool
+    is_work_item: bool
     parent_nbr_code: str | None
     creado_por: str
     modificado_por: str | None

@@ -112,6 +112,15 @@ parent_nbr_code     TEXT          Código NBR del ítem padre en la jerarquía.
                                   NULL para los nodos raíz de cada faceta.
                                   Permite reconstruir el árbol de clasificación.
 
+is_work_item        BOOLEAN       true = ítem de trabajo TCPO presupuestable.
+                                  false = nodo de clasificación NBR (sin precio,
+                                  sin APU). Los nodos NBR cargados por ETL son
+                                  false por defecto. Los ítems TCPO se cargan
+                                  con true. Permite que CatalogView filtre solo
+                                  los presupuestables sin afectar el árbol de
+                                  keynotes, que usa todos los nodos.
+                                  Ver ADR-011.
+
 modificado_por      TEXT          Último usuario o proceso que editó el ítem.
                                   Mismo vocabulario que creado_por:
                                   "catalog_tcpo" | "catalog_mandua"

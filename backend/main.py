@@ -32,10 +32,33 @@ def _seed_demo_projects(session: Session) -> None:
     session.commit()
 
 
+def _migrate_dev_db() -> None:
+    """Aplica migraciones incrementales sobre la DB SQLite de desarrollo.
+
+    Cada sentencia ALTER TABLE es idempotente: se ignora si la columna ya existe.
+    En producción reemplazar por Alembic (ver ARQUITECTURA.md sección 2.8).
+    """
+    from sqlalchemy import text
+    from db.session import engine
+
+    migrations = [
+        # ADR-011: distingue nodos NBR de ítems de trabajo TCPO
+        "ALTER TABLE catalog_items ADD COLUMN is_work_item INTEGER NOT NULL DEFAULT 0",
+    ]
+    with engine.connect() as conn:
+        for sql in migrations:
+            try:
+                conn.execute(text(sql))
+                conn.commit()
+            except Exception:
+                pass  # columna ya existe
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Crea las tablas de DB al arrancar y siembra datos de demo."""
     create_db_and_tables()
+    _migrate_dev_db()
     from db.session import engine
     with Session(engine) as session:
         _seed_demo_projects(session)

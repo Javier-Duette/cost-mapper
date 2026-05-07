@@ -90,15 +90,19 @@ PARENT_ITEM = {
 
 # ---------------------------------------------------------------------------
 def upsert_item(cur, data: dict) -> str:
-    """Inserta o devuelve el id del ítem con ese nbr_code."""
+    """Inserta o devuelve el id del ítem con ese nbr_code.
+
+    Todos los ítems creados por este seed son is_work_item=1 (ADR-011):
+    son ítems TCPO presupuestables, no nodos de clasificación NBR.
+    """
     cur.execute("SELECT id FROM catalog_items WHERE nbr_code = ?", (data["nbr_code"],))
     row = cur.fetchone()
     if row:
-        # Actualizar precio y descripción si ya existe
         cur.execute(
             """UPDATE catalog_items SET
                unit_price = ?, currency = ?, description_es = ?,
-               fuente_precios = ?, fuente_factores = ?, updated_at = ?
+               fuente_precios = ?, fuente_factores = ?, is_work_item = 1,
+               updated_at = ?
                WHERE id = ?""",
             (str(data.get("unit_price")), data.get("currency"),
              data.get("description_es"), data.get("fuente_precios"),
@@ -113,8 +117,8 @@ def upsert_item(cur, data: dict) -> str:
             unit_price, currency, fuente_precios, fuente_factores,
             bim_taggable, relevant_py, oficial, uuid_status, creado_por,
             classification_source, confidence, parent_nbr_code,
-            modificado_por, created_at, updated_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            modificado_por, is_work_item, created_at, updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             item_id,
             data["nbr_code"],
@@ -135,6 +139,7 @@ def upsert_item(cur, data: dict) -> str:
             data.get("confidence"),
             data.get("parent_nbr_code"),
             data.get("modificado_por"),
+            1,  # is_work_item — todos los ítems TCPO son presupuestables (ADR-011)
             _now(),
             _now(),
         ),

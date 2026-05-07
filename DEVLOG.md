@@ -6,6 +6,29 @@
 
 ---
 
+## 2026-05-07 16:00 — ADR-011: campo is_work_item para separar nodos NBR de ítems TCPO
+
+**Implementado:**
+- ADR-011 creado: documenta la decisión de agregar `is_work_item: bool DEFAULT FALSE` a `catalog_items` para distinguir los 10.061 nodos de clasificación NBR 15965 (sin precio, estructurales) de los ítems de trabajo TCPO presupuestables.
+- Campo `is_work_item` agregado a `CatalogItem` (SQLModel), `CatalogItemRead` y al schema SQLite.
+- Migración incremental en `main.py` lifespan: `ALTER TABLE catalog_items ADD COLUMN is_work_item ... DEFAULT 0`. Idempotente — ignora error si ya existe.
+- `repository.search()` y `repository.count()` ahora filtran `WHERE is_work_item = TRUE` por defecto (parámetro sobreescribible).
+- Nueva función `repository.get_nbr_tree()`: retorna TODOS los nodos (is_work_item ignorado) para el árbol de keynotes via `parent_nbr_code`.
+- `seed_tcpo_demo_item.py` actualizado: fija `is_work_item = 1` en INSERT y UPDATE de todos los ítems TCPO que crea.
+- DB verificada: 10.061 nodos NBR `(is_work_item=0)` + 7 ítems TCPO `(is_work_item=1)`. API `GET /api/catalog/items` devuelve `total: 7` (solo presupuestables).
+- `docs/MODELO-DE-DATOS.md`: campo `is_work_item` documentado en sección 1.
+- `docs/adrs/README.md`: fila ADR-011 agregada.
+
+**Problemas resueltos:**
+- Los 10k+ ítems del catálogo eran en realidad nodos de clasificación NBR sin precio (artefacto del ETL de seed_nbr). El nuevo campo separa correctamente los dos conceptos sin romper el árbol de keynotes — ambos tipos viven en la misma tabla relacionados por `parent_nbr_code`.
+
+**Decisiones cambiadas:**
+- ADR-011 (nuevo): separación NBR nodes vs TCPO work items con `is_work_item`.
+
+**Próximo paso:** Cargar más ítems TCPO reales (completar ETL desde PDF) o habilitar edición inline de precios en CatalogView para poblar manualmente el catálogo.
+
+---
+
 ## 2026-05-07 14:00 — Seed ítem TCPO demo + verificación flujo end-to-end
 
 **Implementado:**
