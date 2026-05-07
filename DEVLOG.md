@@ -6,6 +6,27 @@
 
 ---
 
+## 2026-05-06 23:45 — Refactorización de Layout UI e Integración de Sistema de Diseño
+
+**Implementado:**
+- Eliminación de la arquitectura de "Paneles Globales Colapsables" (herencia de un prototipo antiguo) en favor de una arquitectura de "Vistas Dedicadas" (`docs/claude-design/02-LAYOUT.md`, `03-SECCIONES.md`, `INTERFAZ.md`).
+- Asignación estricta de componentes pesados: El Visor 3D y el Panel Inspector APU ahora solo existen en las vistas que realmente lo requieren (Catálogo y Mapeo IFC). La vista Presupuesto se liberó de paneles extra para actuar como un Dashboard expansivo limpio al 100%.
+- Agregada la columna "Fuente del Coeficiente" a la especificación de la tabla APU en `04-COMPONENTES.md`.
+- Inclusión del requerimiento de un mockup PDF del presupuesto en la sección de Informes.
+- Descompresión e integración del primer archivo entregable generado por Claude Design (`Cost-Mapper Design System.zip`) dentro de `docs/design-system/`.
+- Actualización de `CLAUDE.md` estableciendo el "Flujo de Trabajo: Sistema de Diseño", marcando el directorio como de Solo Lectura para los agentes, y exigiendo documentar el *Feedback Loop* de implementación.
+
+**Problemas resueltos:**
+- Prevención del "síndrome de paneles escondidos" que saturaba visualmente la aplicación.
+
+**Decisiones cambiadas:**
+- Cambio del layout general de la aplicación.
+- El repositorio ahora alberga una carpeta `docs/design-system/` estática que funciona como referencia visual/arquitectónica estricta, pero separada del código de producción React en `frontend/`.
+
+**Próximo paso:** Entregar a Claude Design el último set de requerimientos actualizados (paneles estrictos, tabla APU, mockup PDF). Una vez que Claude Design genere el nuevo `.zip`, procederemos a la construcción del `frontend/` en React/Vite consumiendo esos mockups como referencia, y conectando con el backend de Catálogo que ya está vivo.
+
+---
+
 ## 2026-05-06 21:45 — Implementación del módulo catalog y carga de datos NBR
 
 **Implementado:**
