@@ -125,6 +125,7 @@ export default function App() {
               search={search}
               selectedId={budgetSelectedId}
               onSelect={setBudgetSelectedId}
+              toast={toast}
             />
           )}
 

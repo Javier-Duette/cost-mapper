@@ -1,24 +1,31 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { Chip } from '../shared/Chip'
 import { fmt } from '../shared/formatters'
 import { Icon } from '../shared/Icon'
 import { getBudget } from '../../api/budget'
+import { updateLibraryEntry } from '../../api/library'
 import type { BudgetSummary } from '../../types/budget'
+import type { ToastKind } from '../shared/Toast'
 
 interface BudgetViewProps {
   projectId: string | null
   search: string
   selectedId: string | null
   onSelect: (id: string) => void
+  toast: (text: string, kind?: ToastKind) => void
 }
 
-/** Vista de Presupuesto: KPIs + tabla agrupada por faceta. Datos reales del módulo budget/. */
-export function BudgetView({ projectId, search, selectedId, onSelect }: BudgetViewProps) {
+/** Vista de Presupuesto: KPIs + tabla agrupada por faceta con edición inline de cantidad. */
+export function BudgetView({ projectId, search, selectedId, onSelect, toast }: BudgetViewProps) {
   const [budget, setBudget] = useState<BudgetSummary | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingVal, setEditingVal] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const load = useCallback(() => {
     if (!projectId) return
     setLoading(true)
     setError(null)
@@ -27,6 +34,41 @@ export function BudgetView({ projectId, search, selectedId, onSelect }: BudgetVi
       .catch(e => setError(e instanceof Error ? e.message : 'Error al cargar presupuesto'))
       .finally(() => setLoading(false))
   }, [projectId])
+
+  useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    if (editingId) inputRef.current?.focus()
+  }, [editingId])
+
+  const startEdit = (entryId: string, currentQty: number | null) => {
+    setEditingId(entryId)
+    setEditingVal(currentQty != null ? String(currentQty) : '')
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditingVal('')
+  }
+
+  const confirmEdit = async (entryId: string) => {
+    if (!projectId) return
+    const raw = editingVal.trim().replace(',', '.')
+    const qty = raw === '' ? null : Number(raw)
+
+    if (raw !== '' && (isNaN(qty!) || qty! < 0)) {
+      toast('Cantidad inválida — ingresá un número positivo', 'error')
+      return
+    }
+
+    cancelEdit()
+    try {
+      await updateLibraryEntry(projectId, entryId, { manual_quantity: qty })
+      load()
+    } catch {
+      toast('Error al guardar la cantidad', 'error')
+    }
+  }
 
   if (!projectId) {
     return (
@@ -54,7 +96,6 @@ export function BudgetView({ projectId, search, selectedId, onSelect }: BudgetVi
       })
     : budget.rows
 
-  // Group rows by facet for display
   const groups: { facet: string; rows: typeof visible }[] = []
   for (const row of visible) {
     const last = groups[groups.length - 1]
@@ -134,16 +175,36 @@ export function BudgetView({ projectId, search, selectedId, onSelect }: BudgetVi
                   </tr>
                   {gRows.map(r => {
                     const sel = r.entry_id === selectedId
+                    const editing = r.entry_id === editingId
                     return (
                       <tr key={r.entry_id} className={sel ? 'is-selected' : ''} onClick={() => onSelect(r.entry_id)}>
                         <td><Chip faceta={r.facet} /></td>
                         <td className="num">{r.nbr_code}</td>
                         <td className="desc">{r.description_es}</td>
                         <td>{r.unit}</td>
-                        <td className="num">
-                          {r.manual_quantity == null
-                            ? <span style={{ color: 'var(--warning)' }}>—</span>
-                            : fmt(r.manual_quantity)}
+                        <td
+                          className="num qty-cell"
+                          title="Clic para editar cantidad"
+                          onClick={e => { e.stopPropagation(); startEdit(r.entry_id, r.manual_quantity) }}
+                        >
+                          {editing ? (
+                            <input
+                              ref={inputRef}
+                              className="qty-input"
+                              value={editingVal}
+                              onChange={e => setEditingVal(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') void confirmEdit(r.entry_id)
+                                if (e.key === 'Escape') cancelEdit()
+                              }}
+                              onBlur={() => void confirmEdit(r.entry_id)}
+                              onClick={e => e.stopPropagation()}
+                            />
+                          ) : (
+                            r.manual_quantity == null
+                              ? <span className="qty-empty">—</span>
+                              : <span className="qty-value">{fmt(r.manual_quantity)}</span>
+                          )}
                         </td>
                         <td className="num">
                           {r.unit_price == null

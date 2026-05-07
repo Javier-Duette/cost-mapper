@@ -6,6 +6,23 @@
 
 ---
 
+## 2026-05-07 06:30 — Edición inline de cantidad + documentación sincronizada
+
+**Implementado:**
+- `BudgetView.tsx` reescrito: edición inline de `manual_quantity` (clic en celda CANT. → input, Enter/blur → PATCH + reload). Acepta coma o punto como separador decimal. Valida que el valor sea positivo.
+- `globals.css`: estilos `.qty-cell`, `.qty-input`, `.qty-empty`, `.qty-value`.
+- `App.tsx`: prop `toast` pasado a `BudgetView`.
+- Documentación sincronizada: `docs/ARQUITECTURA.md` (library 2.6 con endpoints reales, catalog_panel 3.1 con botón +, budget_panel 3.4 estado MVP, nueva sección 3.5 shared), `docs/INTERFAZ.md` (secciones 4 y 5 reflejan implementación real), `docs/STACK-TECNOLOGICO.md` (SQLModel, SQLite/dev, npm, Vite 5 movidos de "no decidido" a "decidido").
+
+**Verificado:**
+- PATCH `manual_quantity=25` persiste en backend para el ítem "Elementos de terrapleno"
+- Budget recarga automáticamente después del PATCH
+- KPI "Sin cantidad" actualiza de 1 a 0 luego de cargar cantidades
+
+**Próximo paso:** cargar precios reales en el catálogo (ejecutar el pipeline ETL o seed manual) para que los subtotales calculen y el costo directo muestre valores reales.
+
+---
+
 ## 2026-05-07 05:10 — Botón "Agregar al proyecto" + sistema de toasts
 
 **Implementado:**

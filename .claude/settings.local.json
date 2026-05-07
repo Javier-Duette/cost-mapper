@@ -28,7 +28,10 @@
       "Bash(nohup python -m uvicorn main:app --host 127.0.0.1 --port 8000)",
       "Bash(echo \"PID: $!\")",
       "Bash(curl -s http://localhost:8000/api/projects)",
-      "Bash(python -m json.tool)"
+      "Bash(python -m json.tool)",
+      "Bash(git commit -m 'feat: agregar ítem al proyecto desde Catálogo con feedback visual *)",
+      "Bash(git commit -m 'docs: sincronizar ARQUITECTURA, INTERFAZ y STACK con MVP implementado *)",
+      "Bash(curl -s \"http://localhost:8000/api/projects/a6981fbb-b2d9-4e95-843f-1b407887e6dc/library\")"
     ]
   }
 }

@@ -267,6 +267,26 @@ html, body, #root {
 .src--tcpo   { background: rgba(0,120,212,0.12); color: #5BA0E8; border: 1px solid rgba(0,120,212,0.3); }
 .src--custom { background: rgba(255,200,92,0.10); color: #FFC85C; border: 1px solid rgba(255,200,92,0.3); }
 
+/* Celda de cantidad editable en presupuesto */
+.qty-cell { cursor: text; position: relative; }
+.qty-cell:hover .qty-value,
+.qty-cell:hover .qty-empty { text-decoration: underline dotted var(--text-disabled); }
+.qty-empty { color: var(--warning); }
+.qty-input {
+  width: 72px;
+  height: 22px;
+  padding: 0 6px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-focus);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  text-align: right;
+  outline: none;
+}
+.tbl tbody tr.is-selected .qty-input { background: var(--accent-subtle); color: #fff; border-color: rgba(255,255,255,0.5); }
+
 /* Botón "+" agregar al proyecto en filas del catálogo */
 .btn-add-to-project {
   width: 24px; height: 24px;
