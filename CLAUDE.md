@@ -195,6 +195,8 @@ Tipos: `feat` · `fix` · `refactor` · `docs` · `test` · `chore`
 | `scripts/04_traducir.py` · `05_clasificar.py` | ADR-002 | La estrategia de clasificación semántica está documentada — no cambiar el enfoque sin revisarla |
 | `backend/ifc_importer/` | ADR-004 | El flujo de ingesta IFC tiene reglas de sincronización en reimportaciones |
 | `backend/mapper/` | ADR-004 | La lógica de `classification_source` determina el comportamiento en reimportaciones |
+| `frontend/` y Componentes | ADR-007 | Exige el uso de componentes funcionales con hooks, TypeScript estricto y la arquitectura de "Vistas Dedicadas" sin paneles globales |
+| Operaciones de Repositorio / Flujo IA | ADR-008 | Obliga a documentar todo en el DEVLOG, prohíbe reescribir el historial de git, y define la interacción de los agentes |
 | `docs/adrs/` | — | Solo agregar ADRs nuevos o actualizar el estado. No editar decisiones ya aceptadas sin consenso. |
 | `.git/` · operaciones de historial | ADR-008 | Nunca reescribir historial (`rebase -i`, `push --force`, `reset --hard` con commits pusheados). Ver protocolo de git arriba. |
 | `docs/design-system/` | — | Código estático generado por Claude Design. Es **sólo lectura**. NO editar manualmente. Úsalo como referencia visual. |
@@ -215,19 +217,21 @@ Cuando el diseñador (o Claude Design) provea una actualización del diseño, en
 ## Cómo correr el proyecto
 
 ```bash
-# 1. Base de datos (primera vez: crea schema completo)
-python scripts/01_init_db.py
+# 1. Base de datos (primera vez)
+# NOTA: Los scripts de la fase 1 y 2 están en [WIP]. Actualmente el piloto
+# se inicializa directamente con SQLModel.metadata.create_all() y seeders manuales.
+# python scripts/01_init_db.py  <- [WIP] Planeado
 
 # 1b. Migraciones incrementales (instancias ya desplegadas)
-alembic upgrade head
+# alembic upgrade head <- [WIP / POST-MVP] Aún no inicializado.
 # La primera migración es un no-op (baseline). Las siguientes aplican cambios de schema.
 # Ver docs/ARQUITECTURA.md sección 2.8 para el patrón completo.
 
 # 2. Pipeline ETL (primera vez)
-python scripts/02_cargar_mandua.py
-python scripts/03_cargar_tcpo.py
-python scripts/04_traducir.py
-python scripts/05_clasificar.py
+# python scripts/02_cargar_mandua.py <- [WIP] Planeado
+# python scripts/03_cargar_tcpo.py <- [WIP] Planeado
+# python scripts/04_traducir.py <- [WIP] Planeado
+# python scripts/05_clasificar.py <- [WIP] Planeado
 
 # 3. Backend
 cd backend
