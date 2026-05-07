@@ -17,6 +17,7 @@
 | 007 | Flujo de caja y fases de ejecución                  | Propuesto (post-MVP) | [ADR-007](ADR-007.md) |
 | 008 | Repositorio y protocolo de control de versiones     | Aceptado             | [ADR-008](ADR-008.md) |
 | 009 | Migración del backend a SQLModel                    | Aceptado             | [ADR-009](ADR-009.md) |
+| 010 | Presupuesto manual pre-IFC con `manual_quantity`    | Aceptado             | [ADR-010](ADR-010.md) |
 
 ## Documentos pendientes derivados de estos ADRs
 

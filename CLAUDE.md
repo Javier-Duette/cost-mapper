@@ -49,6 +49,7 @@ Los ADRs son la razón de por qué el sistema es como es. Un cambio que contradi
 | [ADR-007](docs/adrs/ADR-007.md) | Flujo de caja y fases de ejecución | Post-MVP — no implementar sin leer este ADR |
 | [ADR-008](docs/adrs/ADR-008.md) | Repositorio y protocolo de control de versiones | **CRÍTICO** — define las reglas de git obligatorias del proyecto |
 | [ADR-009](docs/adrs/ADR-009.md) | Migración a SQLModel | Explica por qué `models.py` combina SQLAlchemy + Pydantic y por qué no hay `schemas.py` |
+| [ADR-010](docs/adrs/ADR-010.md) | Presupuesto manual pre-IFC | Explica `manual_quantity` en `project_library` y el comportamiento MVP de `budget/` |
 
 Todos en: `docs/adrs/` — índice completo en [`docs/adrs/README.md`](docs/adrs/README.md)
 
@@ -162,7 +163,7 @@ models.py       ← modelos SQLModel (SQLAlchemy + Pydantic combinados). Ver ADR
 repository.py   ← queries DB. Sin lógica de negocio.
 ```
 
-Ver `docs/ARQUITECTURA.md` sección 2.7 y `docs/adrs/ADR-009.md` para detalle.
+Ver `docs/ARQUITECTURA.md` secciones 2.1–2.6 y `docs/adrs/ADR-009.md` para detalle.
 
 **Python (backend + scripts):**
 - Estilo: PEP 8, formateado con `black`

@@ -6,6 +6,22 @@
 
 ---
 
+## 2026-05-07 02:10 — Cierre de documentación: ADR-010 + actualización de docs/
+
+**Implementado:**
+- ADR-010 creado: documenta la decisión de agregar `manual_quantity` a `project_library` para presupuesto pre-IFC.
+- `docs/adrs/README.md` actualizado con fila ADR-010.
+- `docs/MODELO-DE-DATOS.md` sección 4: campo `manual_quantity` documentado con referencia a ADR-010.
+- `docs/ARQUITECTURA.md`: módulo `projects/` agregado como sección 2.1 (faltaba completamente). Secciones renumeradas. Descripción de `budget/` (ahora 2.5) reescrita para reflejar comportamiento MVP vs futuro post-IFC.
+- `CLAUDE.md`: ADR-010 agregado a la tabla de ADRs. Referencia a secciones de ARQUITECTURA.md corregida.
+
+**Problemas resueltos:**
+- Se omitió el flujo documentación-primero en la sesión anterior: el código de `manual_quantity` se escribió sin ADR previo. Corregido retroactivamente.
+
+**Próximo paso:** botón "Agregar al proyecto" en `CatalogView` — `POST /api/projects/{id}/library` desde la UI para que el usuario pueda construir el presupuesto sin tocar la API directamente.
+
+---
+
 ## 2026-05-07 01:35 — Módulos projects/, library/ y budget/ + integración completa frontend
 
 **Implementado:**

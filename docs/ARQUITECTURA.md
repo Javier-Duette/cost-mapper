@@ -75,7 +75,19 @@ Scripts Python numerados que corren **fuera del servidor**, como tareas de mante
 
 ### 2. Backend — módulos del servidor
 
-#### 2.1 `catalog` — Catálogo de ítems
+#### 2.1 `projects` — Proyectos de construcción
+
+**Responsabilidad:** CRUD de proyectos. Tabla raíz del sistema — todos los módulos project-scoped (library, ifc_elements, assignments) referencian un `project_id`. Incluye seed automático de proyectos demo en desarrollo.
+
+**Entradas:** payload de creación/edición (`name`, `location`, `type`, `currency`)
+
+**Salidas:** lista de proyectos, detalle de proyecto
+
+**Tablas que toca:** `projects`
+
+---
+
+#### 2.2 `catalog` — Catálogo de ítems
 
 **Responsabilidad:** CRUD completo sobre `catalog_items` y `apu_components`. Búsqueda, filtrado por faceta y árbol NBR. Edición inline de precios y fuentes.
 
@@ -93,7 +105,7 @@ Scripts Python numerados que corren **fuera del servidor**, como tareas de mante
 
 ---
 
-#### 2.2 `ifc_importer` — Ingesta del modelo IFC
+#### 2.3 `ifc_importer` — Ingesta del modelo IFC
 
 **Responsabilidad:** leer el archivo IFC subido por el usuario, extraer todos los elementos 3D, calcular cantidades desde geometría, detectar clasificaciones NBR embebidas y persistir en `ifc_elements`.
 
@@ -115,7 +127,7 @@ Scripts Python numerados que corren **fuera del servidor**, como tareas de mante
 
 ---
 
-#### 2.3 `mapper` — Asignación GlobalId → ítem
+#### 2.4 `mapper` — Asignación GlobalId → ítem
 
 **Responsabilidad:** crear y gestionar las filas de `project_assignments`. Maneja dos flujos: asignación automática desde `IfcClassificationReference` y asignación manual asistida.
 
@@ -135,26 +147,28 @@ Scripts Python numerados que corren **fuera del servidor**, como tareas de mante
 
 ---
 
-#### 2.4 `budget` — Cálculo del presupuesto
+#### 2.5 `budget` — Cálculo del presupuesto
 
-**Responsabilidad:** calcular el presupuesto del proyecto combinando las cantidades geométricas (calculadas en tiempo real con `ifcopenshell`) con los precios snapshot de `project_assignments`.
+**Responsabilidad:** calcular el presupuesto del proyecto. Módulo de solo lectura — no modifica ninguna tabla.
 
-**Entradas:**
-- `project_id`
-- Cantidades por `global_id` (calculadas por `ifc_importer` en tiempo real o cacheadas en sesión)
+**Comportamiento actual (MVP — sin IFC):** lee de `project_library JOIN catalog_items`. Usa `manual_quantity` del ítem de biblioteca como cantidad. Ver ADR-010.
+
+**Comportamiento futuro (post-IFC):** leerá de `project_assignments JOIN ifc_elements JOIN catalog_items`, calculando cantidades desde geometría en tiempo real con `ifcopenshell`. `manual_quantity` quedará como fallback para ítems en biblioteca sin asignación IFC.
+
+**Entradas:** `project_id`
 
 **Salidas:**
-- Presupuesto agrupado por `nbr_code` con subtotales
-- Desglose por elemento IFC
-- Alertas de ítems sin precio (`unit_price = NULL` en `catalog_items`)
+- Presupuesto agrupado por `facet` / `nbr_code` con subtotales
+- KPIs: total, items_count, items_without_price, items_without_quantity
+- Alertas de ítems sin precio o sin cantidad
 
-**Tablas que toca:** `project_assignments`, `catalog_items`, `ifc_elements`
+**Tablas que toca (MVP):** `project_library`, `catalog_items` (solo lectura)
 
-**Lo que NO hace:** no modifica precios — solo lee. La edición de precios es responsabilidad del módulo `catalog`.
+**Lo que NO hace:** no modifica precios. La edición de precios es responsabilidad del módulo `catalog`.
 
 ---
 
-#### 2.5 `library` — Biblioteca del proyecto y keynotes
+#### 2.6 `library` — Biblioteca del proyecto y keynotes
 
 **Responsabilidad:** gestionar la biblioteca de ítems candidatos de un proyecto (`project_library`) y generar el archivo de keynotes para Revit.
 

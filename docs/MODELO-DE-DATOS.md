@@ -224,11 +224,17 @@ id                  UUID          PK
 project_id          UUID          FK → projects.id
 item_id             UUID          FK → catalog_items.id
 
-added_by            UUID          FK → users.id
 added_at            TIMESTAMPTZ
 
 notes               TEXT          Nota del usuario sobre por qué agregó este ítem.
                                   Opcional.
+
+manual_quantity     DECIMAL(14,4) Cantidad ingresada manualmente por el usuario.
+                                  NULL = cantidad pendiente de asignar.
+                                  Extensión local del MVP (ADR-010). Permite
+                                  calcular subtotales antes de tener el pipeline
+                                  IFC. Cuando project_assignments esté disponible,
+                                  budget/ usará esas cantidades primero.
 
 UNIQUE(project_id, item_id)       Un ítem no puede estar dos veces en la
                                   misma biblioteca.
