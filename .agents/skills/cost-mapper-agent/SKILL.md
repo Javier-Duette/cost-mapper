@@ -28,12 +28,16 @@ actualizada y el trabajo guardado en GitHub.
 
 ## Al inicio de cada sesión
 
-Antes de hacer cualquier otra cosa, leer estos dos archivos:
+Antes de hacer cualquier otra cosa, leer estos archivos en orden:
 
 1. **`DEVLOG.md`** (raíz del repo) — la última entrada dice exactamente dónde quedó
    el proyecto. Esto reemplaza tener que releer toda la conversación anterior.
 2. **`CLAUDE.md`** (raíz del repo) — reglas del proyecto, convenciones de código,
    módulos y protocolo de git.
+3. **Skills discovery** — listar `.agents/skills/`, leer el frontmatter `description`
+   de cada `SKILL.md`, y confirmar que esta skill es la correcta para el intent del
+   usuario. Si el usuario pide una auditoría o análisis profundo del repo, cambiar a
+   `.agents/skills/cost-mapper-inspector/SKILL.md` en su lugar.
 
 Si el usuario menciona un módulo o decisión específica, leer también el ADR
 correspondiente en `docs/adrs/`.

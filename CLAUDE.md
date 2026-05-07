@@ -16,7 +16,30 @@ El sistema permite: importar un modelo IFC de Revit → mapear elementos 3D a í
 
 1. **`DEVLOG.md`** — la última entrada dice exactamente dónde quedó el proyecto. Esto reemplaza tener que releer toda la conversación anterior.
 2. **Este archivo (`CLAUDE.md`)** — reglas del proyecto, convenciones de código, módulos y protocolo de git.
-3. Si el usuario menciona un módulo o decisión específica → leer el ADR correspondiente en `docs/adrs/`.
+3. **Skills discovery** — leer `.agents/skills/` y activar la skill correcta (ver sección siguiente).
+4. Si el usuario menciona un módulo o decisión específica → leer el ADR correspondiente en `docs/adrs/`.
+
+---
+
+## Skills Discovery — activación automática
+
+Al inicio de cada sesión, **antes de escribir cualquier código**, el agente debe:
+
+1. Listar los directorios en `.agents/skills/` (cada subdirectorio es una skill).
+2. Leer el frontmatter `description` del archivo `SKILL.md` dentro de cada directorio.
+3. Comparar el intent del usuario con esas descripciones.
+4. **Leer completo el `SKILL.md` de la skill que matchea** y seguir sus instrucciones.
+
+### Skills disponibles
+
+| Skill | Cuándo activar |
+|-------|---------------|
+| `.agents/skills/cost-mapper-agent/SKILL.md` | Sesiones de desarrollo: escribir código, diseñar módulos, cerrar sesión, tomar decisiones de arquitectura, actualizar documentación. **Default para cualquier tarea de desarrollo en este repo.** |
+| `.agents/skills/cost-mapper-inspector/SKILL.md` | **Solo** cuando el usuario pide explícitamente una auditoría: "ejecuta el inspector", "haz una auditoría", "revisá el repo entero". No activar para trabajo normal de desarrollo. |
+
+### Regla de actualización
+
+Si se agrega una nueva skill a `.agents/skills/`, actualizar esta tabla. La skill debe incluir en su `SKILL.md` un frontmatter `description` que describa cuándo activarla.
 
 ---
 
