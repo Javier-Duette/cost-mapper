@@ -4,6 +4,24 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 â€” Titulo`) Â· implementado Â· problemas Â· decisiones cambiadas Â· prÃ³ximo paso.
 
+## 2026-05-08 19:55 — Pytest backend y verificación API
+
+**Implementado:**
+- Se ejecutó `pytest` del backend con virtualenv local (`backend/.venv`).
+- Fix en `backend/catalog/service.py`: los ítems creados manualmente ahora se guardan como `is_work_item=true` para que aparezcan en la búsqueda por defecto.
+- Smoke test del backend levantado con Uvicorn en `127.0.0.1` (root, openapi, catalog y settings).
+
+**Problemas resueltos:**
+- `pytest` fallaba en búsqueda de catálogo porque los ítems creados en tests quedaban con `is_work_item=false` (default del modelo).
+- `python` no era accesible desde el sandbox por permisos a `WindowsApps`; se ejecutó con el Python de Microsoft Store fuera del sandbox.
+
+**Decisiones cambiadas:**
+- Ninguna.
+
+**Próximo paso:** validar el archivo keynote en Revit real (flujo completo de exportación/consumo).
+
+---
+
 ## 2026-05-08 18:34 — Auditoría, PAC y correcciones iniciales
 
 **Implementado:**

@@ -120,6 +120,7 @@ def crear_item(
         classification_source="user",
         creado_por=user,
         oficial=False,
+        is_work_item=True,
         created_at=_now(),
         updated_at=_now(),
     )
