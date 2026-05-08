@@ -4,6 +4,30 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 â€” Titulo`) Â· implementado Â· problemas Â· decisiones cambiadas Â· prÃ³ximo paso.
 
+## 2026-05-08 18:34 — Auditoría, PAC y correcciones iniciales
+
+**Implementado:**
+- Auditoría profunda guardada en `docs/auditorias/AUDITORIA_2026_05_08.md`.
+- Plan de Acción Correctiva guardado en `docs/auditorias/PAC_2026_05_08.md`.
+- ADR-013 creado: `AGENTS.md` pasa a ser la fuente canónica para agentes IA; `CLAUDE.md` queda como puente de compatibilidad.
+- `backend/settings/` refactorizado al patrón de 4 archivos (`router.py`, `service.py`, `models.py`, `repository.py`) con tests nuevos en `backend/tests/test_settings.py`.
+- Frontend corregido para que `npm.cmd run build` vuelva a pasar; tipos TS alineados con nulabilidad del backend y biblioteca de keynotes agregada.
+- Exportación de keynotes bloquea ítems no verificados por defecto, permite excepción explícita solo para keynotes y devuelve TXT tabulado Unicode para validación en Revit.
+
+**Problemas resueltos:**
+- Build frontend roto por import no usado en `App.tsx`.
+- `settings` escribía directo desde router y devolvía `None` donde correspondía 404.
+- `AGENTS.md` existía como instrucción operativa pero no estaba formalizado como fuente canónica.
+
+**Decisiones cambiadas:**
+- `AGENTS.md` reemplaza a `CLAUDE.md` como entrada principal multi-agente.
+- `is_verified=false` bloquea entregables por defecto; keynotes admite excepción manual documentada por su naturaleza de código/descripción.
+- `settings_users` y `settings_sources` se consideran catálogos transitorios pre-auth, no el sistema definitivo de usuarios.
+
+**Próximo paso:** ejecutar/verificar backend cuando haya Python disponible en PATH y validar el archivo keynote en Revit real.
+
+---
+
 ## 2026-05-07 17:15 — Sistema de Auditoría, Configuraciones y Estandarización
 
 **Implementado:**

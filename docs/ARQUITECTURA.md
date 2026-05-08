@@ -92,7 +92,7 @@ Herramienta CLI Python en `scripts/etl_tcpo/` que corre **fuera del servidor**, 
 
 #### 2.2 `catalog` — Catálogo de ítems
 
-**Responsabilidad:** CRUD completo sobre `catalog_items` y `apu_components`. Búsqueda, filtrado por faceta y árbol NBR. Edición inline de precios y fuentes.
+**Responsabilidad:** CRUD completo sobre `catalog_items` y `apu_components`. Búsqueda, filtrado por faceta y árbol NBR. Edición inline de precios, fuentes, coeficientes y descripciones. Creación manual de ítems e insumos cuando el PDF TCPO trae tablas incompletas.
 
 **Entradas:**
 - Queries de búsqueda (texto, `nbr_code`, `facet`, `relevant_py`)
@@ -104,7 +104,9 @@ Herramienta CLI Python en `scripts/etl_tcpo/` que corre **fuera del servidor**, 
 
 **Tablas que toca:** `catalog_items`, `apu_components`
 
-**Regla de negocio clave:** al editar `unit_price` o `fuente_precios` de un ítem, el módulo actualiza también `modificado_por` y `updated_at`. El cambio es global — afecta a todos los APU que usen ese ítem como componente.
+**Regla de negocio clave:** al editar `unit_price`, `fuente_precios`, `fuente_factores`, descripción o un coeficiente APU, el módulo actualiza también `modificado_por` y `updated_at`. El cambio es global cuando afecta a `catalog_items` — impacta todos los APU que usen ese ítem como componente.
+
+**Verificación humana:** `catalog_items.is_verified` indica que un humano revisó ítem, APU, fuentes y precios. Cualquier edición posterior invalida esa verificación (`is_verified=false`, `verificado_por=NULL`, `fecha_verificacion=NULL`) hasta una nueva confirmación desde el flujo de verificación.
 
 ---
 
@@ -126,7 +128,7 @@ Herramienta CLI Python en `scripts/etl_tcpo/` que corre **fuera del servidor**, 
 
 **Lo que NO hace:** no asigna ítems, no calcula el presupuesto. Solo popula `ifc_elements` con identidad, geometría y parámetros cualitativos.
 
-**Nota sobre cantidades:** las cantidades geométricas (m², m³) se calculan en este módulo con `ifcopenshell` y se pasan al módulo `budget` en memoria — **no se persisten en la DB** (ver `MODELO-DE-DATOS.md` sección 12).
+**Nota sobre cantidades:** las cantidades geométricas (m², m³) se calculan en este módulo con `ifcopenshell` y se pasan al módulo `budget` en memoria — **no se persisten en la DB** (ver `MODELO-DE-DATOS.md` sección 13).
 
 ---
 
@@ -188,19 +190,23 @@ Herramienta CLI Python en `scripts/etl_tcpo/` que corre **fuera del servidor**, 
 
 **Salidas:**
 - Estado de la `project_library` del proyecto
-- Archivo `.txt` de keynotes (formato tabulado: `código\tdescripción\tcódigo_padre`) — **pendiente de implementar**
+- Archivo `.txt` de keynotes en TSV (`código\tdescripción\tcódigo_padre`) desde `GET /api/projects/{id}/library/export/keynotes`
 
 **Tablas que toca:** `project_library`, `catalog_items`
 
 **Campo `manual_quantity`:** nullable Decimal(14,4). Permite presupuesto pre-IFC. Ver ADR-010.
 
-**Formato del keynote file (post-MVP):**
+**Formato del keynote file (MVP básico implementado):**
 ```
 3E[TAB][TAB]
 3E 02[TAB]Resultados de obra gruesa[TAB]3E
 3E 02 10[TAB]Muros de mampostería cerámica[TAB]3E 02
 ```
 Solo se incluyen ítems con `bim_taggable = true` de las facetas seleccionadas.
+
+**Estado real de keynotes:** la generación básica TSV existe. Aún requiere validación técnica con Revit real y cierre de encoding final; la preferencia documentada por el PAC es Unicode apto para acentos/ñ/guaraní. Hasta esa validación, el formato se considera funcional para pruebas internas, no cerrado para obra real.
+
+**Verificación antes de exportar:** por defecto no se debe exportar ningún entregable con ítems no verificados (`is_verified=false`). Keynotes tiene una excepción controlada: puede permitir override manual porque usa código y descripción, no precios ni coeficientes. Ese override debe mostrar advertencia explícita y quedar auditado; PDF/Excel/informes IFC no tienen override en MVP.
 
 ---
 
@@ -222,12 +228,19 @@ Solo se incluyen ítems con `bim_taggable = true` de las facetas seleccionadas.
 
 ---
 
-#### 2.8 `settings` — Configuración del sistema
-**Responsabilidad:** gestión de catálogos maestros y listas oficiales para auditoría y validación.
-**Entradas:** payload CRUD para usuarios de verificación y fuentes de precios.
-**Salidas:** listas de usuarios y fuentes activos.
+#### 2.8 `settings` — Configuración transitoria pre-auth
+
+**Responsabilidad:** gestión de catálogos maestros para auditoría y validación antes de implementar autenticación real.
+
+**Entradas:** payload CRUD para usuarios de verificación y fuentes de precios/factores.
+
+**Salidas:** listas de usuarios y fuentes activos para selectores del frontend.
+
 **Tablas que toca:** `settings_users`, `settings_sources`.
-**Regla de negocio clave:** proporciona los datos que alimentan los selectores del `AuditModal` en el catálogo.
+
+**Regla de negocio clave:** `settings_users` no reemplaza a `users` ni define permisos. Es un catálogo transitorio que evita nombres libres inconsistentes en `AuditModal` y `VerifyModal`. `settings_sources` normaliza las fuentes usadas en `fuente_precios` y `fuente_factores`.
+
+**Deuda conocida:** el PAC-20..PAC-24 debe alinear `backend/settings/` con la convención ADR-009 de 4 archivos. Esta sección documenta el estado funcional actual, no cierra esa deuda estructural.
 
 ---
 
@@ -246,6 +259,8 @@ Solo se incluyen ítems con `bim_taggable = true` de las facetas seleccionadas.
 **Entradas:** resultado del módulo `budget` + metadatos del proyecto
 
 **Tablas que toca:** solo lectura, ninguna escritura
+
+**Regla de verificación:** antes de generar PDF, Excel, CSV o informes IFC, el exportador debe verificar que todos los ítems incluidos tengan `catalog_items.is_verified=true`. Si hay ítems no verificados, responde con error bloqueante y lista de ítems pendientes. En MVP no hay override para PDF/Excel; el override solo está permitido para keynotes bajo el módulo `library`.
 
 ---
 
@@ -314,7 +329,7 @@ Búsqueda y filtrado del catálogo por faceta, texto y relevancia PY. Panel de d
 - Feedback visual con toast: éxito (verde) o duplicado (amarillo)
 - Panel APU en `area-panel`: datos reales de `GET /api/catalog/items/{id}/apu`
 
-La edición de precio o fuente desde este panel dispara el diálogo de advertencia de cambio global (ver `INTERFAZ.md` sección 1) y llama al endpoint del módulo `catalog` — **pendiente de implementar**.
+La edición de precio, fuente, descripción o coeficiente desde este panel dispara el diálogo de auditoría correspondiente y llama al endpoint del módulo `catalog`. Si el ítem estaba verificado, la edición invalida la verificación y exige nueva revisión humana.
 
 ---
 
@@ -352,13 +367,15 @@ Presupuesto del proyecto agrupado por faceta NBR. Resalta ítems con `unit_price
 
 ---
 
-#### 3.5 `settings_panel` — Panel de importación ETL
+#### 3.5 `settings_panel` — Panel de configuración y ETL
 
-Interfaz para ejecutar el pipeline ETL TCPO desde el navegador sin usar la terminal.
+Interfaz para ejecutar el pipeline ETL TCPO desde el navegador sin usar la terminal y para mantener catálogos transitorios de usuarios/fuentes.
 
 **Estado actual (MVP implementado):** `EtlView.tsx` — cards de estadísticas (ítems en catálogo, páginas OK/parciales/errores), input de páginas, checkboxes Dry-run/Forzar, botón Ejecutar, log de output con borde coloreado según resultado.
 
 Llama a `POST /api/etl/run` y `GET /api/etl/status` del módulo `etl_runner`.
+
+**SettingsView implementado:** permite crear, editar y desactivar/eliminar entradas de `settings_users` y `settings_sources`. Estos datos alimentan los selectores de auditoría y verificación humana.
 
 ---
 

@@ -59,7 +59,7 @@ Barra vertical izquierda de 56px con iconos. Al pasar el cursor muestra tooltip 
 | **Mapeo IFC** | Cubo 3D con vínculo / conector | Importación del IFC y asignación de ítems |
 | **Biblioteca** | Colección de ítems / carpeta organizada | Biblioteca de ítems del proyecto + generador de keynotes |
 | **Informes** | Documento con gráfico / exportar | Exportación del presupuesto (PDF, Excel) |
-| **Ajustes** | Engranaje / tuerca | Importación del catálogo TCPO V15 (MVP). Post-MVP: configuración del proyecto y del sistema. |
+| **Ajustes** | Engranaje / tuerca | Importación del catálogo TCPO V15 + catálogos transitorios de usuarios/fuentes para auditoría. |
 
 **Nota para diseño:** los iconos del sidebar deben ser diseñados como parte del sistema de iconografía del proyecto. Ver sección 13.
 
@@ -73,7 +73,7 @@ El explorador del catálogo completo (`catalog_items`). Es la sección de refere
 
 **Área principal — tabla del catálogo:**
 
-Columnas: FAC · Código NBR · Descripción · Unidad · P. Unit (₲) · Fuente · [+]
+Columnas: FAC · Verificación · Código NBR · Descripción · Unidad · P. Unit (₲) · Fuente · [+]
 
 La última columna tiene un botón `+` invisible en reposo que se hace visible al hover sobre la fila. Clic en `+` agrega el ítem al `project_library` del proyecto activo. Si el ítem ya está en la biblioteca, el backend devuelve 409 y se muestra un toast de advertencia en lugar de duplicar.
 
@@ -91,7 +91,9 @@ Controles encima de la tabla:
 - Amarillo: "El ítem ya está en el proyecto"
 - Rojo: error de red
 
-**Edición inline de precios (pendiente):** doble clic en `unit_price` o `fuente_precios` activará la edición directa. Dispara el diálogo de advertencia de cambio global. Ver sección 10.
+**Edición inline de precios y APU (implementado):** clic/doble clic sobre precio, fuente, descripción o coeficiente activa edición directa. Dispara el diálogo de auditoría con usuario y fuente desde `settings_users` / `settings_sources`. Si el ítem estaba verificado, cualquier cambio lo vuelve no verificado hasta nueva revisión.
+
+**Verificación humana:** el panel APU muestra el estado `is_verified`. El botón de verificación abre un modal que exige usuario de verificación y confirma que insumos, coeficientes, fuentes y precios fueron revisados.
 
 ---
 
@@ -158,6 +160,7 @@ Panel inferior o modal con:
 - Checkboxes de facetas a incluir: `3E` (siempre), `4U` (siempre), `2C` (opcional, con sub-filtro por categoría)
 - Contador: "X ítems se incluirán en el archivo"
 - Botón "Descargar keynote .txt"
+- Bloqueo si hay ítems no verificados, salvo override explícito de keynotes con advertencia y auditoría.
 
 **Copiar biblioteca de otro proyecto:** botón "Copiar desde proyecto..." que abre un selector de proyecto y copia toda su `project_library` al proyecto activo.
 
@@ -183,14 +186,15 @@ Exportación del presupuesto en distintos formatos.
 
 **Flujo de exportación:**
 1. El usuario elige formato.
-2. Si hay ítems sin precio: advertencia bloqueante — "X ítems no tienen precio. ¿Exportar de todas formas con valores vacíos, o completar precios primero?"
-3. Descarga directa del archivo generado.
+2. Si hay ítems no verificados (`is_verified=false`): bloqueo — "X ítems no tienen verificación humana." PDF/Excel no tienen override en MVP.
+3. Si todos están verificados pero hay ítems sin precio: advertencia bloqueante para presupuesto económico; el usuario debe completar precios antes de exportar PDF/Excel.
+4. Descarga directa del archivo generado.
 
 ---
 
-## 9. Sección: Ajustes (actual: Importar TCPO V15)
+## 9. Sección: Ajustes
 
-En MVP esta sección aloja el panel de importación ETL del catálogo TCPO. La configuración general del proyecto y del sistema se planifica para post-MVP.
+En MVP esta sección aloja el panel de importación ETL del catálogo TCPO y la gestión de catálogos transitorios para auditoría. La autenticación real, roles y permisos siguen planificados para post-MVP.
 
 **Panel ETL (implementado):**
 
@@ -208,7 +212,12 @@ Log de output:
 - Textarea de solo lectura con el stdout completo del proceso ETL
 - Borde verde si OK, rojo si error, gris mientras corre
 
-**Post-MVP:** esta sección tendrá nombre del proyecto, ubicación, tipo de obra, moneda base, gestión de usuarios y roles.
+**Usuarios y fuentes (implementado):**
+- `settings_users`: nombres disponibles para modales de auditoría y verificación.
+- `settings_sources`: fuentes oficiales o internas para precios y factores (`price`, `factor`, `both`).
+- Altas, edición inline y baja/desactivación desde la vista de Configuración.
+
+**Post-MVP:** esta sección tendrá nombre del proyecto, ubicación, tipo de obra, moneda base, autenticación, usuarios reales y roles.
 
 ---
 
@@ -236,9 +245,13 @@ Cuando el usuario edita `unit_price` o `fuente_precios` de un componente desde e
 
 **No aparece** al editar `quantity` o `notes` en `apu_components` — esos campos son locales al APU.
 
-### 12.2 Bloqueo de exportación por precios faltantes
+### 12.2 Bloqueo de exportación por verificación humana
 
-Si el presupuesto contiene ítems con `unit_price = NULL`, la exportación no se bloquea completamente — muestra una advertencia que permite al usuario elegir: exportar con celdas vacías o completar los precios primero. La decisión es del usuario.
+Si el presupuesto, informe o keynote contiene ítems con `is_verified=false`, la exportación queda bloqueada por defecto. PDF, Excel e informes IFC no tienen override en MVP.
+
+Keynotes tiene una excepción controlada: puede ofrecer una liberación manual porque exporta código, descripción y jerarquía, no precios ni coeficientes. La UI debe advertirlo explícitamente y registrar quién liberó, cuándo y por qué; si esa auditoría aún no existe, el override queda pendiente.
+
+Si todos los ítems están verificados pero alguno tiene `unit_price = NULL`, PDF/Excel también quedan bloqueados porque el total económico no es confiable.
 
 ### 12.3 Cambio de proyecto limpia el estado visual
 

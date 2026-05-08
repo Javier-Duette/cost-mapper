@@ -12,3 +12,11 @@ export interface LibraryEntryRead {
   manual_quantity: number | null
   added_at: string
 }
+
+export interface LibraryEntryReadWithItem extends LibraryEntryRead {
+  nbr_code: string
+  facet: string
+  description_es: string
+  unit: string
+  is_verified: boolean
+}

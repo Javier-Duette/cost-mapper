@@ -15,21 +15,21 @@ import { BudgetView } from './components/budget_panel/BudgetView'
 import { MappingView } from './components/mapping_panel/MappingView'
 
 import { ReportsView } from './components/reports_panel/ReportsView'
+import { LibraryView } from './components/library_panel/LibraryView'
 
 import { EtlView } from './components/settings_panel/EtlView'
 import { SettingsView } from './components/settings_panel/SettingsView'
 
 import { Viewer3D } from './components/ifc_viewer/Viewer3D'
 
-import { Icon } from './components/shared/Icon'
-
 import { ToastContainer, useToast } from './components/shared/Toast'
 
 import { listProjects } from './api/projects'
 
-import { addToLibrary, DuplicateItemError } from './api/library'
+import { addToLibrary, listLibrary, removeFromLibrary, DuplicateItemError } from './api/library'
 
 import type { CatalogItem, Faceta, Section } from './types/catalog'
+import type { LibraryEntryReadWithItem } from './types/library'
 
 import type { Project } from './types/projects'
 
@@ -67,52 +67,74 @@ export default function App() {
 
   const [relevantOnly, setRelevantOnly] = useState(true)
 
+  const [libraryEntries, setLibraryEntries] = useState<LibraryEntryReadWithItem[]>([])
+  const [libraryItemIds, setLibraryItemIds] = useState<Set<string>>(new Set())
+  const hasUnverified = useMemo(() => libraryEntries.some(e => !e.is_verified), [libraryEntries])
   const { messages: toasts, toast, dismiss } = useToast()
 
 
 
-  useEffect(() => {
-
-    listProjects()
-
-      .then(({ items }) => {
-
-        setProjects(items)
-
-        if (items.length > 0) setProject(items[0]!)
-
-      })
-
-      .catch(console.error)
-
+  const loadLibrary = useCallback(async (projectId: string) => {
+    try {
+      const entries = await listLibrary(projectId)
+      setLibraryEntries(entries)
+      setLibraryItemIds(new Set(entries.map(e => e.item_id)))
+    } catch (e) {
+      console.error('Error loading library ids', e)
+    }
   }, [])
+
+  useEffect(() => {
+    listProjects()
+      .then(({ items }) => {
+        setProjects(items)
+        if (items.length > 0) {
+          const first = items[0]!
+          setProject(first)
+          void loadLibrary(first.id)
+        }
+      })
+      .catch(console.error)
+  }, [loadLibrary])
+
+  useEffect(() => {
+    if (project) void loadLibrary(project.id)
+  }, [project, loadLibrary])
 
 
 
   const handleAddToProject = useCallback(async (item: CatalogItem) => {
-
     if (!project) return
-
     try {
-
       await addToLibrary(project.id, { item_id: item.id })
-
+      void loadLibrary(project.id)
       toast(`"${item.description_es}" agregado al proyecto`, 'success')
-
     } catch (e) {
-
       if (e instanceof DuplicateItemError) {
-
         toast('El ítem ya está en el proyecto', 'warning')
-
       } else {
-
         toast('Error al agregar el ítem', 'error')
-
       }
-
     }
+  }, [project, toast])
 
+  const handleRemoveFromProject = useCallback(async (item: CatalogItem) => {
+    if (!project) return
+    try {
+      // Necesitamos el entry_id, pero en CatalogView solo tenemos el item_id.
+      // Opción A: Buscar en el estado local de library si tuviéramos las entries completas.
+      // Opción B: El backend debería soportar borrar por project_id + item_id.
+      // Por ahora, como no queremos cambiar el backend, listamos la biblioteca para encontrar el ID.
+      const entries = await listLibrary(project.id)
+      const entry = entries.find(e => e.item_id === item.id)
+      if (entry) {
+        await removeFromLibrary(project.id, entry.id)
+        void loadLibrary(project.id)
+        toast(`"${item.description_es}" removido del proyecto`, 'success')
+      }
+    } catch (e) {
+      toast('Error al remover el ítem', 'error')
+    }
   }, [project, toast])
 
 
@@ -260,24 +282,17 @@ export default function App() {
           {section === 'catalog' && (
 
             <CatalogView
-
               search={search}
-
               activeFaceta={catFaceta}
-
               onSelectFaceta={setCatFaceta}
-
               relevantOnly={relevantOnly}
-
               selectedId={catSelectedId}
-
               onSelect={(id, item) => handleCatSelect(id, item)}
-
               projectId={project?.id ?? null}
-
+              libraryItemIds={libraryItemIds}
               onAddToProject={handleAddToProject}
-                  refreshKey={refreshCounter}
-
+              onRemoveFromProject={handleRemoveFromProject}
+              refreshKey={refreshCounter}
             />
 
           )}
@@ -308,7 +323,7 @@ export default function App() {
 
 
 
-          {section === 'reports' && <ReportsView onPreviewPdf={() => {}} />}
+          {section === 'reports' && <ReportsView onPreviewPdf={() => {}} hasUnverified={hasUnverified} />}
           {section === 'settings' && (
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'auto' }}>
               <EtlView />
@@ -320,21 +335,7 @@ export default function App() {
 
 
           {section === 'library' && (
-
-            <div className="section__body">
-
-              <div className="empty-state">
-
-                <Icon name="library" size={48} style={{ color: 'var(--bg-surface-raised)' }} />
-
-                <div className="empty-state__title">{SECTION_TITLE[section]}</div>
-
-                <div className="empty-state__sub">Esta secciÃ³n estÃ¡ planificada para una prÃ³xima iteraciÃ³n.</div>
-
-              </div>
-
-            </div>
-
+            <LibraryView projectId={project?.id ?? null} toast={toast} />
           )}
 
         </div>

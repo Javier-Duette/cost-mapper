@@ -70,3 +70,12 @@ class LibraryEntryRead(SQLModel):
     notes: str | None
     manual_quantity: Decimal | None
     added_at: datetime
+
+
+class LibraryEntryReadWithItem(LibraryEntryRead):
+    """Extensión de LibraryEntryRead que incluye datos básicos del ítem."""
+    nbr_code: str
+    facet: str
+    description_es: str
+    unit: str
+    is_verified: bool

@@ -22,14 +22,17 @@ interface CatalogViewProps {
   selectedId: string | null
   onSelect: (id: string, item: CatalogItem) => void
   projectId: string | null
+  libraryItemIds: Set<string>
   onAddToProject: (item: CatalogItem) => Promise<void>
+  onRemoveFromProject: (item: CatalogItem) => Promise<void>
   refreshKey?: number
 }
 
 /** Vista de Catálogo: árbol de facetas NBR + tabla de ítems con datos reales del backend. */
 export function CatalogView({
   search, activeFaceta, onSelectFaceta, relevantOnly,
-  selectedId, onSelect, projectId, onAddToProject, refreshKey
+  selectedId, onSelect, projectId, libraryItemIds,
+  onAddToProject, onRemoveFromProject, refreshKey
 }: CatalogViewProps) {
   const [items, setItems] = useState<CatalogItem[]>([])
   const [total, setTotal] = useState(0)
@@ -62,12 +65,17 @@ export function CatalogView({
 
   useEffect(() => { void load() }, [load])
 
-  const handleAdd = async (e: React.MouseEvent, item: CatalogItem) => {
+  const handleToggleProject = async (e: React.MouseEvent, item: CatalogItem) => {
     e.stopPropagation()
     if (!projectId || addingId) return
+    const isAdded = libraryItemIds.has(item.id)
     setAddingId(item.id)
     try {
-      await onAddToProject(item)
+      if (isAdded) {
+        await onRemoveFromProject(item)
+      } else {
+        await onAddToProject(item)
+      }
     } finally {
       setAddingId(null)
     }
@@ -149,12 +157,12 @@ export function CatalogView({
                   <td style={{ padding: '0 6px', textAlign: 'center' }}>
                     {projectId && (
                       <button
-                        className="btn-add-to-project"
-                        title="Agregar al proyecto"
+                        className={`btn-add-to-project${libraryItemIds.has(r.id) ? ' is-added' : ''}`}
+                        title={libraryItemIds.has(r.id) ? "Remover del proyecto" : "Agregar al proyecto"}
                         disabled={addingId === r.id}
-                        onClick={e => handleAdd(e, r)}
+                        onClick={e => handleToggleProject(e, r)}
                       >
-                        {addingId === r.id ? '…' : '+'}
+                        {addingId === r.id ? '…' : (libraryItemIds.has(r.id) ? '−' : '+')}
                       </button>
                     )}
                   </td>

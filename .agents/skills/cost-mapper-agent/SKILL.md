@@ -22,7 +22,7 @@ de trabajo documentación-primero, y asegura que cada sesión cierre con la docu
 actualizada y el trabajo guardado en GitHub.
 
 > [!IMPORTANT]
-> **Regla de mantenimiento:** Si durante una sesión se modifica el flujo de trabajo del agente IA (por ejemplo, cambiando reglas en `CLAUDE.md`, protocolos de cierre o estructuras documentales), **es obligatorio** actualizar este archivo (`.agents/skills/cost-mapper-agent/SKILL.md`) para reflejar los cambios y mantener la coherencia.
+> **Regla de mantenimiento:** Si durante una sesión se modifica el flujo de trabajo del agente IA (por ejemplo, cambiando reglas en `AGENTS.md`, protocolos de cierre o estructuras documentales), **es obligatorio** actualizar este archivo (`.agents/skills/cost-mapper-agent/SKILL.md`) para reflejar los cambios y mantener la coherencia.
 
 ---
 
@@ -32,7 +32,7 @@ Antes de hacer cualquier otra cosa, leer estos archivos en orden:
 
 1. **`DEVLOG.md`** (raíz del repo) — la última entrada dice exactamente dónde quedó
    el proyecto. Esto reemplaza tener que releer toda la conversación anterior.
-2. **`CLAUDE.md`** (raíz del repo) — reglas del proyecto, convenciones de código,
+2. **`AGENTS.md`** (raíz del repo) — reglas del proyecto, convenciones de código,
    módulos y protocolo de git.
 3. **Skills discovery** — listar `.agents/skills/`, leer el frontmatter `description`
    de cada `SKILL.md`, y confirmar que esta skill es la correcta para el intent del
@@ -46,7 +46,8 @@ correspondiente en `docs/adrs/`.
 
 ```
 cost-mapper/
-├── CLAUDE.md          ← reglas, convenciones, protocolo de git
+├── AGENTS.md          ← fuente canonica: reglas, convenciones, protocolo de git
+├── CLAUDE.md          ← compatibilidad para Claude Code; redirige a AGENTS.md
 ├── DEVLOG.md          ← log cronológico — leer siempre primero
 ├── docs/              ← documentación técnica
 │   ├── adrs/          ← ADRs (un .md por decisión de arquitectura)
@@ -85,7 +86,7 @@ Si una tarea implica un cambio arquitectónico, documentarlo **antes** de codifi
 ## Crear o actualizar un ADR
 
 Cuando se toma una decisión de arquitectura, crear un nuevo archivo `docs/adrs/ADR-0XX.md`
-con esta estructura. El último ADR existente es el **ADR-012**; el siguiente es ADR-013.
+con esta estructura. El último ADR existente es el **ADR-013**; el siguiente es ADR-014.
 
 ```markdown
 ## ADR-00X — [Título de la decisión]
@@ -109,7 +110,7 @@ Agregar también la fila en la tabla "Registro de decisiones" en `docs/adrs/READ
 
 ## Convención de archivos por módulo y reglas de módulo
 
-Ver `CLAUDE.md` secciones "Convenciones de código" y "Reglas de módulo" para las reglas completas y actualizadas.
+Ver `AGENTS.md` secciones "Convenciones de código" y "Reglas de módulo" para las reglas completas y actualizadas.
 
 Resumen: cada módulo en `backend/<modulo>/` sigue una estructura fija de archivos. Ningún módulo escribe en la tabla de otro.
 
@@ -117,7 +118,7 @@ Resumen: cada módulo en `backend/<modulo>/` sigue una estructura fija de archiv
 
 ## Cierre de sesión
 
-Ver `CLAUDE.md` sección "Cierre de sesión — protocolo obligatorio" para los 3 pasos completos:
+Ver `AGENTS.md` sección "Cierre de sesión — protocolo obligatorio" para los 3 pasos completos:
 1. Actualizar DEVLOG.md
 2. Verificar coherencia de documentación
 3. Commit + push

@@ -121,6 +121,18 @@ is_work_item        BOOLEAN       true = ítem de trabajo TCPO presupuestable.
                                   keynotes, que usa todos los nodos.
                                   Ver ADR-011.
 
+is_verified         BOOLEAN       true = un usuario humano revisó el ítem, su APU,
+                                  sus coeficientes, fuentes y precios vigentes.
+                                  false = no apto para entregables por defecto.
+                                  Los ítems nuevos o editados quedan false hasta
+                                  una nueva verificación humana.
+
+verificado_por      TEXT          Nombre del usuario de `settings_users` que marcó
+                                  el ítem como verificado. NULL si is_verified=false.
+
+fecha_verificacion  TIMESTAMPTZ   Fecha y hora de la verificación humana.
+                                  NULL si is_verified=false.
+
 modificado_por      TEXT          Último usuario o proceso que editó el ítem.
                                   Mismo vocabulario que creado_por:
                                   "catalog_tcpo" | "catalog_mandua"
@@ -138,6 +150,7 @@ updated_at          TIMESTAMPTZ
 - `fuente_precios` y `fuente_factores` son independientes porque la composición técnica (cuántos kg de cemento) y el precio de cada insumo son datos de naturaleza distinta con ciclos de actualización distintos.
 - `unit_price` y `currency` viven en `catalog_items` porque los insumos (`2N`, `2C`, `2Q`) tienen precio propio en el catálogo. Es desde este campo que el panel APU muestra y edita precios. `unit_price` puede ser NULL para ítems TCPO recién cargados que aún no tienen precio local asignado.
 - Los ítems son **editables en place**, incluyendo los de fuentes oficiales (TCPO, MOPC). Cuando se edita un valor, se actualiza `fuente_precios` o `fuente_factores` para reflejar el nuevo origen, y `modificado_por` queda registrado. El UUID no cambia, por lo que las referencias en `apu_components` y `project_assignments` siguen siendo válidas automáticamente.
+- `is_verified` es una compuerta de calidad para entregables. Cualquier edición de precio, descripción, coeficiente o fuente invalida la verificación previa y exige una nueva revisión humana antes de exportar PDF, Excel, informes IFC o keynotes. La única excepción aceptada es un override explícito para keynotes, porque el archivo usa código, descripción y jerarquía, no precios ni coeficientes; esa excepción debe advertirse y auditarse.
 
 ---
 
@@ -478,7 +491,42 @@ created_at          TIMESTAMPTZ
 
 ---
 
-## 10. Consultas clave y lo que revelan del diseño
+## 10. `settings_users` y `settings_sources` — Catálogos transitorios pre-auth
+
+Estas tablas existen para el MVP mientras no hay autenticación completa. No reemplazan al futuro modelo definitivo de usuarios, roles o permisos: son catálogos cerrados para evitar texto libre inconsistente en verificaciones, auditoría de precios y selección de fuentes.
+
+```
+settings_users
+────────────────────────────────────────────────────────────
+id                  INTEGER       PK
+name                TEXT          UNIQUE. Nombre visible en selectores de
+                                  verificación y auditoría.
+active              BOOLEAN       false = oculto en selectores sin perder
+                                  trazabilidad histórica por nombre.
+────────────────────────────────────────────────────────────
+```
+
+```
+settings_sources
+────────────────────────────────────────────────────────────
+id                  INTEGER       PK
+name                TEXT          UNIQUE. Nombre visible de la fuente.
+type                TEXT          "price" | "factor" | "both"
+                                  price = fuente de precios.
+                                  factor = fuente de coeficientes/rendimientos.
+                                  both = aplica a ambos usos.
+active              BOOLEAN       false = oculto en selectores sin borrar
+                                  referencias históricas.
+────────────────────────────────────────────────────────────
+```
+
+**Decisión transitoria:** `settings_users` alimenta `verificado_por` y `modificado_por` en flujos de auditoría, pero no tiene email, password, permisos ni relación FK obligatoria con `users`. Cuando se implemente autenticación real, se deberá migrar o mapear este catálogo a usuarios definitivos sin perder los nombres ya registrados.
+
+**Uso actual:** el frontend consume estos catálogos desde `GET /api/settings/users` y `GET /api/settings/sources` para completar selectores en `AuditModal`, `VerifyModal` y la vista de Configuración.
+
+---
+
+## 11. Consultas clave y lo que revelan del diseño
 
 Las consultas más frecuentes determinan los índices necesarios y validan que el modelo es correcto.
 
@@ -511,9 +559,12 @@ FROM project_library pl
 JOIN catalog_items ci ON ci.id = pl.item_id
 WHERE pl.project_id = :project_id
   AND ci.bim_taggable = true
+  AND ci.is_verified = true
   AND ci.facet = ANY(:selected_facets)  -- ['3E', '4U'] o los que el usuario eligió
 ORDER BY ci.nbr_code;
 ```
+
+Si el usuario aplica el override permitido para keynotes, esta consulta puede incluir ítems no verificados solo después de una confirmación explícita. PDF, Excel e informes IFC no tienen override en MVP: cualquier `catalog_items.is_verified = false` dentro del entregable bloquea la exportación.
 
 **Elementos sin asignar después de importar un IFC:**
 
@@ -531,10 +582,22 @@ WHERE ie.project_id = :project_id
 
 ```sql
 SELECT id, nbr_code, description_es, fuente_precios, fuente_factores,
+       is_verified, verificado_por, fecha_verificacion,
        modificado_por, updated_at
 FROM catalog_items
 WHERE modificado_por LIKE 'user:%'
 ORDER BY updated_at DESC;
+```
+
+**Ítems que bloquean exportación** — compuerta global de calidad:
+
+```sql
+SELECT ci.id, ci.nbr_code, ci.description_es
+FROM project_library pl
+JOIN catalog_items ci ON ci.id = pl.item_id
+WHERE pl.project_id = :project_id
+  AND ci.is_verified = false
+ORDER BY ci.nbr_code;
 ```
 
 **Detección de conflicto en reimportación** (cambio cualitativo):
@@ -551,7 +614,7 @@ WHERE ie.project_id = :project_id
 
 ---
 
-## 11. Índices recomendados
+## 12. Índices recomendados
 
 ```sql
 -- Búsquedas por faceta (filtros frecuentes en el catálogo)
@@ -572,13 +635,17 @@ CREATE INDEX idx_assignments_project ON project_assignments(project_id);
 -- Auditoría: ítems modificados por usuarios
 CREATE INDEX idx_catalog_modificado_por ON catalog_items(modificado_por) WHERE modificado_por LIKE 'user:%';
 
+-- Auditoría: ítems pendientes o recientemente verificados
+CREATE INDEX idx_catalog_is_verified ON catalog_items(is_verified);
+CREATE INDEX idx_catalog_fecha_verificacion ON catalog_items(fecha_verificacion) WHERE is_verified = true;
+
 -- Markups activos de un proyecto (orden de aplicación)
 CREATE INDEX idx_markups_project ON project_markups(project_id, sort_order) WHERE is_active = true;
 ```
 
 ---
 
-## 12. Lo que NO está en este modelo (y por qué)
+## 13. Lo que NO está en este modelo (y por qué)
 
 | Concepto                    | Decisión                                                                                          |
 | --------------------------- | ------------------------------------------------------------------------------------------------- |

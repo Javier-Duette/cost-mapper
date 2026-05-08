@@ -5,14 +5,32 @@ Repository del módulo library — queries de DB sin lógica de negocio.
 from sqlmodel import Session, select
 
 from .models import LibraryEntryCreate, LibraryEntryUpdate, ProjectLibraryEntry
+from catalog.models import CatalogItem
 
 
-def list_entries(session: Session, project_id: str) -> list[ProjectLibraryEntry]:
-    return list(
-        session.exec(
-            select(ProjectLibraryEntry).where(ProjectLibraryEntry.project_id == project_id)
-        ).all()
+def list_entries(session: Session, project_id: str):
+    """Retorna las entradas de la biblioteca con los detalles básicos del ítem."""
+    statement = (
+        select(ProjectLibraryEntry, CatalogItem)
+        .join(CatalogItem, ProjectLibraryEntry.item_id == CatalogItem.id)
+        .where(ProjectLibraryEntry.project_id == project_id)
     )
+    results = session.exec(statement).all()
+
+    # Mapear a una lista de diccionarios que matcheen LibraryEntryReadWithItem
+    entries = []
+    for entry, item in results:
+        data = entry.model_dump()
+        data.update({
+            "nbr_code": item.nbr_code,
+            "facet": item.facet,
+            "description_es": item.description_es,
+            "unit": item.unit,
+            "is_verified": item.is_verified,
+        })
+        entries.append(data)
+
+    return entries
 
 
 def get_entry(session: Session, entry_id: str) -> ProjectLibraryEntry | None:

@@ -10,10 +10,10 @@ export interface CatalogItem {
   description_es: string
   description_pt: string | null
   unit: string
-  unit_price: number
-  currency: string
-  fuente_precios: string
-  fuente_factores: string
+  unit_price: number | null
+  currency: string | null
+  fuente_precios: string | null
+  fuente_factores: string | null
   bim_taggable: boolean
   relevant_py: boolean
   oficial: boolean
@@ -37,10 +37,10 @@ export interface APUComponentRead {
   descripcion: string
   unidad: string
   coef: number
-  precio: number
-  currency: string
-  fuente_precio: string
-  fuente_coef: string
+  precio: number | null
+  currency: string | null
+  fuente_precio: string | null
+  fuente_coef: string | null
   creado_por: string | null
   modificado_por: string | null
   created_at: string | null

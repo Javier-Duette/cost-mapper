@@ -20,6 +20,7 @@
 | 010 | Presupuesto manual pre-IFC con `manual_quantity`    | Aceptado             | [ADR-010](ADR-010.md) |
 | 011 | Distinción nodos NBR vs ítems TCPO con `is_work_item` | Aceptado           | [ADR-011](ADR-011.md) |
 | 012 | Extracción TCPO V15 con LLM Vision y crop local de tablas | Aceptado       | [ADR-012](ADR-012.md) |
+| 013 | `AGENTS.md` como fuente canonica para agentes IA      | Aceptado             | [ADR-013](ADR-013.md) |
 
 ## Documentos pendientes derivados de estos ADRs
 
@@ -34,7 +35,7 @@
 
 1. Crear un archivo `ADR-0XX.md` en esta carpeta con la plantilla de abajo
 2. Agregar la fila correspondiente en la tabla de arriba
-3. Referenciar el ADR en `CLAUDE.md` si afecta archivos protegidos
+3. Referenciar el ADR en `AGENTS.md` si afecta archivos protegidos o reglas de agentes
 
 ```markdown
 ## ADR-0XX — [Título de la decisión]

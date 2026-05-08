@@ -307,6 +307,17 @@ html, body, #root {
 .tbl tbody tr:hover .btn-add-to-project { opacity: 1; }
 .tbl tbody tr.is-selected .btn-add-to-project { opacity: 1; border-color: rgba(255,255,255,0.3); color: #fff; }
 .btn-add-to-project:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-add-to-project.is-added {
+  opacity: 1;
+  background: var(--success-subtle);
+  border-color: var(--success);
+  color: var(--success);
+}
+.btn-add-to-project.is-added:hover {
+  background: var(--error-subtle);
+  border-color: var(--error);
+  color: var(--error);
+}
 .btn-add-to-project:disabled { opacity: 0.5; cursor: default; }
 
 /* ============================================================
