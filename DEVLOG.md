@@ -4,6 +4,17 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-08 23:24 — Plan documentado: Panel Mapeo IFC (MVP)
+
+**Implementado:**
+- Se documentó el plan de implementación del panel **Mapeo IFC** (MVP) con visor 3D en `docs/planes/PLAN_MAPEO_IFC.md`.
+
+**Decisiones cambiadas:**
+- Se fija que el MVP incluye visor 3D desde el inicio.
+- Se aprueba un **fallback temporal**: si `ifcopenshell` bloquea, parsear IFC en frontend con `web-ifc` y seedear `ifc_elements` vía API (explicitado en el plan).
+
+**Próximo paso:** iniciar etapa 1 del MVP (upload/servir IFC + visor 3D real) y luego habilitar listado de elementos + asignaciones.
+
 ## 2026-05-08 22:03 — Decisión: IFC-first; pausar keynotes como sincronización primaria
 
 **Implementado:**
