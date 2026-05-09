@@ -121,6 +121,8 @@ export function MappingView({
     // Usar CDN para wasm (evita problemas de bundling / rutas en Vite)
     ifcApi.SetWasmPath('https://unpkg.com/web-ifc@0.0.77/', true)
     await ifcApi.Init()
+    // Evita que warnings internos del parser rompan el flujo (y reduce ruido en consola).
+    ifcApi.SetLogLevel(webIfc.LogLevel.LOG_LEVEL_OFF)
 
     const modelId = ifcApi.OpenModel(buffer)
 

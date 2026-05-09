@@ -25,6 +25,7 @@
 **Implementado:**
 - Fallback en frontend: si el upload devuelve `0 elementos`, se parsea el IFC en el navegador con `web-ifc` y se seedea `ifc_elements` vía `POST /api/projects/{id}/ifc/elements:seed`.
 - Hardening del parser: si falla con tipos abstractos, se usa `IFCPRODUCT` y se fuerza `expressId` numérico para evitar errores de conversión.
+- `web-ifc` con log level OFF en el fallback para evitar que warnings internos corten el flujo en algunos IFCs.
 
 **Próximo paso:** validar con `PROYECTO_EJECUTIVO.ifc` (ARQ+EST) y ajustar el filtro de entidades si se necesita (por performance o exclusiones).
 
