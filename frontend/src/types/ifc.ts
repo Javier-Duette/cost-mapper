@@ -36,3 +36,17 @@ export interface IfcImportResponse {
   import_summary: IfcImportSummary
 }
 
+/** Payload mínimo para seed fallback de ifc_elements (cuando el backend no parsea con ifcopenshell). */
+export interface IfcElementSeed {
+  global_id: string
+  ifc_type: string
+  ifc_name?: string | null
+  ifc_level?: string | null
+  nbr_classification?: string | null
+  qualitative_snapshot?: Record<string, unknown>
+}
+
+export interface IfcElementsSeedRequest {
+  elements: IfcElementSeed[]
+  full_sync?: boolean
+}

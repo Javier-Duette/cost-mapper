@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getProject } from '../../api/projects'
 import { uploadIfc } from '../../api/ifc'
+import { seedIfcElements } from '../../api/ifc'
 import { listMappingElements } from '../../api/mapping'
 import { Icon } from '../shared/Icon'
 import { MappingTabs } from './MappingTabs'
@@ -8,6 +9,7 @@ import { MappingElementsTable } from './MappingElementsTable'
 import type { ToastKind } from '../shared/Toast'
 import type { Project } from '../../types/projects'
 import type { MappingElementRow, MappingElementsPage, MappingTab } from '../../types/mapping'
+import type { IfcElementSeed } from '../../types/ifc'
 
 interface MappingViewProps {
   projectId?: string | null
@@ -105,13 +107,102 @@ export function MappingView({
 
   const openFilePicker = () => fileRef.current?.click()
 
+  const seedFromIfcInBrowser = useCallback(async (): Promise<number> => {
+    if (!projectId) throw new Error('Sin projectId: no se puede seedear elementos IFC.')
+
+    const fileRes = await fetch(`/api/projects/${projectId}/ifc/file`)
+    if (!fileRes.ok) throw new Error(`No se pudo leer el IFC del proyecto (${fileRes.status})`)
+
+    const buffer = new Uint8Array(await fileRes.arrayBuffer())
+
+    const webIfc = await import('web-ifc')
+    const ifcApi = new webIfc.IfcAPI()
+
+    // Usar CDN para wasm (evita problemas de bundling / rutas en Vite)
+    ifcApi.SetWasmPath('https://unpkg.com/web-ifc@0.0.77/', true)
+    await ifcApi.Init()
+
+    const modelId = ifcApi.OpenModel(buffer)
+
+    const typeNameByCode = new Map<number, string>()
+    for (const [key, value] of Object.entries(webIfc)) {
+      if (key.startsWith('IFC') && typeof value === 'number') typeNameByCode.set(value, key)
+    }
+
+    const vec =
+      ifcApi.GetLineIDsWithType(modelId, webIfc.IFCBUILDINGELEMENT, true)
+      ?? ifcApi.GetLineIDsWithType(modelId, webIfc.IFCPRODUCT, true)
+
+    const unwrap = (v: unknown): string | null => {
+      if (v == null) return null
+      if (typeof v === 'string') return v
+      if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+      if (typeof v === 'object') {
+        const obj = v as Record<string, unknown>
+        if (typeof obj.value === 'string') return obj.value
+        if (typeof obj.Value === 'string') return obj.Value
+      }
+      return null
+    }
+
+    const elements: IfcElementSeed[] = []
+    const max = vec.size()
+    for (let i = 0; i < max; i++) {
+      const expressId = vec.get(i)
+      const line = ifcApi.GetLine(modelId, expressId, true) as any
+      const globalId = unwrap(line?.GlobalId)
+      if (!globalId) continue
+
+      const typeCode = ifcApi.GetLineType(modelId, expressId) as number
+      const ifcType = typeNameByCode.get(typeCode) ?? `TYPE_${typeCode}`
+      const ifcName = unwrap(line?.Name)
+
+      elements.push({
+        global_id: globalId,
+        ifc_type: ifcType,
+        ifc_name: ifcName,
+        qualitative_snapshot: {
+          express_id: expressId,
+          ifc_type: ifcType,
+          ifc_name: ifcName,
+        },
+      })
+    }
+
+    ifcApi.CloseModel(modelId)
+
+    if (elements.length === 0) {
+      throw new Error('No se detectaron elementos (IFCBUILDINGELEMENT/IFCPRODUCT) al parsear el IFC en el navegador.')
+    }
+
+    // Enviar en chunks para evitar payload gigante.
+    // Nota: full_sync=true requiere enviar el set completo, asÃ­ que en chunks usamos full_sync=false.
+    const chunkSize = 500
+    for (let i = 0; i < elements.length; i += chunkSize) {
+      const chunk = elements.slice(i, i + chunkSize)
+      await seedIfcElements(projectId, { elements: chunk, full_sync: false })
+    }
+
+    // Refrescar project para asegurar ifc_file_path y timestamps en UI
+    await loadProject()
+    return elements.length
+  }, [projectId, loadProject])
+
   const handleFileSelected = async (file: File | null) => {
     if (!projectId || !file) return
     try {
       const res = await uploadIfc(projectId, file)
       setProject(res.project)
       onIfcImported?.(res.project)
-      toast(`IFC importado (${res.import_summary.total_elements} elementos)`, 'success')
+
+      if (res.import_summary.total_elements === 0) {
+        toast('IFC subido. Backend no detectó elementos; usando fallback (web-ifc) para listar y mapear.', 'warning')
+        const seeded = await seedFromIfcInBrowser()
+        toast(`IFC listo (${seeded.toLocaleString('es-PY')} elementos)`, 'success')
+      } else {
+        toast(`IFC importado (${res.import_summary.total_elements} elementos)`, 'success')
+      }
+
       setOffset(0)
       await load()
     } catch (e) {

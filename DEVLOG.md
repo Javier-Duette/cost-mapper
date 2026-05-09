@@ -17,6 +17,16 @@
 
 **Próximo paso:** probar con un IFC real end-to-end (import → selección en visor → asignar ítems → recargar y verificar persistencia).
 
+## 2026-05-09 03:45 — Fix: seed fallback de ifc_elements con web-ifc (cuando backend devuelve 0 elementos)
+
+**Problemas resueltos:**
+- Importar un IFC podía quedar en `0 elementos` aunque el archivo fuese válido (backend no parsea si no hay `ifcopenshell`).
+
+**Implementado:**
+- Fallback en frontend: si el upload devuelve `0 elementos`, se parsea el IFC en el navegador con `web-ifc` y se seedea `ifc_elements` vía `POST /api/projects/{id}/ifc/elements:seed`.
+
+**Próximo paso:** validar con `PROYECTO_EJECUTIVO.ifc` (ARQ+EST) y ajustar el filtro de entidades si se necesita (por performance o exclusiones).
+
 ## 2026-05-08 23:24 — Plan documentado: Panel Mapeo IFC (MVP)
 
 **Implementado:**

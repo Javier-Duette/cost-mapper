@@ -1,4 +1,4 @@
-import type { IfcElementsPage, IfcImportResponse } from '../types/ifc'
+import type { IfcElementsPage, IfcElementsSeedRequest, IfcImportResponse, IfcImportSummary } from '../types/ifc'
 
 /**
  * Sube el IFC del proyecto (multipart/form-data, campo `file`).
@@ -38,5 +38,19 @@ export async function listIfcElements(params: {
   const res = await fetch(url.toString())
   if (!res.ok) throw new Error(`GET /projects/${params.projectId}/ifc/elements falló: ${res.status}`)
   return res.json() as Promise<IfcElementsPage>
+}
+
+/**
+ * Fallback: seedea ifc_elements desde el navegador (web-ifc).
+ * Endpoint: POST /api/projects/{projectId}/ifc/elements:seed
+ */
+export async function seedIfcElements(projectId: string, payload: IfcElementsSeedRequest): Promise<IfcImportSummary> {
+  const res = await fetch(`/api/projects/${projectId}/ifc/elements:seed`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) throw new Error(`POST /projects/${projectId}/ifc/elements:seed falló: ${res.status}`)
+  return res.json() as Promise<IfcImportSummary>
 }
 
