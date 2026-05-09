@@ -129,9 +129,21 @@ export function MappingView({
       if (key.startsWith('IFC') && typeof value === 'number') typeNameByCode.set(value, key)
     }
 
-    const vec =
-      ifcApi.GetLineIDsWithType(modelId, webIfc.IFCBUILDINGELEMENT, true)
-      ?? ifcApi.GetLineIDsWithType(modelId, webIfc.IFCPRODUCT, true)
+    const getIds = (typeCode: unknown) => {
+      if (typeof typeCode !== 'number') throw new Error('web-ifc: typeCode inválido')
+      return ifcApi.GetLineIDsWithType(modelId, typeCode, true)
+    }
+
+    let vec: any
+    try {
+      vec = getIds((webIfc as any).IFCBUILDINGELEMENT)
+      if (!vec || typeof vec.size !== 'function' || vec.size() === 0) {
+        vec = getIds((webIfc as any).IFCPRODUCT)
+      }
+    } catch {
+      // Algunos builds fallan con tipos abstractos; usar IFCPRODUCT como fallback seguro.
+      vec = getIds((webIfc as any).IFCPRODUCT)
+    }
 
     const unwrap = (v: unknown): string | null => {
       if (v == null) return null
@@ -148,7 +160,8 @@ export function MappingView({
     const elements: IfcElementSeed[] = []
     const max = vec.size()
     for (let i = 0; i < max; i++) {
-      const expressId = vec.get(i)
+      const expressId = Number(vec.get(i))
+      if (!Number.isFinite(expressId)) continue
       const line = ifcApi.GetLine(modelId, expressId, true) as any
       const globalId = unwrap(line?.GlobalId)
       if (!globalId) continue
