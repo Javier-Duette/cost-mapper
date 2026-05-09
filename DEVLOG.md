@@ -4,6 +4,19 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-09 03:15 — Implementación MVP: Panel Mapeo IFC (backend + frontend + visor 3D)
+
+**Implementado:**
+- Backend: módulos `ifc_importer/` y `mapper/` completos para MVP (upload/servir IFC, `ifc_elements`, listado/tabs, create/delete asignaciones) + tests pytest.
+- Frontend: panel **Mapeo IFC** con tabs, tabla paginada, selección compartida con visor y panel inferior de detalle para asignar/quitar.
+- Visor 3D real: `Viewer3D` carga IFC desde `GET /api/projects/{id}/ifc/file`, permite selección por click y resalta el elemento seleccionado.
+
+**Problemas resueltos:**
+- Conflictos de dependencias NPM para el visor (`three` y `web-ifc` requeridos por `@thatopen/components`).
+- Backend: ajuste de contrato para devolver detalles del ítem en asignaciones/sugerencias sin romper tests.
+
+**Próximo paso:** probar con un IFC real end-to-end (import → selección en visor → asignar ítems → recargar y verificar persistencia).
+
 ## 2026-05-08 23:24 — Plan documentado: Panel Mapeo IFC (MVP)
 
 **Implementado:**

@@ -2,6 +2,8 @@
 Service del módulo projects — lógica de negocio.
 """
 
+from datetime import datetime
+
 from fastapi import HTTPException
 from sqlmodel import Session
 
@@ -33,3 +35,15 @@ def update_project(session: Session, project_id: str, data: ProjectUpdate) -> Pr
 def delete_project(session: Session, project_id: str) -> None:
     project = get_project(session, project_id)
     repository.delete_project(session, project)
+
+
+def set_ifc_import(
+    session: Session,
+    *,
+    project_id: str,
+    ifc_file_path: str,
+    ifc_imported_at: datetime,
+) -> Project:
+    """Actualiza metadata IFC del proyecto (path + timestamp)."""
+    project = get_project(session, project_id)
+    return repository.set_ifc_import(session, project, ifc_file_path=ifc_file_path, ifc_imported_at=ifc_imported_at)

@@ -41,3 +41,19 @@ def update_project(session: Session, project: Project, data: ProjectUpdate) -> P
 def delete_project(session: Session, project: Project) -> None:
     session.delete(project)
     session.commit()
+
+
+def set_ifc_import(
+    session: Session,
+    project: Project,
+    *,
+    ifc_file_path: str,
+    ifc_imported_at: datetime,
+) -> Project:
+    project.ifc_file_path = ifc_file_path
+    project.ifc_imported_at = ifc_imported_at
+    project.updated_at = datetime.now(timezone.utc)
+    session.add(project)
+    session.commit()
+    session.refresh(project)
+    return project

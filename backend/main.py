@@ -14,6 +14,8 @@ from projects.router import router as projects_router
 from library.router import router as library_router
 from budget.router import router as budget_router
 from settings.router import router as settings_router
+from ifc_importer.router import router as ifc_importer_router
+from mapper.router import router as mapper_router
 from etl_runner import router as etl_router
 from projects.models import Project
 from db.session import create_db_and_tables
@@ -82,6 +84,8 @@ app.include_router(projects_router)
 app.include_router(library_router)
 app.include_router(budget_router)
 app.include_router(settings_router)
+app.include_router(ifc_importer_router)
+app.include_router(mapper_router)
 app.include_router(etl_router)
 
 

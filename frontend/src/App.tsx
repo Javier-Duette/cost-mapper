@@ -13,6 +13,7 @@ import { CatalogView } from './components/catalog_panel/CatalogView'
 import { BudgetView } from './components/budget_panel/BudgetView'
 
 import { MappingView } from './components/mapping_panel/MappingView'
+import { MappingElementDetail } from './components/mapping_panel/MappingElementDetail'
 
 import { ReportsView } from './components/reports_panel/ReportsView'
 import { LibraryView } from './components/library_panel/LibraryView'
@@ -32,6 +33,7 @@ import type { CatalogItem, Faceta, Section } from './types/catalog'
 import type { LibraryEntryReadWithItem } from './types/library'
 
 import type { Project } from './types/projects'
+import type { MappingElementRow } from './types/mapping'
 
 
 
@@ -152,6 +154,11 @@ export default function App() {
   /* Budget state */
 
   const [budgetSelectedId, setBudgetSelectedId] = useState<string | null>(null)
+
+  /* Mapping state (shared table <-> viewer) */
+  const [mappingSelectedGlobalId, setMappingSelectedGlobalId] = useState<string | null>(null)
+  const [mappingSelectedRow, setMappingSelectedRow] = useState<MappingElementRow | null>(null)
+  const [mappingRefreshKey, setMappingRefreshKey] = useState(0)
 
   /* Resizing panel */
 
@@ -319,7 +326,17 @@ export default function App() {
 
 
 
-          {section === 'mapping' && <MappingView />}
+          {section === 'mapping' && (
+            <MappingView
+              projectId={project?.id ?? null}
+              selectedGlobalId={mappingSelectedGlobalId}
+              onSelectGlobalId={setMappingSelectedGlobalId}
+              onSelectedRowChange={setMappingSelectedRow}
+              onIfcImported={(p) => setProject(p)}
+              refreshKey={mappingRefreshKey}
+              toast={toast}
+            />
+          )}
 
 
 
@@ -348,7 +365,11 @@ export default function App() {
 
         <div className="area-viewer">
 
-          <Viewer3D />
+          <Viewer3D
+            projectId={project?.id ?? null}
+            selectedGlobalId={mappingSelectedGlobalId}
+            onSelectGlobalId={setMappingSelectedGlobalId}
+          />
 
         </div>
 
@@ -376,10 +397,16 @@ export default function App() {
 
           />
 
-          <DetailPanel 
-              item={section === 'catalog' ? catSelectedItem : null} 
-              onUpdate={handleItemUpdate}
+          {section === 'catalog' ? (
+            <DetailPanel item={catSelectedItem} onUpdate={handleItemUpdate} />
+          ) : (
+            <MappingElementDetail
+              projectId={project?.id ?? ''}
+              row={mappingSelectedRow}
+              toast={toast}
+              onRefresh={() => setMappingRefreshKey(k => k + 1)}
             />
+          )}
 
         </div>
 
