@@ -4,6 +4,20 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-08 22:03 — Decisión: IFC-first; pausar keynotes como sincronización primaria
+
+**Implementado:**
+- Se formalizó la decisión de usar IFC como fuente canónica del mapeo (`GlobalId` + señales de clasificación desde Psets/ClassificationReference) y pausar keynotes como canal primario.
+- Se creó el ADR-014 para fijar el alcance: keynotes queda como export opcional/auxiliar (post-MVP) y el foco inmediato pasa a `ifc_importer/` + `mapper/`.
+
+**Problemas resueltos:**
+- Se destrabó el bloqueo conceptual de “catalogación en Revit” para continuar el desarrollo del mapper sin dependencia de keynotes.
+
+**Decisiones cambiadas:**
+- ADR-014: IFC-first para mapeo; keynotes como export opcional.
+
+**Próximo paso:** diseñar e implementar el MVP del `ifc mapper` (reglas de prioridad, extracción de señales desde IFC y endpoint de asignación `GlobalId → catalog_item_id`).
+
 ## 2026-05-09 10:30 — Validación real de keynotes en Revit (iteración de export)
 
 **Implementado:**

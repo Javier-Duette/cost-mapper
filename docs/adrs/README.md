@@ -21,6 +21,7 @@
 | 011 | Distinción nodos NBR vs ítems TCPO con `is_work_item` | Aceptado           | [ADR-011](ADR-011.md) |
 | 012 | Extracción TCPO V15 con LLM Vision y crop local de tablas | Aceptado       | [ADR-012](ADR-012.md) |
 | 013 | `AGENTS.md` como fuente canonica para agentes IA      | Aceptado             | [ADR-013](ADR-013.md) |
+| 014 | IFC-first para mapeo; keynotes como export opcional   | Aceptado             | [ADR-014](ADR-014.md) |
 
 ## Documentos pendientes derivados de estos ADRs
 
