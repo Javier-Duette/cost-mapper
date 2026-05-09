@@ -80,6 +80,6 @@ def export_keynotes(
 
     return Response(
         content=content,
-        media_type="text/plain; charset=utf-16",
+        media_type="text/plain; charset=utf-16le",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )

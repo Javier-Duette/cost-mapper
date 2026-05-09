@@ -83,26 +83,67 @@ def generate_keynotes_file(session: Session, project_id: str) -> bytes:
     requiring Unicode characters, Revit expects the text file to be saved as
     Unicode, so the MVP returns UTF-16 with BOM until a real Revit test proves
     a better encoding.
+
+    Revit keynotes are tab-delimited. Some Revit setups support hierarchy with
+    an optional third column: `PARENT_KEY`. We export hierarchy to make the
+    keynote browser tree usable and to align with common Revit workflows.
     """
     entries = repository.list_entries(session, project_id)
     if not entries:
         return b""
 
-    needed_codes: set[str] = set()
-    for entry in entries:
-        code = entry["nbr_code"]
-        needed_codes.add(code)
-        parts = code.split()
-        for i in range(1, len(parts)):
-            needed_codes.add(" ".join(parts[:i]))
+    def _sanitize_description(text: str) -> str:
+        return text.replace("\t", " ").replace("\r", " ").replace("\n", " ").strip()
 
-    statement = select(CatalogItem).where(CatalogItem.nbr_code.in_(list(needed_codes)))
+    def _full_key(code: str) -> str:
+        """Canonical keynote key (stable & reversible for auto-mapping)."""
+        return code.replace(" ", ".").strip()
+
+    def _compact_text(code: str) -> str:
+        """User-facing text helper: remove '00' padding for readability."""
+        parts = [part.strip() for part in code.split() if part.strip()]
+        if not parts:
+            return ""
+        head = parts[0]
+        tail = [part for part in parts[1:] if part != "00"]
+        return ".".join([head, *tail]) if tail else head
+
+    def _parent_code_00(code: str) -> str:
+        """Return the '... 00' parent code for a leaf code."""
+        parts = [part.strip() for part in code.split() if part.strip()]
+        if len(parts) <= 1:
+            return ""
+        return " ".join(parts[:-1] + ["00"])
+
+    # Load only the catalog rows directly referenced by the library entries.
+    entry_codes = sorted({entry["nbr_code"] for entry in entries})
+    statement = select(CatalogItem).where(CatalogItem.nbr_code.in_(entry_codes))
     items = session.exec(statement).all()
+    items_by_code: dict[str, CatalogItem] = {item.nbr_code: item for item in items}
+
+    # Build a hierarchy that Revit accepts, but keep KEY canonical (full code),
+    # so future auto-mapping via keynotes can match the database codes.
+    nodes: dict[str, tuple[str, str]] = {}  # full_key -> (description, parent_full_key)
+    for code in entry_codes:
+        item = items_by_code.get(code)
+        full_key = _full_key(code)
+        if not full_key:
+            continue
+
+        description = _sanitize_description(item.description_es) if item else _compact_text(code)
+        parent_code = _parent_code_00(code)
+        parent_key = _full_key(parent_code) if parent_code else ""
+        nodes[full_key] = (description, parent_key)
+
+        # Ensure required parent KEY exists as a container line, otherwise Revit errors.
+        if parent_key and parent_key not in nodes:
+            nodes[parent_key] = (_compact_text(parent_code), _full_key(" ".join(code.split()[:1])) if code else "")
 
     lines: list[str] = []
-    for item in sorted(items, key=lambda value: value.nbr_code):
-        description = item.description_es.replace("\t", " ")
-        parent = item.parent_nbr_code or ""
-        lines.append(f"{item.nbr_code}\t{description}\t{parent}")
+    for key in sorted(nodes.keys()):
+        description, parent_key = nodes[key]
+        lines.append(f"{key}\t{description}\t{parent_key}")
 
-    return ("\n".join(lines) + "\n").encode("utf-16")
+    # Revit's "Unicode" keynote format is UTF-16 LE with BOM.
+    text = "\r\n".join(lines) + "\r\n"
+    return b"\xff\xfe" + text.encode("utf-16-le")
