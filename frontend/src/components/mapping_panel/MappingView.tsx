@@ -118,8 +118,10 @@ export function MappingView({
     const webIfc = await import('web-ifc')
     const ifcApi = new webIfc.IfcAPI()
 
-    // Usar CDN para wasm (evita problemas de bundling / rutas en Vite)
-    ifcApi.SetWasmPath('https://unpkg.com/web-ifc@0.0.77/', true)
+    // WASM: por defecto se sirve local desde `public/web-ifc/` (copiado desde node_modules).
+    // Override opcional vía .env para casos especiales.
+    const wasmPath = import.meta.env.VITE_WEB_IFC_WASM_PATH ?? `${import.meta.env.BASE_URL}web-ifc/`
+    ifcApi.SetWasmPath(wasmPath, true)
     await ifcApi.Init()
     // Evita que warnings internos del parser rompan el flujo (y reduce ruido en consola).
     ifcApi.SetLogLevel(webIfc.LogLevel.LOG_LEVEL_OFF)
@@ -177,7 +179,6 @@ export function MappingView({
         ifc_type: ifcType,
         ifc_name: ifcName,
         qualitative_snapshot: {
-          express_id: expressId,
           ifc_type: ifcType,
           ifc_name: ifcName,
         },
@@ -191,11 +192,18 @@ export function MappingView({
     }
 
     // Enviar en chunks para evitar payload gigante.
-    // Nota: full_sync=true requiere enviar el set completo, asÃ­ que en chunks usamos full_sync=false.
+    // Para mantener sincronización correcta en reimports, el último chunk incluye `all_global_ids`
+    // y hace `full_sync=true` (marca como deleted todo lo que no esté en el set del modelo).
+    const allGlobalIds = elements.map(e => e.global_id)
     const chunkSize = 500
     for (let i = 0; i < elements.length; i += chunkSize) {
       const chunk = elements.slice(i, i + chunkSize)
-      await seedIfcElements(projectId, { elements: chunk, full_sync: false })
+      const isLast = i + chunkSize >= elements.length
+      await seedIfcElements(projectId, {
+        elements: chunk,
+        full_sync: isLast,
+        all_global_ids: isLast ? allGlobalIds : undefined,
+      })
     }
 
     // Refrescar project para asegurar ifc_file_path y timestamps en UI

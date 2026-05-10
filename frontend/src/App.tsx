@@ -14,14 +14,13 @@ import { BudgetView } from './components/budget_panel/BudgetView'
 
 import { MappingView } from './components/mapping_panel/MappingView'
 import { MappingElementDetail } from './components/mapping_panel/MappingElementDetail'
+import { MappingViewerOnly } from './components/mapping_panel/MappingViewerOnly'
 
 import { ReportsView } from './components/reports_panel/ReportsView'
 import { LibraryView } from './components/library_panel/LibraryView'
 
 import { EtlView } from './components/settings_panel/EtlView'
 import { SettingsView } from './components/settings_panel/SettingsView'
-
-import { Viewer3D } from './components/ifc_viewer/Viewer3D'
 
 import { ToastContainer, useToast } from './components/shared/Toast'
 
@@ -159,6 +158,8 @@ export default function App() {
   const [mappingSelectedGlobalId, setMappingSelectedGlobalId] = useState<string | null>(null)
   const [mappingSelectedRow, setMappingSelectedRow] = useState<MappingElementRow | null>(null)
   const [mappingRefreshKey, setMappingRefreshKey] = useState(0)
+  const [mappingMode, setMappingMode] = useState<'read_local' | 'full'>('read_local')
+  const [mappingLocalIfcFile, setMappingLocalIfcFile] = useState<File | null>(null)
 
   /* Resizing panel */
 
@@ -326,7 +327,7 @@ export default function App() {
 
 
 
-          {section === 'mapping' && (
+          {section === 'mapping' && mappingMode === 'full' && (
             <MappingView
               projectId={project?.id ?? null}
               selectedGlobalId={mappingSelectedGlobalId}
@@ -335,6 +336,21 @@ export default function App() {
               onIfcImported={(p) => setProject(p)}
               refreshKey={mappingRefreshKey}
               toast={toast}
+            />
+          )}
+
+          {section === 'mapping' && mappingMode === 'read_local' && (
+            <MappingViewerOnly
+              ifcFile={mappingLocalIfcFile}
+              onIfcFileChange={(file) => {
+                setMappingLocalIfcFile(file)
+                setMappingSelectedGlobalId(null)
+                setMappingSelectedRow(null)
+              }}
+              onEnableFullMode={() => {
+                setMappingLocalIfcFile(null)
+                setMappingMode('full')
+              }}
             />
           )}
 
@@ -361,23 +377,7 @@ export default function App() {
 
 
 
-      {section === 'mapping' && (
-
-        <div className="area-viewer">
-
-          <Viewer3D
-            projectId={project?.id ?? null}
-            selectedGlobalId={mappingSelectedGlobalId}
-            onSelectGlobalId={setMappingSelectedGlobalId}
-          />
-
-        </div>
-
-      )}
-
-
-
-      {(section === 'mapping' || section === 'catalog') && (
+      {(section === 'catalog' || (section === 'mapping' && mappingMode === 'full')) && (
 
         <div className="area-panel" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
 

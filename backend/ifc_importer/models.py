@@ -26,7 +26,12 @@ def _now() -> datetime:
 
 def snapshot_md5(snapshot: Any) -> str:
     """Hash estable del snapshot cualitativo (MD5 sobre JSON canonical)."""
-    payload = json.dumps(snapshot or {}, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    # Nota: algunos extractores (ej: web-ifc fallback) incluyen ids efímeros
+    # como `express_id` que no deben disparar falsos "conflicts" entre reimports.
+    data = snapshot or {}
+    if isinstance(data, dict) and "express_id" in data:
+        data = {k: v for k, v in data.items() if k != "express_id"}
+    payload = json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.md5(payload).hexdigest()
 
 
@@ -76,12 +81,16 @@ class IfcElementSeed(SQLModel):
     ifc_name: str | None = None
     ifc_level: str | None = None
     nbr_classification: str | None = None
-    qualitative_snapshot: dict[str, Any] = {}
+    qualitative_snapshot: dict[str, Any] = Field(default_factory=dict)
 
 
 class IfcElementsSeedRequest(SQLModel):
     elements: list[IfcElementSeed]
     full_sync: bool = True
+    # Permite hacer full_sync en modo chunked: el backend marca como deleted
+    # todo elemento activo cuyo global_id NO esté en `all_global_ids`.
+    # Si se omite, el comportamiento es el clásico: el set de sync es el de `elements`.
+    all_global_ids: list[str] | None = None
 
 
 class IfcElementRead(SQLModel):
@@ -102,4 +111,3 @@ class IfcElementsListResponse(SQLModel):
     total: int
     offset: int
     limit: int
-

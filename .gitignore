@@ -23,6 +23,8 @@ build/
 node_modules/
 dist/
 .vite/
+frontend/public/web-ifc/*.wasm
+frontend/public/fragments-worker/worker.mjs
 
 # ETL TCPO — estado local del desarrollador
 scripts/data/tcpo_progress.json

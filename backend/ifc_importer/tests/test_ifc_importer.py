@@ -109,3 +109,40 @@ class TestIfcSeedAndList:
         r_deleted = client.get(f"/api/projects/{project_id}/ifc/elements?status=deleted")
         assert r_deleted.json()["total"] == 1
         assert r_deleted.json()["items"][0]["global_id"] == "g2"
+
+    def test_seed_chunked_full_sync_with_all_global_ids(self, client: TestClient):
+        project_id = _create_project(client)
+
+        # Chunk 1 (sin full sync): g1 + g2
+        r1 = client.post(
+            f"/api/projects/{project_id}/ifc/elements:seed",
+            json={
+                "elements": [
+                    {"global_id": "g1", "ifc_type": "IfcWall", "ifc_name": "W1", "nbr_classification": None, "qualitative_snapshot": {"a": 1}},
+                    {"global_id": "g2", "ifc_type": "IfcSlab", "ifc_name": "S1", "nbr_classification": None, "qualitative_snapshot": {"b": 2}},
+                ],
+                "full_sync": False,
+            },
+        )
+        assert r1.status_code == 201
+
+        # Chunk 2 (último chunk con full sync): upsert g3, y marcar deleted todo lo que no esté en all_global_ids
+        r2 = client.post(
+            f"/api/projects/{project_id}/ifc/elements:seed",
+            json={
+                "elements": [
+                    {"global_id": "g3", "ifc_type": "IfcDoor", "ifc_name": "D1", "nbr_classification": None, "qualitative_snapshot": {"c": 3}},
+                ],
+                "full_sync": True,
+                "all_global_ids": ["g1", "g3"],
+            },
+        )
+        assert r2.status_code == 201
+
+        active = client.get(f"/api/projects/{project_id}/ifc/elements?status=active").json()
+        assert active["total"] == 2
+        assert sorted([i["global_id"] for i in active["items"]]) == ["g1", "g3"]
+
+        deleted = client.get(f"/api/projects/{project_id}/ifc/elements?status=deleted").json()
+        assert deleted["total"] == 1
+        assert deleted["items"][0]["global_id"] == "g2"

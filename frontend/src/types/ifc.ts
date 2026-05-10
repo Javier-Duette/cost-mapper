@@ -49,4 +49,6 @@ export interface IfcElementSeed {
 export interface IfcElementsSeedRequest {
   elements: IfcElementSeed[]
   full_sync?: boolean
+  /** Para full_sync chunked: set completo de GlobalIds del modelo. */
+  all_global_ids?: string[]
 }

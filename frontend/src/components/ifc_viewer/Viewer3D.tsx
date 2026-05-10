@@ -5,10 +5,19 @@ import * as THREE from 'three'
 
 import { Icon } from '../shared/Icon'
 
+function _resolveUrl(urlOrPath: string) {
+  try {
+    return new URL(urlOrPath, window.location.href).toString()
+  } catch {
+    return urlOrPath
+  }
+}
+
 interface Viewer3DProps {
   projectId: string | null
   selectedGlobalId: string | null
   onSelectGlobalId: (globalId: string | null) => void
+  ifcFile?: File | null
 }
 
 type ViewerStatus = 'idle' | 'loading' | 'ready' | 'no-ifc' | 'error'
@@ -16,6 +25,7 @@ type ViewerStatus = 'idle' | 'loading' | 'ready' | 'no-ifc' | 'error'
 type ViewerRuntime = {
   components: OBC.Components
   world: OBC.SimpleWorld<OBC.SimpleScene, OBC.SimpleCamera, OBC.SimpleRenderer>
+  fragments: OBC.FragmentsManager
   ifcLoader: OBC.IfcLoader
   model: import('@thatopen/fragments').FragmentsModel | null
   highlightedLocalIds: number[]
@@ -29,14 +39,15 @@ function _mouseToNdc(dom: HTMLElement, clientX: number, clientY: number) {
 }
 
 /** Visor 3D (MVP) — carga IFC del proyecto y permite selección por click. */
-export function Viewer3D({ projectId, selectedGlobalId, onSelectGlobalId }: Viewer3DProps) {
+export function Viewer3D({ projectId, selectedGlobalId, onSelectGlobalId, ifcFile = null }: Viewer3DProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const runtimeRef = useRef<ViewerRuntime | null>(null)
+  const loadSeqRef = useRef(0)
 
   const [status, setStatus] = useState<ViewerStatus>('idle')
   const [error, setError] = useState<string | null>(null)
 
-  const hasProject = Boolean(projectId)
+  const hasSource = Boolean(ifcFile || projectId)
 
   const resetView = useCallback(async () => {
     const rt = runtimeRef.current
@@ -68,51 +79,98 @@ export function Viewer3D({ projectId, selectedGlobalId, onSelectGlobalId }: View
 
   const loadIfc = useCallback(async () => {
     const rt = runtimeRef.current
-    if (!rt || !projectId) return
+    if (!rt) return
+
+    const seq = ++loadSeqRef.current
+    const stillActive = () => loadSeqRef.current === seq && runtimeRef.current === rt
 
     setStatus('loading')
     setError(null)
 
-    // Clear any previous model
-    if (rt.model) {
-      try {
-        await rt.model.dispose()
-      } catch {
-        // best-effort cleanup
+    try {
+      // Clear any previous model
+      if (rt.model) {
+        try {
+          await rt.model.dispose()
+        } catch {
+          // best-effort cleanup
+        }
+        rt.model = null
       }
-      rt.model = null
-    }
-    rt.highlightedLocalIds = []
+      rt.highlightedLocalIds = []
 
-    const res = await fetch(`/api/projects/${projectId}/ifc/file`)
-    if (res.status === 404) {
-      setStatus('no-ifc')
-      return
-    }
-    if (!res.ok) {
+      let buffer: Uint8Array
+      let modelName = 'ifc'
+
+      if (ifcFile) {
+        buffer = new Uint8Array(await ifcFile.arrayBuffer())
+        modelName = ifcFile.name
+      } else if (projectId) {
+        const res = await fetch(`/api/projects/${projectId}/ifc/file`)
+        if (res.status === 404) {
+          setStatus('no-ifc')
+          return
+        }
+        if (!res.ok) {
+          setStatus('error')
+          setError(`No se pudo cargar IFC (${res.status})`)
+          return
+        }
+        buffer = new Uint8Array(await res.arrayBuffer())
+        modelName = `project-${projectId.slice(0, 8)}`
+      } else {
+        setStatus('no-ifc')
+        return
+      }
+
+      if (!stillActive()) return
+
+      // Fragments: asegurar que el manager esté inicializado antes de usar IfcLoader.load().
+      if (!rt.fragments.initialized) {
+        const workerPath =
+          import.meta.env.VITE_FRAGMENTS_WORKER_URL ?? `${import.meta.env.BASE_URL}fragments-worker/worker.mjs`
+        rt.fragments.init(_resolveUrl(workerPath))
+      }
+
+      // WASM: por defecto se sirve local desde `public/web-ifc/` (copiado desde node_modules).
+      // Override opcional vía .env para casos especiales.
+      const wasmPath = import.meta.env.VITE_WEB_IFC_WASM_PATH ?? `${import.meta.env.BASE_URL}web-ifc/`
+      rt.ifcLoader.settings.wasm = {
+        path: _resolveUrl(wasmPath),
+        absolute: true,
+      }
+
+      await rt.ifcLoader.setup({ autoSetWasm: false })
+      if (!stillActive()) return
+
+      const model = await rt.ifcLoader.load(buffer, true, modelName)
+      if (!stillActive()) {
+        try {
+          await model.dispose()
+        } catch {
+          // best-effort cleanup
+        }
+        return
+      }
+      model.useCamera(rt.world.camera.three)
+      rt.world.scene.three.add(model.object)
+      rt.model = model
+      void rt.fragments.core.update(true)
+
+      setStatus('ready')
+      await resetView()
+      await highlightGuid(selectedGlobalId)
+    } catch (e) {
+      if (!stillActive()) return
       setStatus('error')
-      setError(`No se pudo cargar IFC (${res.status})`)
-      return
+      if (e instanceof Error && e.name === 'AbortError') return
+      if (e instanceof TypeError && e.message === 'Failed to fetch') {
+        setError('No se pudo conectar al backend. Verificá que esté corriendo en http://localhost:8002.')
+        return
+      }
+      setError(e instanceof Error ? e.message : 'Error al cargar el IFC en el visor.')
     }
-
-    const buffer = new Uint8Array(await res.arrayBuffer())
-
-    // WASM: en dev, usar CDN para evitar problemas de bundling.
-    rt.ifcLoader.settings.wasm = {
-      path: 'https://unpkg.com/web-ifc@0.0.77/',
-      absolute: true,
-    }
-
-    await rt.ifcLoader.setup({ autoSetWasm: false })
-    const model = await rt.ifcLoader.load(buffer, true, `project-${projectId.slice(0, 8)}`)
-    model.useCamera(rt.world.camera.three)
-    rt.world.scene.three.add(model.object)
-    rt.model = model
-
-    setStatus('ready')
-    await resetView()
-    await highlightGuid(selectedGlobalId)
-  }, [projectId, resetView, selectedGlobalId, highlightGuid])
+  }, [projectId, ifcFile, resetView, selectedGlobalId, highlightGuid])
 
   const handleClick = useCallback(async (ev: PointerEvent) => {
     const rt = runtimeRef.current
@@ -160,11 +218,36 @@ export function Viewer3D({ projectId, selectedGlobalId, onSelectGlobalId }: View
     const grids = components.get(OBC.Grids)
     grids.create(world)
 
+    const fragments = components.get(OBC.FragmentsManager)
+    // Worker: por defecto se sirve local desde `public/fragments-worker/worker.mjs`
+    // (copiado desde node_modules en `npm run dev/build`).
+    const fragmentsWorkerUrl =
+      import.meta.env.VITE_FRAGMENTS_WORKER_URL ?? `${import.meta.env.BASE_URL}fragments-worker/worker.mjs`
+    fragments.init(_resolveUrl(fragmentsWorkerUrl))
+
+    const onCameraUpdate = () => {
+      try {
+        fragments.core.update()
+      } catch {
+        // fragments aún no listo (best-effort)
+      }
+    }
+    const onCameraRest = () => {
+      try {
+        fragments.core.update(true)
+      } catch {
+        // fragments aún no listo (best-effort)
+      }
+    }
+    world.camera.controls.addEventListener('update', onCameraUpdate)
+    world.camera.controls.addEventListener('rest', onCameraRest)
+
     const ifcLoader = components.get(OBC.IfcLoader)
 
     runtimeRef.current = {
       components,
       world,
+      fragments,
       ifcLoader,
       model: null,
       highlightedLocalIds: [],
@@ -175,26 +258,29 @@ export function Viewer3D({ projectId, selectedGlobalId, onSelectGlobalId }: View
     canvas.addEventListener('pointerdown', handleClick)
 
     return () => {
+      loadSeqRef.current += 1
       canvas.removeEventListener('pointerdown', handleClick)
+      world.camera.controls.removeEventListener('update', onCameraUpdate)
+      world.camera.controls.removeEventListener('rest', onCameraRest)
       void clearHighlight()
       runtimeRef.current = null
       components.dispose()
     }
   }, [handleClick, clearHighlight])
 
-  // Reload IFC when project changes
+  // Reload IFC when source changes
   useEffect(() => {
     const rt = runtimeRef.current
     if (!rt) return
 
-    if (!projectId) {
+    if (!ifcFile && !projectId) {
       setStatus('idle')
       setError(null)
       return
     }
 
     void loadIfc()
-  }, [projectId, loadIfc])
+  }, [projectId, ifcFile, loadIfc])
 
   // Highlight when selection changes (table -> viewer)
   useEffect(() => {
@@ -203,12 +289,12 @@ export function Viewer3D({ projectId, selectedGlobalId, onSelectGlobalId }: View
   }, [selectedGlobalId, highlightGuid, status])
 
   const overlay = useMemo(() => {
-    if (!hasProject) return 'Seleccioná un proyecto para ver el modelo.'
+    if (!hasSource) return 'Seleccioná un IFC local para ver el modelo.'
     if (status === 'loading') return 'Cargando IFC…'
-    if (status === 'no-ifc') return 'El proyecto aún no tiene IFC importado.'
+    if (status === 'no-ifc') return projectId ? 'El proyecto aún no tiene IFC importado.' : 'No hay IFC seleccionado.'
     if (status === 'error') return error ?? 'Error al cargar el visor.'
     return null
-  }, [hasProject, status, error])
+  }, [hasSource, status, error, projectId])
 
   return (
     <div className="viewer" style={{ position: 'relative' }}>

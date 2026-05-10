@@ -22,6 +22,7 @@ def upsert_elements(
     elements: list[IfcElementSeed],
     imported_at: datetime,
     full_sync: bool,
+    full_sync_global_ids: set[str] | None = None,
 ) -> tuple[int, int, int]:
     """Upsertea elementos por (project_id, global_id). Retorna summary counts."""
     global_ids = {e.global_id for e in elements}
@@ -65,13 +66,14 @@ def upsert_elements(
             session.add(row)
 
     if full_sync:
+        sync_ids = full_sync_global_ids if full_sync_global_ids is not None else global_ids
         # Marcar como deleted los activos que no aparecen en la importación actual
         statement = select(IfcElement).where(
             IfcElement.project_id == project_id,
             IfcElement.status == "active",
         )
         for row in session.exec(statement).all():
-            if row.global_id not in global_ids:
+            if row.global_id not in sync_ids:
                 row.status = "deleted"
                 row.last_import_at = imported_at
                 session.add(row)
@@ -131,4 +133,3 @@ def count_elements(
         )
 
     return int(session.exec(statement).one())
-

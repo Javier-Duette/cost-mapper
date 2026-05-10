@@ -140,12 +140,18 @@ def seed_elements(
     if not payload.elements:
         raise HTTPException(status_code=400, detail="payload.elements no puede estar vacío.")
 
+    full_sync_ids: set[str] | None = None
+    if payload.full_sync:
+        ids = payload.all_global_ids if payload.all_global_ids is not None else [e.global_id for e in payload.elements]
+        full_sync_ids = set(ids)
+
     total, with_nbr, without_nbr = repository.upsert_elements(
         session,
         project_id=project_id,
         elements=payload.elements,
         imported_at=imported_at,
         full_sync=payload.full_sync,
+        full_sync_global_ids=full_sync_ids,
     )
 
     return IfcImportSummary(
@@ -192,4 +198,3 @@ def get_ifc_file_path(session: Session, project_id: str) -> str:
     if not project.ifc_file_path:
         raise HTTPException(status_code=404, detail="El proyecto no tiene IFC importado.")
     return project.ifc_file_path
-

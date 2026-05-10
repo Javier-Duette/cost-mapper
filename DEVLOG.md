@@ -4,6 +4,38 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-09 20:58 — Lectura local de elementos IFC (sin visor 3D)
+
+**Implementado:**
+- Frontend: modo `read_local` en Mapeo IFC para cargar un `.ifc` local y **listar elementos** (GlobalId, tipo, nombre) usando `web-ifc`, sin backend.
+- Frontend: se desactiva el render del `Viewer3D` en `App.tsx` para que el visor no bloquee el trabajo (por ahora).
+- Frontend: helper reutilizable `parseIfcElementsWithWebIfc()` para parseo estable con WASM local (`public/web-ifc/`).
+
+**Problemas resueltos:**
+- El visor IFC podÃ­a romper el flujo de trabajo; ahora el foco queda en **leer datos** del IFC dentro de la app.
+
+**Decisiones cambiadas:**
+- Ninguna.
+
+**PrÃ³ximo paso:** extender la lectura para extraer mÃ¡s seÃ±ales (nivel, clasificaciÃ³n) y luego decidir cÃ³mo persistir/usar esos datos.
+
+## 2026-05-09 01:59 — Fix: fallback web-ifc más estable (full_sync chunked + hash robusto)
+
+**Implementado:**
+- Backend: `ifc_importer` acepta `all_global_ids` en `POST /ifc/elements:seed` para poder hacer `full_sync` aunque el seed se envíe en chunks.
+- Backend: `snapshot_md5()` ignora `express_id` para evitar falsos positivos en el tab `conflicts` cuando cambia el ExpressID entre exports.
+- Frontend: fallback web-ifc ahora hace `full_sync` real en el último chunk (incluye `all_global_ids`) y usa `VITE_WEB_IFC_WASM_PATH` como override.
+- Frontend: se copia el WASM de `web-ifc` a `frontend/public/web-ifc/` al correr `npm run dev/build` para no depender de `unpkg` (evita “Failed to fetch” en entornos sin salida a Internet).
+- Frontend: `Viewer3D` también usa `VITE_WEB_IFC_WASM_PATH` para el WASM (mejor para entornos sin acceso a `unpkg`).
+- Frontend: modo “solo visor” en `mapping` para cargar un IFC local y visualizarlo sin backend (útil para aislar errores de red/proxy).
+- Frontend: headers COOP/COEP en Vite dev server para habilitar `crossOriginIsolated` (web-ifc multithread cuando aplique).
+
+**Problemas resueltos:**
+- Reimport con fallback web-ifc podía dejar elementos “fantasma” como `active` (porque siempre se mandaba `full_sync=false`).
+- `conflicts` podía dispararse sin cambios reales cuando el snapshot incluía `express_id`.
+
+**Próximo paso:** probar end-to-end con `PROYECTO_EJECUTIVO.ifc` (import → seed → selección 3D ↔ tabla → asignar/quitar → reimport).
+
 ## 2026-05-09 03:15 — Implementación MVP: Panel Mapeo IFC (backend + frontend + visor 3D)
 
 **Implementado:**
