@@ -6,6 +6,7 @@ import { listMappingElements } from '../../api/mapping'
 import { Icon } from '../shared/Icon'
 import { MappingTabs } from './MappingTabs'
 import { MappingElementsTable } from './MappingElementsTable'
+import { parseIfcElementsWithStepText } from '../../ifc/stepText'
 import type { ToastKind } from '../shared/Toast'
 import type { Project } from '../../types/projects'
 import type { MappingElementRow, MappingElementsPage, MappingTab } from '../../types/mapping'
@@ -113,83 +114,19 @@ export function MappingView({
     const fileRes = await fetch(`/api/projects/${projectId}/ifc/file`)
     if (!fileRes.ok) throw new Error(`No se pudo leer el IFC del proyecto (${fileRes.status})`)
 
-    const buffer = new Uint8Array(await fileRes.arrayBuffer())
+    const text = await fileRes.text()
+    const parsed = parseIfcElementsWithStepText(text)
+    if (parsed.length === 0) throw new Error('No se detectaron elementos con GlobalId al parsear el IFC en el navegador.')
 
-    const webIfc = await import('web-ifc')
-    const ifcApi = new webIfc.IfcAPI()
-
-    // WASM: por defecto se sirve local desde `public/web-ifc/` (copiado desde node_modules).
-    // Override opcional vía .env para casos especiales.
-    const wasmPath = import.meta.env.VITE_WEB_IFC_WASM_PATH ?? `${import.meta.env.BASE_URL}web-ifc/`
-    ifcApi.SetWasmPath(wasmPath, true)
-    await ifcApi.Init()
-    // Evita que warnings internos del parser rompan el flujo (y reduce ruido en consola).
-    ifcApi.SetLogLevel(webIfc.LogLevel.LOG_LEVEL_OFF)
-
-    const modelId = ifcApi.OpenModel(buffer)
-
-    const typeNameByCode = new Map<number, string>()
-    for (const [key, value] of Object.entries(webIfc)) {
-      if (key.startsWith('IFC') && typeof value === 'number') typeNameByCode.set(value, key)
-    }
-
-    const getIds = (typeCode: unknown) => {
-      if (typeof typeCode !== 'number') throw new Error('web-ifc: typeCode inválido')
-      return ifcApi.GetLineIDsWithType(modelId, typeCode, true)
-    }
-
-    let vec: any
-    try {
-      vec = getIds((webIfc as any).IFCBUILDINGELEMENT)
-      if (!vec || typeof vec.size !== 'function' || vec.size() === 0) {
-        vec = getIds((webIfc as any).IFCPRODUCT)
-      }
-    } catch {
-      // Algunos builds fallan con tipos abstractos; usar IFCPRODUCT como fallback seguro.
-      vec = getIds((webIfc as any).IFCPRODUCT)
-    }
-
-    const unwrap = (v: unknown): string | null => {
-      if (v == null) return null
-      if (typeof v === 'string') return v
-      if (typeof v === 'number' || typeof v === 'boolean') return String(v)
-      if (typeof v === 'object') {
-        const obj = v as Record<string, unknown>
-        if (typeof obj.value === 'string') return obj.value
-        if (typeof obj.Value === 'string') return obj.Value
-      }
-      return null
-    }
-
-    const elements: IfcElementSeed[] = []
-    const max = vec.size()
-    for (let i = 0; i < max; i++) {
-      const expressId = Number(vec.get(i))
-      if (!Number.isFinite(expressId)) continue
-      const line = ifcApi.GetLine(modelId, expressId, true) as any
-      const globalId = unwrap(line?.GlobalId)
-      if (!globalId) continue
-
-      const typeCode = ifcApi.GetLineType(modelId, expressId) as number
-      const ifcType = typeNameByCode.get(typeCode) ?? `TYPE_${typeCode}`
-      const ifcName = unwrap(line?.Name)
-
-      elements.push({
-        global_id: globalId,
-        ifc_type: ifcType,
-        ifc_name: ifcName,
-        qualitative_snapshot: {
-          ifc_type: ifcType,
-          ifc_name: ifcName,
-        },
-      })
-    }
-
-    ifcApi.CloseModel(modelId)
-
-    if (elements.length === 0) {
-      throw new Error('No se detectaron elementos (IFCBUILDINGELEMENT/IFCPRODUCT) al parsear el IFC en el navegador.')
-    }
+    const elements: IfcElementSeed[] = parsed.map(e => ({
+      global_id: e.globalId,
+      ifc_type: e.ifcType,
+      ifc_name: e.ifcName,
+      qualitative_snapshot: {
+        ifc_type: e.ifcType,
+        ifc_name: e.ifcName,
+      },
+    }))
 
     // Enviar en chunks para evitar payload gigante.
     // Para mantener sincronización correcta en reimports, el último chunk incluye `all_global_ids`
@@ -219,7 +156,7 @@ export function MappingView({
       onIfcImported?.(res.project)
 
       if (res.import_summary.total_elements === 0) {
-        toast('IFC subido. Backend no detectó elementos; usando fallback (web-ifc) para listar y mapear.', 'warning')
+        toast('IFC subido. Backend no detectó elementos; usando fallback (parser STEP) para listar y mapear.', 'warning')
         const seeded = await seedFromIfcInBrowser()
         toast(`IFC listo (${seeded.toLocaleString('es-PY')} elementos)`, 'success')
       } else {

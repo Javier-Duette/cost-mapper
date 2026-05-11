@@ -41,7 +41,7 @@ export async function listIfcElements(params: {
 }
 
 /**
- * Fallback: seedea ifc_elements desde el navegador (web-ifc).
+ * Fallback: seedea ifc_elements desde el navegador (sin ifcopenshell).
  * Endpoint: POST /api/projects/{projectId}/ifc/elements:seed
  */
 export async function seedIfcElements(projectId: string, payload: IfcElementsSeedRequest): Promise<IfcImportSummary> {
@@ -53,4 +53,3 @@ export async function seedIfcElements(projectId: string, payload: IfcElementsSee
   if (!res.ok) throw new Error(`POST /projects/${projectId}/ifc/elements:seed falló: ${res.status}`)
   return res.json() as Promise<IfcImportSummary>
 }
-

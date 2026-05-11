@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { parseIfcElementsWithWebIfc, type WebIfcParsedElement } from '../../ifc/webIfc'
+import { parseIfcElementsWithStepText, type StepParsedElement } from '../../ifc/stepText'
 import { Icon } from '../shared/Icon'
 
 interface MappingViewerOnlyProps {
@@ -10,7 +10,7 @@ interface MappingViewerOnlyProps {
 }
 
 /**
- * Vista mínima de lectura IFC: permite cargar un IFC local y listar sus elementos (web-ifc),
+ * Vista mínima de lectura IFC: permite cargar un IFC local y listar sus elementos (parser STEP),
  * sin depender del backend.
  */
 export function MappingViewerOnly({ ifcFile, onIfcFileChange, onEnableFullMode }: MappingViewerOnlyProps) {
@@ -19,7 +19,7 @@ export function MappingViewerOnly({ ifcFile, onIfcFileChange, onEnableFullMode }
   const [q, setQ] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [elements, setElements] = useState<WebIfcParsedElement[]>([])
+  const [elements, setElements] = useState<StepParsedElement[]>([])
 
   useEffect(() => {
     setQ('')
@@ -33,11 +33,11 @@ export function MappingViewerOnly({ ifcFile, onIfcFileChange, onEnableFullMode }
 
     void (async () => {
       try {
-        const buffer = new Uint8Array(await ifcFile.arrayBuffer())
-        const parsed = await parseIfcElementsWithWebIfc(buffer)
+        const text = await ifcFile.text()
+        const parsed = parseIfcElementsWithStepText(text)
         if (!alive) return
 
-        if (parsed.length === 0) throw new Error('No se detectaron elementos (IFCBUILDINGELEMENT/IFCPRODUCT).')
+        if (parsed.length === 0) throw new Error('No se detectaron elementos con GlobalId en el IFC.')
         setElements(parsed)
       } catch (e) {
         if (!alive) return
@@ -171,4 +171,3 @@ export function MappingViewerOnly({ ifcFile, onIfcFileChange, onEnableFullMode }
     </div>
   )
 }
-

@@ -4,6 +4,20 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-10 23:10 — Fix lectura IFC (parser STEP)
+
+**Implementado:**
+- Frontend: lectura de IFC local sin WASM usando un parser STEP (extrae `GlobalId`, tipo y nombre) para evitar bloqueos de `web-ifc`.
+- Frontend: fallback de `seed` (cuando el backend devuelve 0 elementos) ahora usa el mismo parser STEP en vez de `web-ifc`.
+
+**Problemas resueltos:**
+- La lectura local podía quedarse indefinidamente en “Leyendo…” con algunos IFCs.
+
+**Decisiones cambiadas:**
+- Ninguna.
+
+**Próximo paso:** definir qué señales mínimas (nivel, Psets clave, clasificación) se extraen en MVP y si se hace en frontend o backend.
+
 ## 2026-05-09 20:58 — Lectura local de elementos IFC (sin visor 3D)
 
 **Implementado:**
