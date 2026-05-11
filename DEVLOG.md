@@ -4,6 +4,22 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-11 08:52 — Auto-asignación por match exacto de NBR (desde IFC)
+
+**Implementado:**
+- Backend (mapper): endpoint `POST /api/projects/{id}/mapping/assignments:auto` que crea `project_assignments` con `classification_source='ifc_classification'` cuando existe match exacto de `nbr_classification` → `catalog_items.nbr_code`.
+- Backend: reglas MVP respetadas (no pisa asignaciones `user`, idempotente, evita duplicados).
+- Frontend: al importar/reimportar IFC (modo completo) se ejecuta auto-asignación y se muestra toast cuando crea elementos (tab "Auto-asignados").
+- Backend: tests nuevos para validar creación, no override de user e idempotencia.
+
+**Problemas resueltos:**
+- Elementos con `nbr_classification` quedaban solo como sugerencias; ahora pueden quedar auto-asignados (sin intervención del usuario) cuando el match es exacto.
+
+**Decisiones cambiadas:**
+- Ninguna.
+
+**Próximo paso:** agregar E2E con Playwright para cubrir “Limpiar → volver a cargar” y “modo completo”, incluyendo verificación de auto-asignación cuando el IFC trae clasificación.
+
 ## 2026-05-10 23:25 — Backend: extraer clasificación (NBR) desde IFC
 
 **Implementado:**

@@ -14,7 +14,14 @@ from catalog.models import CatalogItem
 from ifc_importer.models import IfcElement, snapshot_md5
 from projects import service as projects_service
 
-from .models import AssignmentCreate, AssignmentRead, CatalogItemSummary, MappingSuggestion, ProjectAssignment
+from .models import (
+    AssignmentCreate,
+    AssignmentRead,
+    AutoAssignSummary,
+    CatalogItemSummary,
+    MappingSuggestion,
+    ProjectAssignment,
+)
 from . import repository
 
 
@@ -232,3 +239,84 @@ def delete_assignment(session: Session, *, project_id: str, assignment_id: str) 
     if not assignment or assignment.project_id != project_id:
         raise HTTPException(status_code=404, detail="Asignación no encontrada.")
     repository.delete_assignment(session, assignment)
+
+
+def auto_assign_from_ifc_classification(session: Session, *, project_id: str) -> AutoAssignSummary:
+    """
+    Crea asignaciones automáticas por match exacto de `IfcElement.nbr_classification`.
+
+    Reglas MVP:
+    - Si el elemento ya tiene al menos una asignación `user`, no se toca (no se pisa).
+    - No duplica asignaciones existentes (uq por elemento+ítem).
+    - Solo usa match exacto contra `CatalogItem.nbr_code` (work items).
+    """
+    projects_service.get_project(session, project_id)
+
+    elements = repository.list_active_elements_with_nbr_classification(session, project_id=project_id)
+    if not elements:
+        return AutoAssignSummary(created=0, skipped_user=0, skipped_existing=0, no_match=0)
+
+    element_ids = [e.id for e in elements]
+    assignments = repository.list_assignments_for_elements(session, project_id=project_id, element_ids=element_ids)
+    assignments_by_element: dict[str, list[ProjectAssignment]] = {}
+    for a in assignments:
+        assignments_by_element.setdefault(a.ifc_element_id, []).append(a)
+
+    nbr_codes = sorted(
+        {
+            _normalize_nbr_code(e.nbr_classification or "")
+            for e in elements
+            if (e.nbr_classification or "").strip()
+        }
+    )
+    items = repository.work_items_by_exact_nbr_codes(session, nbr_codes=nbr_codes)
+    items_by_nbr: dict[str, CatalogItem] = {}
+    for item in items:
+        items_by_nbr.setdefault(item.nbr_code, item)
+
+    created = 0
+    skipped_user = 0
+    skipped_existing = 0
+    no_match = 0
+    now = _now()
+
+    for element in elements:
+        normalized = _normalize_nbr_code(element.nbr_classification or "")
+        if not normalized:
+            continue
+
+        existing_for_element = assignments_by_element.get(element.id, [])
+        if any(a.classification_source == "user" for a in existing_for_element):
+            skipped_user += 1
+            continue
+
+        item = items_by_nbr.get(normalized)
+        if not item:
+            no_match += 1
+            continue
+
+        if any(a.item_id == item.id for a in existing_for_element):
+            skipped_existing += 1
+            continue
+
+        assignment = ProjectAssignment(
+            project_id=project_id,
+            ifc_element_id=element.id,
+            item_id=item.id,
+            classification_source="ifc_classification",
+            confidence=Decimal("100.00"),
+            qualitative_snapshot_at_assignment=element.qualitative_snapshot or {},
+            unit_price=item.unit_price,
+            price_updated_at=now if item.unit_price is not None else None,
+            assigned_at=now,
+        )
+        repository.create_assignment(session, assignment)
+        assignments_by_element.setdefault(element.id, []).append(assignment)
+        created += 1
+
+    return AutoAssignSummary(
+        created=created,
+        skipped_user=skipped_user,
+        skipped_existing=skipped_existing,
+        no_match=no_match,
+    )

@@ -105,3 +105,10 @@ class MappingElementsResponse(SQLModel):
     total: int
     offset: int
     limit: int
+
+
+class AutoAssignSummary(SQLModel):
+    created: int
+    skipped_user: int
+    skipped_existing: int
+    no_match: int

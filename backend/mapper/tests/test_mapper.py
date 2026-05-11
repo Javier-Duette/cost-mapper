@@ -129,3 +129,58 @@ class TestConflictsTab:
         data = r_conf.json()
         assert data["total"] == 1
         assert data["items"][0]["element"]["global_id"] == "g1"
+
+
+class TestAutoAssign:
+    def test_auto_assign_creates_ifc_classification_assignment(self, client: TestClient):
+        project_id = _create_project(client)
+        _create_catalog_item(client, nbr_code="3E 05 20")
+        element_id = _seed_one_element(client, project_id, global_id="g1", snapshot={"a": 1})
+
+        r = client.post(f"/api/projects/{project_id}/mapping/assignments:auto")
+        assert r.status_code == 200
+        summary = r.json()
+        assert summary["created"] == 1
+        assert summary["skipped_user"] == 0
+
+        r_auto = client.get(f"/api/projects/{project_id}/mapping/elements?tab=auto")
+        assert r_auto.status_code == 200
+        data = r_auto.json()
+        assert data["total"] == 1
+        assert data["items"][0]["element"]["id"] == element_id
+        assert data["items"][0]["assignments"][0]["classification_source"] == "ifc_classification"
+
+    def test_auto_assign_does_not_override_user_assignment(self, client: TestClient):
+        project_id = _create_project(client)
+        item_id = _create_catalog_item(client, nbr_code="3E 05 20")
+        element_id = _seed_one_element(client, project_id, global_id="g1", snapshot={"a": 1})
+
+        r_user = client.post(
+            f"/api/projects/{project_id}/mapping/assignments",
+            json={"ifc_element_id": element_id, "item_id": item_id},
+        )
+        assert r_user.status_code == 201
+
+        r = client.post(f"/api/projects/{project_id}/mapping/assignments:auto")
+        assert r.status_code == 200
+        summary = r.json()
+        assert summary["created"] == 0
+        assert summary["skipped_user"] == 1
+
+        r_auto = client.get(f"/api/projects/{project_id}/mapping/elements?tab=auto")
+        assert r_auto.status_code == 200
+        assert r_auto.json()["total"] == 0
+
+    def test_auto_assign_is_idempotent(self, client: TestClient):
+        project_id = _create_project(client)
+        _create_catalog_item(client, nbr_code="3E 05 20")
+        _seed_one_element(client, project_id, global_id="g1", snapshot={"a": 1})
+
+        r1 = client.post(f"/api/projects/{project_id}/mapping/assignments:auto")
+        assert r1.status_code == 200
+        assert r1.json()["created"] == 1
+
+        r2 = client.post(f"/api/projects/{project_id}/mapping/assignments:auto")
+        assert r2.status_code == 200
+        assert r2.json()["created"] == 0
+        assert r2.json()["skipped_existing"] == 1

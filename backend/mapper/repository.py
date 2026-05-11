@@ -96,6 +96,16 @@ def list_elements_for_tab(
     return list(session.exec(statement).all())
 
 
+def list_active_elements_with_nbr_classification(session: Session, *, project_id: str) -> list[IfcElement]:
+    statement = (
+        select(IfcElement)
+        .where(IfcElement.project_id == project_id, IfcElement.status == "active")
+        .where(col(IfcElement.nbr_classification).is_not(None))
+        .order_by(IfcElement.global_id)
+    )
+    return list(session.exec(statement).all())
+
+
 def count_elements_for_tab(
     session: Session,
     *,
@@ -156,6 +166,18 @@ def suggestions_by_exact_nbr_code(
     return list(session.exec(statement).all())
 
 
+def work_items_by_exact_nbr_codes(session: Session, *, nbr_codes: list[str]) -> list[CatalogItem]:
+    if not nbr_codes:
+        return []
+    statement = (
+        select(CatalogItem)
+        .where(CatalogItem.is_work_item == True)  # noqa: E712
+        .where(CatalogItem.nbr_code.in_(nbr_codes))
+        .order_by(CatalogItem.nbr_code, CatalogItem.id)
+    )
+    return list(session.exec(statement).all())
+
+
 def suggestions_by_prefix_nbr_code(
     session: Session,
     *,
@@ -187,4 +209,3 @@ def suggestions_from_project_library(
         .limit(limit)
     )
     return list(session.exec(statement).all())
-

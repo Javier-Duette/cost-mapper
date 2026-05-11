@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getProject } from '../../api/projects'
 import { uploadIfc } from '../../api/ifc'
 import { seedIfcElements } from '../../api/ifc'
-import { listMappingElements } from '../../api/mapping'
+import { autoAssignByIfcClassification, listMappingElements } from '../../api/mapping'
 import { Icon } from '../shared/Icon'
 import { MappingTabs } from './MappingTabs'
 import { MappingElementsTable } from './MappingElementsTable'
@@ -163,6 +163,11 @@ export function MappingView({
         toast(`IFC listo (${seeded.toLocaleString('es-PY')} elementos)`, 'success')
       } else {
         toast(`IFC importado (${res.import_summary.total_elements} elementos)`, 'success')
+      }
+
+      const auto = await autoAssignByIfcClassification(projectId)
+      if (auto.created > 0) {
+        toast(`Auto-asignación: ${auto.created.toLocaleString('es-PY')} elementos (tab "Auto-asignados")`, 'success')
       }
 
       setOffset(0)

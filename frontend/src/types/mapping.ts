@@ -41,3 +41,10 @@ export interface CreateAssignmentInput {
   ifc_element_id: string
   item_id: string
 }
+
+export interface AutoAssignSummary {
+  created: number
+  skipped_user: number
+  skipped_existing: number
+  no_match: number
+}

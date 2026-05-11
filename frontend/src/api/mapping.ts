@@ -1,4 +1,4 @@
-import type { CreateAssignmentInput, MappingElementsPage, MappingTab, ProjectAssignmentRead } from '../types/mapping'
+import type { AutoAssignSummary, CreateAssignmentInput, MappingElementsPage, MappingTab, ProjectAssignmentRead } from '../types/mapping'
 
 /**
  * Lista filas del mapper (elemento + asignaciones + sugerencias).
@@ -42,3 +42,9 @@ export async function deleteMappingAssignment(projectId: string, assignmentId: s
   if (!res.ok) throw new Error(`DELETE /projects/${projectId}/mapping/assignments/${assignmentId} falló: ${res.status}`)
 }
 
+/** Endpoint: POST /api/projects/{projectId}/mapping/assignments:auto */
+export async function autoAssignByIfcClassification(projectId: string): Promise<AutoAssignSummary> {
+  const res = await fetch(`/api/projects/${projectId}/mapping/assignments:auto`, { method: 'POST' })
+  if (!res.ok) throw new Error(`POST /projects/${projectId}/mapping/assignments:auto falló: ${res.status}`)
+  return res.json() as Promise<AutoAssignSummary>
+}

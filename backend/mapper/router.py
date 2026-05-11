@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
 from db.session import get_session
-from .models import AssignmentCreate, AssignmentRead
+from .models import AssignmentCreate, AssignmentRead, AutoAssignSummary
 from . import service
 
 
@@ -42,3 +42,7 @@ def delete_assignment(
 ):
     service.delete_assignment(session, project_id=project_id, assignment_id=assignment_id)
 
+
+@router.post("/assignments:auto", response_model=AutoAssignSummary)
+def auto_assign_by_ifc_classification(project_id: str, session: Session = Depends(get_session)):
+    return service.auto_assign_from_ifc_classification(session, project_id=project_id)
