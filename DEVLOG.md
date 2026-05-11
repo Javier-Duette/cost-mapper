@@ -4,6 +4,20 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-10 23:25 — Backend: extraer clasificación (NBR) desde IFC
+
+**Implementado:**
+- Backend: `_extract_elements_with_ifcopenshell()` ahora intenta leer clasificación por `IfcRelAssociatesClassification` (via `ifcopenshell.util.classification.get_references()` y fallback a `HasAssociations`) y completa `nbr_classification`.
+- Backend: test agregado que genera un IFC mínimo con una clasificación asignada y valida que el extractor la lea.
+
+**Problemas resueltos:**
+- Elementos importados quedaban con `nbr_classification = null` incluso cuando el IFC traía clasificación.
+
+**Decisiones cambiadas:**
+- Ninguna.
+
+**Próximo paso:** auto-asignar ítems cuando exista match exacto de `nbr_classification` (creando `project_assignments` con `classification_source='ifc_classification'` sin pisar asignaciones `user`).
+
 ## 2026-05-10 23:10 — Fix lectura IFC (parser STEP)
 
 **Implementado:**

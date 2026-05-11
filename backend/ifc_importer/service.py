@@ -92,6 +92,8 @@ def _extract_elements_with_ifcopenshell(ifc_path: str, ifcopenshell_module) -> l
     """Extracción mínima (MVP) de elementos usando ifcopenshell si está disponible."""
     from .models import IfcElementSeed
 
+    import re
+
     try:
         model = ifcopenshell_module.open(ifc_path)
     except Exception:
@@ -103,6 +105,74 @@ def _extract_elements_with_ifcopenshell(ifc_path: str, ifcopenshell_module) -> l
         import ifcopenshell.util.element as ifc_element_util  # type: ignore
     except Exception:  # pragma: no cover
         ifc_element_util = None
+
+    try:
+        import ifcopenshell.util.classification as ifc_class_util  # type: ignore
+    except Exception:  # pragma: no cover
+        ifc_class_util = None
+
+    nbr_prefix_re = re.compile(r"^[0-5][A-Z]\\b", re.IGNORECASE)
+
+    def _clean_text(value) -> str | None:
+        if value is None:
+            return None
+        try:
+            text = str(value).strip()
+        except Exception:
+            return None
+        return text if text else None
+
+    def _code_from_reference(reference) -> str | None:
+        for attr in ("Identification", "ItemReference"):
+            try:
+                code = _clean_text(getattr(reference, attr, None))
+            except Exception:
+                code = None
+            if code:
+                return code
+        return None
+
+    def _pick_nbr_code(candidates: list[str]) -> str | None:
+        if not candidates:
+            return None
+        for code in candidates:
+            if nbr_prefix_re.match(code):
+                return code
+        return candidates[0]
+
+    def _nbr_code_for_element(element) -> str | None:
+        candidates: list[str] = []
+
+        if ifc_class_util is not None:
+            try:
+                refs = ifc_class_util.get_references(element, should_inherit=True)
+            except Exception:
+                refs = set()
+            for ref in refs:
+                code = _code_from_reference(ref)
+                if code:
+                    candidates.append(code)
+
+        if not candidates:
+            for assoc in getattr(element, "HasAssociations", []) or []:
+                try:
+                    if not assoc.is_a("IfcRelAssociatesClassification"):
+                        continue
+                except Exception:
+                    continue
+
+                relating = getattr(assoc, "RelatingClassification", None)
+                if relating is None:
+                    continue
+                try:
+                    if relating.is_a("IfcClassificationReference"):
+                        code = _code_from_reference(relating)
+                        if code:
+                            candidates.append(code)
+                except Exception:
+                    continue
+
+        return _pick_nbr_code(candidates)
 
     for element in model.by_type("IfcElement"):
         global_id = getattr(element, "GlobalId", None)
@@ -125,7 +195,7 @@ def _extract_elements_with_ifcopenshell(ifc_path: str, ifcopenshell_module) -> l
                 except Exception:
                     pass
 
-        nbr_classification = None
+        nbr_classification = _nbr_code_for_element(element)
         # Clasificación: best-effort, evita lógica pesada en MVP
         # (se completa cuando haya un IFC de referencia real)
 
@@ -134,6 +204,7 @@ def _extract_elements_with_ifcopenshell(ifc_path: str, ifcopenshell_module) -> l
             "ifc_type": str(ifc_type),
             "ifc_name": str(ifc_name) if ifc_name is not None else None,
             "ifc_level": str(ifc_level) if ifc_level is not None else None,
+            "nbr_classification": str(nbr_classification) if nbr_classification is not None else None,
         }
 
         seeds.append(

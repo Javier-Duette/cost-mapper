@@ -133,6 +133,39 @@ class TestIfcExtraction:
         assert seeds[0].ifc_type.startswith("Ifc")
         assert "ifc_type" in (seeds[0].qualitative_snapshot or {})
 
+    def test_extract_elements_with_ifcopenshell_reads_classification_reference(self, tmp_path: Path):
+        import ifcopenshell  # type: ignore
+        import ifcopenshell.api.project  # type: ignore
+        import ifcopenshell.api.root  # type: ignore
+
+        try:
+            import ifcopenshell.api.classification as ifc_class_api  # type: ignore
+        except Exception:
+            pytest.skip("ifcopenshell.api.classification no estÃ¡ disponible en este entorno.")
+
+        from ifc_importer import service
+
+        model = ifcopenshell.api.project.create_file()
+        ifcopenshell.api.root.create_entity(model, ifc_class="IfcProject", name="Test Project")
+        wall = ifcopenshell.api.root.create_entity(model, ifc_class="IfcWall", name="Wall 01")
+
+        classification = ifc_class_api.add_classification(model, classification="NBR 15965")
+        ifc_class_api.add_reference(
+            model,
+            products=[wall],
+            classification=classification,
+            identification="3E 05 20",
+            name="Test NBR",
+        )
+
+        ifc_path = tmp_path / "model.ifc"
+        model.write(str(ifc_path))
+
+        seeds = service._extract_elements_with_ifcopenshell(str(ifc_path), ifcopenshell)
+        wall_seed = next((s for s in seeds if s.global_id == wall.GlobalId), None)
+        assert wall_seed is not None
+        assert wall_seed.nbr_classification == "3E 05 20"
+
 
 class TestIfcSeedAndList:
     def test_seed_upsert_and_full_sync_deletes_missing(self, client: TestClient):
