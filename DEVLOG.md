@@ -11,6 +11,7 @@
 - Frontend: fixture IFC con clasificación `3E 05 20` y tests E2E para:
   - Modo completo: import IFC → auto-asignación → tab “Auto-asignados” con `NBR=3E 05 20` y `ASIG=1`.
   - Modo local: “Limpiar” permite re-seleccionar el mismo IFC.
+- Nota: en Windows el runner usa `cmd.exe /c npm.cmd ...` (Node spawn no ejecuta `.cmd` con `shell=false`). El backend requiere `python-multipart` instalado para habilitar el upload IFC (si no, devuelve 503).
 
 **Problemas resueltos:**
 - Sin cobertura automatizada del flujo de re-selección del mismo archivo y del auto-asignado desde IFC.

@@ -25,6 +25,8 @@ dist/
 .vite/
 frontend/public/web-ifc/*.wasm
 frontend/public/fragments-worker/worker.mjs
+frontend/test-results/
+frontend/playwright-report/
 
 # ETL TCPO — estado local del desarrollador
 scripts/data/tcpo_progress.json

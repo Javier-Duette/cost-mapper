@@ -71,7 +71,9 @@ const frontendArgs = [
 ]
 
 const backend = spawnLogged('backend', backendPython, backendArgs, backendDir)
-const frontend = spawnLogged('frontend', npmCmd, frontendArgs, frontendDir)
+const frontend = isWin
+  ? spawnLogged('frontend', 'cmd.exe', ['/c', npmCmd, ...frontendArgs], frontendDir)
+  : spawnLogged('frontend', npmCmd, frontendArgs, frontendDir)
 
 const killAll = () => {
   try { backend.kill('SIGTERM') } catch {}
