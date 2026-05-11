@@ -51,7 +51,7 @@ def list_mapping_elements(
 ) -> dict:
     projects_service.get_project(session, project_id)
 
-    if tab not in {"auto", "unassigned", "conflicts"}:
+    if tab not in {"auto", "unassigned", "manual", "conflicts"}:
         raise HTTPException(status_code=400, detail="tab inválido. Use auto|unassigned|conflicts.")
 
     # Para conflicts, filtramos por hash en Python (MVP) y aplicamos paginación luego.
@@ -346,7 +346,7 @@ def list_mapping_groups(
     """
     projects_service.get_project(session, project_id)
 
-    if tab not in {"auto", "unassigned", "conflicts"}:
+    if tab not in {"auto", "unassigned", "manual", "conflicts"}:
         raise HTTPException(status_code=400, detail="tab inválido. Use auto|unassigned|conflicts.")
 
     # Reutilizamos el filtro base de tabs (para conflicts el filtro exacto se hace en Python)
@@ -369,15 +369,61 @@ def list_mapping_groups(
     else:
         elements = repository.list_elements_for_tab_unpaged(session, project_id=project_id, tab=tab, query=query)
 
-    grouped: dict[tuple[str, str | None], int] = {}
+    grouped: dict[tuple[str, str | None], list[IfcElement]] = {}
     for e in elements:
         key = (e.ifc_type, e.ifc_type_name)
-        grouped[key] = grouped.get(key, 0) + 1
+        grouped.setdefault(key, []).append(e)
 
-    groups = [
-        MappingGroupRead(ifc_type=k[0], ifc_type_name=k[1], total_elements=v)
-        for k, v in grouped.items()
-    ]
+    assigned_item_by_group: dict[tuple[str, str | None], CatalogItemSummary | None] = {}
+    assigned_mixed_by_group: dict[tuple[str, str | None], bool] = {}
+
+    if tab in {"auto", "manual"} and elements:
+        element_ids = [e.id for e in elements]
+        assignments = repository.list_assignments_for_elements(session, project_id=project_id, element_ids=element_ids)
+        wanted_source = "ifc_classification" if tab == "auto" else "user"
+
+        item_ids: set[str] = set()
+        item_ids_by_group: dict[tuple[str, str | None], set[str]] = {}
+        element_by_id: dict[str, IfcElement] = {e.id: e for e in elements}
+
+        for a in assignments:
+            if a.classification_source != wanted_source:
+                continue
+            element = element_by_id.get(a.ifc_element_id)
+            if not element:
+                continue
+            gk = (element.ifc_type, element.ifc_type_name)
+            item_ids_by_group.setdefault(gk, set()).add(a.item_id)
+            item_ids.add(a.item_id)
+
+        items_by_id: dict[str, CatalogItemSummary] = {}
+        if item_ids:
+            from sqlmodel import select
+
+            items = session.exec(select(CatalogItem).where(CatalogItem.id.in_(sorted(item_ids)))).all()
+            items_by_id = {i.id: CatalogItemSummary.model_validate(i) for i in items}
+
+        for gk, ids in item_ids_by_group.items():
+            if len(ids) == 1:
+                only_id = next(iter(ids))
+                assigned_item_by_group[gk] = items_by_id.get(only_id)
+                assigned_mixed_by_group[gk] = False
+            elif len(ids) > 1:
+                assigned_item_by_group[gk] = None
+                assigned_mixed_by_group[gk] = True
+
+    groups = []
+    for (ifc_type, ifc_type_name), group_elements in grouped.items():
+        gk = (ifc_type, ifc_type_name)
+        groups.append(
+            MappingGroupRead(
+                ifc_type=ifc_type,
+                ifc_type_name=ifc_type_name,
+                total_elements=len(group_elements),
+                assigned_item=assigned_item_by_group.get(gk),
+                assigned_is_mixed=assigned_mixed_by_group.get(gk, False),
+            )
+        )
     groups.sort(key=lambda g: (g.ifc_type, g.ifc_type_name or ""))
 
     total = len(groups)

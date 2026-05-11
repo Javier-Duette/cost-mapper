@@ -3,6 +3,7 @@ import type { MappingTab } from '../../types/mapping'
 const LABEL: Record<MappingTab, string> = {
   auto: 'Auto-asignados',
   unassigned: 'Sin asignar',
+  manual: 'Asignados (manual)',
   conflicts: 'Conflictos',
 }
 
@@ -14,7 +15,7 @@ interface MappingTabsProps {
 
 /** Tabs del panel de mapeo (auto / sin asignar / conflictos). */
 export function MappingTabs({ value, onChange, counts }: MappingTabsProps) {
-  const tabs: MappingTab[] = ['auto', 'unassigned', 'conflicts']
+  const tabs: MappingTab[] = ['auto', 'unassigned', 'manual', 'conflicts']
   return (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
       {tabs.map(t => {
@@ -40,4 +41,3 @@ export function MappingTabs({ value, onChange, counts }: MappingTabsProps) {
     </div>
   )
 }
-

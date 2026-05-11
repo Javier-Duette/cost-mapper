@@ -23,6 +23,17 @@
 
 **Próximo paso:** conectar selección de grupo ↔ listado de elementos/visor (y definir política MVP para “re-asignar” cuando ya existe `ifc_classification`).
 
+## 2026-05-11 15:43 — Mapeo IFC: tab “Asignados (manual)” para ver ítems mapeados
+
+**Implementado:**
+- Backend/Frontend: nuevo tab `manual` que lista grupos con asignaciones `user` y muestra el `nbr_code` del ítem asignado.
+- UI: la tabla de grupos ahora incluye columna **ITEM** para visualizar rápidamente qué se asignó.
+
+**Problemas resueltos:**
+- Después de mapear un grupo, los elementos desaparecían de “Sin asignar” y no había un lugar claro para ver qué ítem quedó asignado.
+
+**Próximo paso:** agregar vista por elementos (no solo por grupo) para inspección/edición más fina (MVP+).
+
 **Implementado:**
 - Frontend: configuración Playwright (`playwright.config.ts`) y runner que levanta backend (8002) + frontend (5173) para tests E2E.
 - Frontend: fixture IFC con clasificación `3E 05 20` y tests E2E para:

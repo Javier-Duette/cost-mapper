@@ -243,3 +243,10 @@ class TestGroups:
         r_groups2 = client.get(f"/api/projects/{project_id}/mapping/groups?tab=unassigned")
         assert r_groups2.status_code == 200
         assert r_groups2.json()["total"] == 0
+
+        r_manual = client.get(f"/api/projects/{project_id}/mapping/groups?tab=manual")
+        assert r_manual.status_code == 200
+        data_manual = r_manual.json()
+        assert data_manual["total"] == 1
+        assert data_manual["items"][0]["ifc_type"] == "IfcWall"
+        assert data_manual["items"][0]["assigned_item"]["nbr_code"] == "3E 05 20"

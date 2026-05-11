@@ -18,6 +18,7 @@ export function MappingGroupsTable({ rows, selectedKey, onSelect }: MappingGroup
         <tr>
           <th style={{ width: 140 }}>IFC</th>
           <th>TIPO (familia + tipo)</th>
+          <th style={{ width: 170 }}>ITEM</th>
           <th className="num" style={{ width: 90 }}>CANT.</th>
         </tr>
       </thead>
@@ -34,13 +35,16 @@ export function MappingGroupsTable({ rows, selectedKey, onSelect }: MappingGroup
             >
               <td className="num">{r.ifc_type}</td>
               <td className="desc">{r.ifc_type_name ?? '—'}</td>
+              <td className="num">
+                {r.assigned_is_mixed ? 'Mixto' : (r.assigned_item?.nbr_code ?? '—')}
+              </td>
               <td className="num">{r.total_elements}</td>
             </tr>
           )
         })}
         {rows.length === 0 && (
           <tr>
-            <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 24 }}>
+            <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 24 }}>
               Sin resultados para este tab.
             </td>
           </tr>
@@ -49,4 +53,3 @@ export function MappingGroupsTable({ rows, selectedKey, onSelect }: MappingGroup
     </table>
   )
 }
-

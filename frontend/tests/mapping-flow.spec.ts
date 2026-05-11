@@ -85,7 +85,7 @@ test('modo completo: auto-asignación por match exacto NBR al importar IFC', asy
   await page.getByRole('button', { name: 'Auto-asignados' }).click()
   const row = page.locator('table.tbl tbody tr').first()
   await expect(row.locator('td').nth(0)).toHaveText('IfcWall', { timeout: 30_000 })
-  await expect(row.locator('td').nth(2)).toHaveText('1')
+  await expect(row.locator('td').nth(3)).toHaveText('1')
 })
 
 test('modo local: Limpiar permite re-seleccionar el mismo IFC', async ({ page }) => {
@@ -181,4 +181,10 @@ test('modo completo: asignación manual masiva por grupo (IfcType + tipo)', asyn
 
   // El grupo desaparece de "Sin asignar"
   await expect(page.getByText('Sin resultados para este tab.')).toBeVisible({ timeout: 30_000 })
+
+  // Se ve en "Asignados (manual)" con el ítem asignado
+  await page.getByRole('button', { name: 'Asignados (manual)' }).click()
+  const manualRow = page.locator('table.tbl tbody tr').first()
+  await expect(manualRow.locator('td').nth(0)).toHaveText('IfcWall', { timeout: 30_000 })
+  await expect(manualRow.locator('td').nth(2)).toHaveText('3E 99 99')
 })

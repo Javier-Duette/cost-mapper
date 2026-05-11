@@ -9,7 +9,7 @@ import type { MappingGroupRead } from '../../types/mapping'
 
 interface MappingGroupDetailProps {
   projectId: string
-  tab: 'auto' | 'unassigned' | 'conflicts'
+  tab: 'auto' | 'unassigned' | 'manual' | 'conflicts'
   group: MappingGroupRead | null
   toast: (text: string, kind?: ToastKind) => void
   onRefresh: () => void
@@ -60,6 +60,13 @@ export function MappingGroupDetail({ projectId, tab, group, toast, onRefresh }: 
     return `${group.ifc_type} — ${group.ifc_type_name ?? '—'}`
   }, [group])
 
+  const assignedLabel = useMemo(() => {
+    if (!group) return null
+    if (group.assigned_is_mixed) return 'Mixto (múltiples ítems)'
+    if (group.assigned_item) return `${group.assigned_item.nbr_code} — ${group.assigned_item.description_es}`
+    return null
+  }, [group])
+
   const handleAssign = async (itemId: string) => {
     if (!group) return
     if (!canOperate) return
@@ -99,7 +106,15 @@ export function MappingGroupDetail({ projectId, tab, group, toast, onRefresh }: 
 
       {tab !== 'unassigned' && (
         <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-          El mapeo manual masivo se hace desde <strong>Sin asignar</strong>.
+          {tab === 'manual' && assignedLabel ? (
+            <>
+              Ítem asignado: <strong>{assignedLabel}</strong>
+            </>
+          ) : (
+            <>
+              El mapeo manual masivo se hace desde <strong>Sin asignar</strong>.
+            </>
+          )}
         </div>
       )}
 
@@ -160,4 +175,3 @@ export function MappingGroupDetail({ projectId, tab, group, toast, onRefresh }: 
     </div>
   )
 }
-

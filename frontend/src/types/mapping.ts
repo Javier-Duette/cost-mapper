@@ -1,7 +1,7 @@
 import type { CatalogItem } from './catalog'
 import type { IfcElementSummary } from './ifc'
 
-export type MappingTab = 'auto' | 'unassigned' | 'conflicts'
+export type MappingTab = 'auto' | 'unassigned' | 'manual' | 'conflicts'
 
 export type ClassificationSource = 'ifc_classification' | 'user'
 
@@ -53,6 +53,8 @@ export interface MappingGroupRead {
   ifc_type: string
   ifc_type_name: string | null
   total_elements: number
+  assigned_item?: Pick<CatalogItem, 'id' | 'nbr_code' | 'facet' | 'description_es' | 'unit'> | null
+  assigned_is_mixed?: boolean
 }
 
 export interface MappingGroupsPage {

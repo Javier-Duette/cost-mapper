@@ -87,6 +87,12 @@ def list_elements_for_tab(
     if tab == "unassigned":
         assigned_subq = select(ProjectAssignment.ifc_element_id).where(ProjectAssignment.project_id == project_id)
         statement = statement.where(~IfcElement.id.in_(assigned_subq))
+    elif tab == "manual":
+        user_subq = select(ProjectAssignment.ifc_element_id).where(
+            ProjectAssignment.project_id == project_id,
+            ProjectAssignment.classification_source == "user",
+        )
+        statement = statement.where(IfcElement.id.in_(user_subq))
     elif tab == "auto":
         auto_subq = select(ProjectAssignment.ifc_element_id).where(
             ProjectAssignment.project_id == project_id,
@@ -129,6 +135,12 @@ def list_elements_for_tab_unpaged(
     if tab == "unassigned":
         assigned_subq = select(ProjectAssignment.ifc_element_id).where(ProjectAssignment.project_id == project_id)
         statement = statement.where(~IfcElement.id.in_(assigned_subq))
+    elif tab == "manual":
+        user_subq = select(ProjectAssignment.ifc_element_id).where(
+            ProjectAssignment.project_id == project_id,
+            ProjectAssignment.classification_source == "user",
+        )
+        statement = statement.where(IfcElement.id.in_(user_subq))
     elif tab == "auto":
         auto_subq = select(ProjectAssignment.ifc_element_id).where(
             ProjectAssignment.project_id == project_id,
@@ -231,6 +243,12 @@ def count_elements_for_tab(
     if tab == "unassigned":
         assigned_subq = select(ProjectAssignment.ifc_element_id).where(ProjectAssignment.project_id == project_id)
         statement = statement.where(~IfcElement.id.in_(assigned_subq))
+    elif tab == "manual":
+        user_subq = select(ProjectAssignment.ifc_element_id).where(
+            ProjectAssignment.project_id == project_id,
+            ProjectAssignment.classification_source == "user",
+        )
+        statement = statement.where(IfcElement.id.in_(user_subq))
     elif tab == "auto":
         auto_subq = select(ProjectAssignment.ifc_element_id).where(
             ProjectAssignment.project_id == project_id,

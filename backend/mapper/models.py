@@ -118,6 +118,8 @@ class MappingGroupRead(SQLModel):
     ifc_type: str
     ifc_type_name: str | None
     total_elements: int
+    assigned_item: CatalogItemSummary | None = None
+    assigned_is_mixed: bool = False
 
 
 class MappingGroupsResponse(SQLModel):
