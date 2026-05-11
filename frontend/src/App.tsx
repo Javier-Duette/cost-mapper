@@ -14,6 +14,7 @@ import { BudgetView } from './components/budget_panel/BudgetView'
 
 import { MappingView } from './components/mapping_panel/MappingView'
 import { MappingElementDetail } from './components/mapping_panel/MappingElementDetail'
+import { MappingGroupDetail } from './components/mapping_panel/MappingGroupDetail'
 import { MappingViewerOnly } from './components/mapping_panel/MappingViewerOnly'
 
 import { ReportsView } from './components/reports_panel/ReportsView'
@@ -32,7 +33,7 @@ import type { CatalogItem, Faceta, Section } from './types/catalog'
 import type { LibraryEntryReadWithItem } from './types/library'
 
 import type { Project } from './types/projects'
-import type { MappingElementRow } from './types/mapping'
+import type { MappingElementRow, MappingGroupRead, MappingTab } from './types/mapping'
 
 
 
@@ -155,11 +156,19 @@ export default function App() {
   const [budgetSelectedId, setBudgetSelectedId] = useState<string | null>(null)
 
   /* Mapping state (shared table <-> viewer) */
-  const [mappingSelectedGlobalId, setMappingSelectedGlobalId] = useState<string | null>(null)
+  const [, setMappingSelectedGlobalId] = useState<string | null>(null)
   const [mappingSelectedRow, setMappingSelectedRow] = useState<MappingElementRow | null>(null)
+  const [mappingSelectedGroup, setMappingSelectedGroup] = useState<MappingGroupRead | null>(null)
+  const [mappingTab, setMappingTab] = useState<MappingTab>('unassigned')
   const [mappingRefreshKey, setMappingRefreshKey] = useState(0)
   const [mappingMode, setMappingMode] = useState<'read_local' | 'full'>('full')
   const [mappingLocalIfcFile, setMappingLocalIfcFile] = useState<File | null>(null)
+
+  const handleMappingSelectGroup = useCallback((g: MappingGroupRead | null) => {
+    setMappingSelectedGroup(g)
+    setMappingSelectedRow(null)
+    setMappingSelectedGlobalId(null)
+  }, [])
 
   /* Resizing panel */
 
@@ -330,14 +339,15 @@ export default function App() {
           {section === 'mapping' && mappingMode === 'full' && (
             <MappingView
               projectId={project?.id ?? null}
-              selectedGlobalId={mappingSelectedGlobalId}
-              onSelectGlobalId={setMappingSelectedGlobalId}
-              onSelectedRowChange={setMappingSelectedRow}
+              selectedGroup={mappingSelectedGroup}
+              onSelectGroup={handleMappingSelectGroup}
+              onTabChange={setMappingTab}
               onIfcImported={(p) => setProject(p)}
               onEnableLocalMode={() => {
                 setMappingLocalIfcFile(null)
                 setMappingSelectedGlobalId(null)
                 setMappingSelectedRow(null)
+                setMappingSelectedGroup(null)
                 setMappingMode('read_local')
               }}
               refreshKey={mappingRefreshKey}
@@ -352,6 +362,7 @@ export default function App() {
                 setMappingLocalIfcFile(file)
                 setMappingSelectedGlobalId(null)
                 setMappingSelectedRow(null)
+                setMappingSelectedGroup(null)
               }}
               onEnableFullMode={() => {
                 setMappingLocalIfcFile(null)
@@ -406,12 +417,22 @@ export default function App() {
           {section === 'catalog' ? (
             <DetailPanel item={catSelectedItem} onUpdate={handleItemUpdate} />
           ) : (
-            <MappingElementDetail
-              projectId={project?.id ?? ''}
-              row={mappingSelectedRow}
-              toast={toast}
-              onRefresh={() => setMappingRefreshKey(k => k + 1)}
-            />
+            mappingSelectedGroup ? (
+              <MappingGroupDetail
+                projectId={project?.id ?? ''}
+                tab={mappingTab}
+                group={mappingSelectedGroup}
+                toast={toast}
+                onRefresh={() => setMappingRefreshKey(k => k + 1)}
+              />
+            ) : (
+              <MappingElementDetail
+                projectId={project?.id ?? ''}
+                row={mappingSelectedRow}
+                toast={toast}
+                onRefresh={() => setMappingRefreshKey(k => k + 1)}
+              />
+            )
           )}
 
         </div>

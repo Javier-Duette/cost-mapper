@@ -19,6 +19,10 @@ from .models import (
     AssignmentRead,
     AutoAssignSummary,
     CatalogItemSummary,
+    GroupAssignRequest,
+    GroupAssignSummary,
+    MappingGroupRead,
+    MappingGroupsResponse,
     MappingSuggestion,
     ProjectAssignment,
 )
@@ -279,6 +283,7 @@ def auto_assign_from_ifc_classification(session: Session, *, project_id: str) ->
     skipped_existing = 0
     no_match = 0
     now = _now()
+    to_create: list[ProjectAssignment] = []
 
     for element in elements:
         normalized = _normalize_nbr_code(element.nbr_classification or "")
@@ -310,9 +315,12 @@ def auto_assign_from_ifc_classification(session: Session, *, project_id: str) ->
             price_updated_at=now if item.unit_price is not None else None,
             assigned_at=now,
         )
-        repository.create_assignment(session, assignment)
+        # Acumular y persistir en bulk (evita commit por fila).
+        to_create.append(assignment)
         assignments_by_element.setdefault(element.id, []).append(assignment)
         created += 1
+
+    repository.create_assignments_bulk(session, to_create)
 
     return AutoAssignSummary(
         created=created,
@@ -320,3 +328,115 @@ def auto_assign_from_ifc_classification(session: Session, *, project_id: str) ->
         skipped_existing=skipped_existing,
         no_match=no_match,
     )
+
+
+def list_mapping_groups(
+    session: Session,
+    *,
+    project_id: str,
+    tab: str,
+    offset: int,
+    limit: int,
+    query: str | None,
+) -> MappingGroupsResponse:
+    """
+    Devuelve grupos por (IfcType + ifc_type_name) para facilitar mapeo manual masivo.
+
+    Nota: MVP best-effort con lÃ­mite interno de elementos para agrupar en memoria.
+    """
+    projects_service.get_project(session, project_id)
+
+    if tab not in {"auto", "unassigned", "conflicts"}:
+        raise HTTPException(status_code=400, detail="tab inválido. Use auto|unassigned|conflicts.")
+
+    # Reutilizamos el filtro base de tabs (para conflicts el filtro exacto se hace en Python)
+    if tab == "conflicts":
+        # Reusar lÃ³gica existente: primero candidatos, luego filtrar por hash
+        candidates = repository.list_elements_for_tab_unpaged(session, project_id=project_id, tab=tab, query=query)
+        candidate_ids = [e.id for e in candidates]
+        assignments = repository.list_assignments_for_elements(session, project_id=project_id, element_ids=candidate_ids)
+        by_element: dict[str, list[ProjectAssignment]] = {}
+        for a in assignments:
+            by_element.setdefault(a.ifc_element_id, []).append(a)
+
+        elements: list[IfcElement] = []
+        for element in candidates:
+            element_assignments = [a for a in by_element.get(element.id, []) if a.classification_source == "user"]
+            if not element_assignments:
+                continue
+            if any(snapshot_md5(a.qualitative_snapshot_at_assignment) != element.geometry_hash for a in element_assignments):
+                elements.append(element)
+    else:
+        elements = repository.list_elements_for_tab_unpaged(session, project_id=project_id, tab=tab, query=query)
+
+    grouped: dict[tuple[str, str | None], int] = {}
+    for e in elements:
+        key = (e.ifc_type, e.ifc_type_name)
+        grouped[key] = grouped.get(key, 0) + 1
+
+    groups = [
+        MappingGroupRead(ifc_type=k[0], ifc_type_name=k[1], total_elements=v)
+        for k, v in grouped.items()
+    ]
+    groups.sort(key=lambda g: (g.ifc_type, g.ifc_type_name or ""))
+
+    total = len(groups)
+    page = groups[offset : offset + limit]
+    return MappingGroupsResponse(items=page, total=total, offset=offset, limit=limit)
+
+
+def assign_group_manual(
+    session: Session,
+    *,
+    project_id: str,
+    data: GroupAssignRequest,
+) -> GroupAssignSummary:
+    """
+    Mapeo manual masivo: asigna un Ã­tem a todos los elementos del grupo.
+
+    Regla MVP (alineada a docs): 1 Ã­tem por elemento.
+    - Si un elemento ya tiene cualquier asignaciÃ³n, se saltea (no se pisa).
+    """
+    projects_service.get_project(session, project_id)
+
+    item = session.get(CatalogItem, data.item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Ítem de catálogo no encontrado.")
+
+    # Solo elementos actualmente sin asignación (MVP: 1 ítem por elemento)
+    group_elements = repository.list_unassigned_elements_by_group(
+        session,
+        project_id=project_id,
+        ifc_type=data.ifc_type,
+        ifc_type_name=data.ifc_type_name,
+    )
+
+    created = 0
+    total_in_group = repository.count_active_elements_by_group(
+        session,
+        project_id=project_id,
+        ifc_type=data.ifc_type,
+        ifc_type_name=data.ifc_type_name,
+    )
+    skipped_already_assigned = max(0, total_in_group - len(group_elements))
+    now = _now()
+    to_create: list[ProjectAssignment] = []
+
+    for element in group_elements:
+        assignment = ProjectAssignment(
+            project_id=project_id,
+            ifc_element_id=element.id,
+            item_id=item.id,
+            classification_source="user",
+            confidence=None,
+            qualitative_snapshot_at_assignment=element.qualitative_snapshot or {},
+            unit_price=item.unit_price,
+            price_updated_at=now if item.unit_price is not None else None,
+            assigned_at=now,
+        )
+        to_create.append(assignment)
+        created += 1
+
+    repository.create_assignments_bulk(session, to_create)
+
+    return GroupAssignSummary(created=created, skipped_already_assigned=skipped_already_assigned)

@@ -7,6 +7,7 @@ export interface IfcElementSummary {
   id: string
   global_id: string
   ifc_type: string | null
+  ifc_type_name: string | null
   ifc_name: string | null
   ifc_level: string | null
   nbr_classification: string | null
@@ -40,6 +41,7 @@ export interface IfcImportResponse {
 export interface IfcElementSeed {
   global_id: string
   ifc_type: string
+  ifc_type_name?: string | null
   ifc_name?: string | null
   ifc_level?: string | null
   nbr_classification?: string | null

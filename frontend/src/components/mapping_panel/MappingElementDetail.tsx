@@ -64,6 +64,10 @@ export function MappingElementDetail({ projectId, row, toast, onRefresh }: Mappi
   const handleAssign = async (itemId: string) => {
     if (!element) return
     if (busyItemId) return
+    if (assignments.length > 0) {
+      toast('En MVP se prioriza 1 ítem por elemento. Quitá la asignación actual antes de cambiarla.', 'warning')
+      return
+    }
     if (assignmentItemIds.has(itemId)) {
       toast('Ya existe una asignación para este ítem', 'warning')
       return

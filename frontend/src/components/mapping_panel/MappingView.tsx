@@ -1,22 +1,22 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getProject } from '../../api/projects'
 import { uploadIfc } from '../../api/ifc'
 import { seedIfcElements } from '../../api/ifc'
-import { autoAssignByIfcClassification, listMappingElements } from '../../api/mapping'
+import { autoAssignByIfcClassification, listMappingGroups } from '../../api/mapping'
 import { Icon } from '../shared/Icon'
 import { MappingTabs } from './MappingTabs'
-import { MappingElementsTable } from './MappingElementsTable'
+import { MappingGroupsTable } from './MappingGroupsTable'
 import { parseIfcElementsWithStepText } from '../../ifc/stepText'
 import type { ToastKind } from '../shared/Toast'
 import type { Project } from '../../types/projects'
-import type { MappingElementRow, MappingElementsPage, MappingTab } from '../../types/mapping'
+import type { MappingGroupRead, MappingGroupsPage, MappingTab } from '../../types/mapping'
 import type { IfcElementSeed } from '../../types/ifc'
 
 interface MappingViewProps {
   projectId?: string | null
-  selectedGlobalId?: string | null
-  onSelectGlobalId?: (globalId: string | null) => void
-  onSelectedRowChange?: (row: MappingElementRow | null) => void
+  selectedGroup?: MappingGroupRead | null
+  onSelectGroup?: (group: MappingGroupRead | null) => void
+  onTabChange?: (tab: MappingTab) => void
   onIfcImported?: (project: Project) => void
   onEnableLocalMode?: () => void
   refreshKey?: number
@@ -26,9 +26,9 @@ interface MappingViewProps {
 /** Vista Mapeo IFC (MVP): tabla por tabs + detalle + asignar/quitar. */
 export function MappingView({
   projectId = null,
-  selectedGlobalId = null,
-  onSelectGlobalId,
-  onSelectedRowChange,
+  selectedGroup = null,
+  onSelectGroup,
+  onTabChange,
   onIfcImported,
   onEnableLocalMode,
   refreshKey = 0,
@@ -45,22 +45,9 @@ export function MappingView({
   const [offset, setOffset] = useState(0)
   const [limit, setLimit] = useState(50)
 
-  const [page, setPage] = useState<MappingElementsPage | null>(null)
+  const [page, setPage] = useState<MappingGroupsPage | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  const [localSelectedGlobalId, setLocalSelectedGlobalId] = useState<string | null>(null)
-  const effectiveSelectedGlobalId = selectedGlobalId ?? localSelectedGlobalId
-
-  const selectedRow = useMemo(() => {
-    const gid = effectiveSelectedGlobalId
-    if (!gid || !page?.items) return null
-    return page.items.find(r => r.element.global_id === gid) ?? null
-  }, [effectiveSelectedGlobalId, page?.items])
-
-  useEffect(() => {
-    onSelectedRowChange?.(selectedRow)
-  }, [selectedRow, onSelectedRowChange])
 
   const loadProject = useCallback(async () => {
     if (!projectId) {
@@ -86,7 +73,7 @@ export function MappingView({
     setLoading(true)
     setError(null)
     try {
-      const res = await listMappingElements({ projectId, tab, offset, limit, q })
+      const res = await listMappingGroups({ projectId, tab, offset, limit, q })
       setPage(res)
     } catch (e) {
       setPage(null)
@@ -105,8 +92,23 @@ export function MappingView({
   }, [projectId, project?.ifc_file_path, refreshKey, load])
 
   useEffect(() => {
+    // Cuando cambia el tab, recargar de inmediato (evita depender solo de cambios en `project` o `refreshKey`).
+    if (!projectId) return
+    if (!project?.ifc_file_path) return
+    void load()
+  }, [tab, projectId, project?.ifc_file_path, load])
+
+  useEffect(() => {
     setOffset(0)
   }, [tab, q, limit, projectId])
+
+  useEffect(() => {
+    onTabChange?.(tab)
+  }, [tab, onTabChange])
+
+  useEffect(() => {
+    onSelectGroup?.(null)
+  }, [tab, onSelectGroup])
 
   const openFilePicker = () => fileRef.current?.click()
 
@@ -123,9 +125,11 @@ export function MappingView({
     const elements: IfcElementSeed[] = parsed.map(e => ({
       global_id: e.globalId,
       ifc_type: e.ifcType,
+      ifc_type_name: e.ifcName ?? null,
       ifc_name: e.ifcName,
       qualitative_snapshot: {
         ifc_type: e.ifcType,
+        ifc_type_name: e.ifcName ?? null,
         ifc_name: e.ifcName,
       },
     }))
@@ -179,9 +183,10 @@ export function MappingView({
     }
   }
 
-  const handleSelect = (globalId: string) => {
-    setLocalSelectedGlobalId(globalId)
-    onSelectGlobalId?.(globalId)
+  const selectedKey = selectedGroup ? `${selectedGroup.ifc_type}||${selectedGroup.ifc_type_name ?? ''}` : null
+
+  const handleSelect = (group: MappingGroupRead) => {
+    onSelectGroup?.(group)
   }
 
   if (!projectId) {
@@ -293,11 +298,7 @@ export function MappingView({
 
       {!loading && !error && (
         <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-          <MappingElementsTable
-            rows={page?.items ?? []}
-            selectedGlobalId={effectiveSelectedGlobalId}
-            onSelect={handleSelect}
-          />
+          <MappingGroupsTable rows={page?.items ?? []} selectedKey={selectedKey} onSelect={handleSelect} />
         </div>
       )}
 

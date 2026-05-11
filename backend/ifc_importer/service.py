@@ -181,6 +181,19 @@ def _extract_elements_with_ifcopenshell(ifc_path: str, ifcopenshell_module) -> l
         ifc_type = element.is_a()
         ifc_name = getattr(element, "Name", None)
 
+        # Tipo (familia+tipo): best-effort (Revit suele exponerlo en la entidad Type)
+        ifc_type_name = None
+        if ifc_element_util is not None:
+            try:
+                type_obj = ifc_element_util.get_type(element)
+            except Exception:
+                type_obj = None
+            if type_obj is not None:
+                try:
+                    ifc_type_name = getattr(type_obj, "Name", None) or getattr(type_obj, "ObjectType", None)
+                except Exception:
+                    ifc_type_name = None
+
         # Nivel: best-effort (puede no existir)
         ifc_level = None
         if ifc_element_util is not None:
@@ -202,19 +215,21 @@ def _extract_elements_with_ifcopenshell(ifc_path: str, ifcopenshell_module) -> l
         snapshot = {
             "express_id": getattr(element, "id", lambda: None)(),
             "ifc_type": str(ifc_type),
+            "ifc_type_name": str(ifc_type_name) if ifc_type_name is not None else None,
             "ifc_name": str(ifc_name) if ifc_name is not None else None,
             "ifc_level": str(ifc_level) if ifc_level is not None else None,
             "nbr_classification": str(nbr_classification) if nbr_classification is not None else None,
         }
 
         seeds.append(
-            IfcElementSeed(
-                global_id=str(global_id),
-                ifc_type=str(ifc_type),
-                ifc_name=str(ifc_name) if ifc_name is not None else None,
-                ifc_level=ifc_level,
-                nbr_classification=nbr_classification,
-                qualitative_snapshot=snapshot,
+                IfcElementSeed(
+                    global_id=str(global_id),
+                    ifc_type=str(ifc_type),
+                    ifc_type_name=str(ifc_type_name) if ifc_type_name is not None else None,
+                    ifc_name=str(ifc_name) if ifc_name is not None else None,
+                    ifc_level=ifc_level,
+                    nbr_classification=nbr_classification,
+                    qualitative_snapshot=snapshot,
             )
         )
 

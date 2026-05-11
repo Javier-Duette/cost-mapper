@@ -63,7 +63,14 @@ def _create_catalog_item(client: TestClient, *, nbr_code: str = "3E 05 20") -> s
     return r.json()["id"]
 
 
-def _seed_one_element(client: TestClient, project_id: str, *, global_id: str, snapshot: dict) -> str:
+def _seed_one_element(
+    client: TestClient,
+    project_id: str,
+    *,
+    global_id: str,
+    snapshot: dict,
+    ifc_type_name: str | None = "Muro básico 200mm",
+) -> str:
     r = client.post(
         f"/api/projects/{project_id}/ifc/elements:seed",
         json={
@@ -71,6 +78,7 @@ def _seed_one_element(client: TestClient, project_id: str, *, global_id: str, sn
                 {
                     "global_id": global_id,
                     "ifc_type": "IfcWall",
+                    "ifc_type_name": ifc_type_name,
                     "ifc_name": "W1",
                     "nbr_classification": "3E 05 20",
                     "qualitative_snapshot": snapshot,
@@ -184,3 +192,54 @@ class TestAutoAssign:
         assert r2.status_code == 200
         assert r2.json()["created"] == 0
         assert r2.json()["skipped_existing"] == 1
+
+
+class TestGroups:
+    def test_groups_list_and_assign_group(self, client: TestClient):
+        project_id = _create_project(client)
+        item_id = _create_catalog_item(client, nbr_code="3E 05 20")
+
+        r_seed = client.post(
+            f"/api/projects/{project_id}/ifc/elements:seed",
+            json={
+                "elements": [
+                    {
+                        "global_id": "g1",
+                        "ifc_type": "IfcWall",
+                        "ifc_type_name": "Muro básico 200mm",
+                        "ifc_name": "W1",
+                        "nbr_classification": "3E 05 20",
+                        "qualitative_snapshot": {"a": 1},
+                    },
+                    {
+                        "global_id": "g2",
+                        "ifc_type": "IfcWall",
+                        "ifc_type_name": "Muro básico 200mm",
+                        "ifc_name": "W2",
+                        "nbr_classification": "3E 05 20",
+                        "qualitative_snapshot": {"a": 2},
+                    },
+                ],
+                "full_sync": True,
+            },
+        )
+        assert r_seed.status_code == 201
+
+        r_groups = client.get(f"/api/projects/{project_id}/mapping/groups?tab=unassigned")
+        assert r_groups.status_code == 200
+        data = r_groups.json()
+        assert data["total"] == 1
+        assert data["items"][0]["ifc_type"] == "IfcWall"
+        assert data["items"][0]["ifc_type_name"] == "Muro básico 200mm"
+        assert data["items"][0]["total_elements"] == 2
+
+        r_assign = client.post(
+            f"/api/projects/{project_id}/mapping/groups:assign",
+            json={"ifc_type": "IfcWall", "ifc_type_name": "Muro básico 200mm", "item_id": item_id},
+        )
+        assert r_assign.status_code == 200
+        assert r_assign.json()["created"] == 2
+
+        r_groups2 = client.get(f"/api/projects/{project_id}/mapping/groups?tab=unassigned")
+        assert r_groups2.status_code == 200
+        assert r_groups2.json()["total"] == 0

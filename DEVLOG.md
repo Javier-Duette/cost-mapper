@@ -6,6 +6,23 @@
 
 ## 2026-05-11 09:08 — E2E: flujos “Limpiar → volver a cargar” y auto-asignación (Playwright)
 
+## 2026-05-11 15:30 — Mapeo IFC: asignación por grupo (fix selección + performance)
+
+**Implementado:**
+- Backend (mapper): inserción en bulk para `auto_assign_from_ifc_classification()` y `assign_group_manual()` (evita `commit` por fila).
+- Backend (mapper): query directa `list_unassigned_elements_by_group()` para asignación masiva sin límite fijo (antes podía dejar fuera grupos grandes).
+- Frontend: `onSelectGroup` ahora es estable (`useCallback`) para que el grupo seleccionado no se resetee en cada re-render (habilita el panel de “Asignar al grupo”).
+- Frontend (tests): fixture IFC sin clasificación (`unclassified_two_walls.ifc`) + E2E para asignación por grupo; E2E estabilizados esperando responses clave.
+
+**Problemas resueltos:**
+- Al hacer click en un grupo, la selección se borraba inmediatamente y nunca aparecía el panel de asignación (por identidad cambiante del callback).
+- Asignación masiva podía ser lenta (transacción por fila) y/o incompleta por límite interno.
+
+**Decisiones cambiadas:**
+- Ninguna.
+
+**Próximo paso:** conectar selección de grupo ↔ listado de elementos/visor (y definir política MVP para “re-asignar” cuando ya existe `ifc_classification`).
+
 **Implementado:**
 - Frontend: configuración Playwright (`playwright.config.ts`) y runner que levanta backend (8002) + frontend (5173) para tests E2E.
 - Frontend: fixture IFC con clasificación `3E 05 20` y tests E2E para:

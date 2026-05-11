@@ -42,6 +42,7 @@ def upsert_elements(
         existing = get_by_project_and_global_id(session, project_id, element.global_id)
         if existing:
             existing.ifc_type = element.ifc_type
+            existing.ifc_type_name = element.ifc_type_name
             existing.ifc_name = element.ifc_name
             existing.ifc_level = element.ifc_level
             existing.nbr_classification = element.nbr_classification
@@ -55,6 +56,7 @@ def upsert_elements(
                 project_id=project_id,
                 global_id=element.global_id,
                 ifc_type=element.ifc_type,
+                ifc_type_name=element.ifc_type_name,
                 ifc_name=element.ifc_name,
                 ifc_level=element.ifc_level,
                 nbr_classification=element.nbr_classification,
@@ -101,6 +103,7 @@ def list_elements(
         statement = statement.where(
             col(IfcElement.global_id).ilike(like_pattern)
             | col(IfcElement.ifc_type).ilike(like_pattern)
+            | col(IfcElement.ifc_type_name).ilike(like_pattern)
             | col(IfcElement.ifc_name).ilike(like_pattern)
             | col(IfcElement.nbr_classification).ilike(like_pattern)
         )
@@ -128,6 +131,7 @@ def count_elements(
         statement = statement.where(
             col(IfcElement.global_id).ilike(like_pattern)
             | col(IfcElement.ifc_type).ilike(like_pattern)
+            | col(IfcElement.ifc_type_name).ilike(like_pattern)
             | col(IfcElement.ifc_name).ilike(like_pattern)
             | col(IfcElement.nbr_classification).ilike(like_pattern)
         )

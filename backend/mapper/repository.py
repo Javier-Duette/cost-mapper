@@ -49,6 +49,15 @@ def create_assignment(session: Session, assignment: ProjectAssignment) -> Projec
     return assignment
 
 
+def create_assignments_bulk(session: Session, assignments: list[ProjectAssignment]) -> int:
+    """Inserta múltiples asignaciones en una sola transacción (performance)."""
+    if not assignments:
+        return 0
+    session.add_all(assignments)
+    session.commit()
+    return len(assignments)
+
+
 def delete_assignment(session: Session, assignment: ProjectAssignment) -> None:
     session.delete(assignment)
     session.commit()
@@ -70,6 +79,7 @@ def list_elements_for_tab(
         statement = statement.where(
             col(IfcElement.global_id).ilike(like_pattern)
             | col(IfcElement.ifc_type).ilike(like_pattern)
+            | col(IfcElement.ifc_type_name).ilike(like_pattern)
             | col(IfcElement.ifc_name).ilike(like_pattern)
             | col(IfcElement.nbr_classification).ilike(like_pattern)
         )
@@ -94,6 +104,94 @@ def list_elements_for_tab(
 
     statement = statement.order_by(IfcElement.global_id).offset(offset).limit(limit)
     return list(session.exec(statement).all())
+
+
+def list_elements_for_tab_unpaged(
+    session: Session,
+    *,
+    project_id: str,
+    tab: str,
+    query: str | None,
+    limit: int = 5000,
+) -> list[IfcElement]:
+    statement = select(IfcElement).where(IfcElement.project_id == project_id, IfcElement.status == "active")
+
+    if query:
+        like_pattern = f"%{query}%"
+        statement = statement.where(
+            col(IfcElement.global_id).ilike(like_pattern)
+            | col(IfcElement.ifc_type).ilike(like_pattern)
+            | col(IfcElement.ifc_type_name).ilike(like_pattern)
+            | col(IfcElement.ifc_name).ilike(like_pattern)
+            | col(IfcElement.nbr_classification).ilike(like_pattern)
+        )
+
+    if tab == "unassigned":
+        assigned_subq = select(ProjectAssignment.ifc_element_id).where(ProjectAssignment.project_id == project_id)
+        statement = statement.where(~IfcElement.id.in_(assigned_subq))
+    elif tab == "auto":
+        auto_subq = select(ProjectAssignment.ifc_element_id).where(
+            ProjectAssignment.project_id == project_id,
+            ProjectAssignment.classification_source == "ifc_classification",
+        )
+        statement = statement.where(IfcElement.id.in_(auto_subq))
+    elif tab == "conflicts":
+        user_subq = select(ProjectAssignment.ifc_element_id).where(
+            ProjectAssignment.project_id == project_id,
+            ProjectAssignment.classification_source == "user",
+        )
+        statement = statement.where(IfcElement.id.in_(user_subq))
+    else:
+        raise ValueError("tab inválido")
+
+    statement = statement.order_by(IfcElement.global_id).limit(limit)
+    return list(session.exec(statement).all())
+
+
+def list_unassigned_elements_by_group(
+    session: Session,
+    *,
+    project_id: str,
+    ifc_type: str,
+    ifc_type_name: str | None,
+) -> list[IfcElement]:
+    """Lista elementos activos sin asignación para un grupo (IfcType + ifc_type_name)."""
+    statement = select(IfcElement).where(
+        IfcElement.project_id == project_id,
+        IfcElement.status == "active",
+        IfcElement.ifc_type == ifc_type,
+    )
+    if ifc_type_name is None:
+        statement = statement.where(col(IfcElement.ifc_type_name).is_(None))
+    else:
+        statement = statement.where(IfcElement.ifc_type_name == ifc_type_name)
+
+    assigned_subq = select(ProjectAssignment.ifc_element_id).where(ProjectAssignment.project_id == project_id)
+    statement = statement.where(~IfcElement.id.in_(assigned_subq)).order_by(IfcElement.global_id)
+    return list(session.exec(statement).all())
+
+
+def count_active_elements_by_group(
+    session: Session,
+    *,
+    project_id: str,
+    ifc_type: str,
+    ifc_type_name: str | None,
+) -> int:
+    """Cuenta elementos activos de un grupo (IfcType + ifc_type_name), asignados o no."""
+    from sqlalchemy import func
+
+    statement = select(func.count()).select_from(IfcElement).where(
+        IfcElement.project_id == project_id,
+        IfcElement.status == "active",
+        IfcElement.ifc_type == ifc_type,
+    )
+    if ifc_type_name is None:
+        statement = statement.where(col(IfcElement.ifc_type_name).is_(None))
+    else:
+        statement = statement.where(IfcElement.ifc_type_name == ifc_type_name)
+
+    return int(session.exec(statement).one())
 
 
 def list_active_elements_with_nbr_classification(session: Session, *, project_id: str) -> list[IfcElement]:
@@ -125,6 +223,7 @@ def count_elements_for_tab(
         statement = statement.where(
             col(IfcElement.global_id).ilike(like_pattern)
             | col(IfcElement.ifc_type).ilike(like_pattern)
+            | col(IfcElement.ifc_type_name).ilike(like_pattern)
             | col(IfcElement.ifc_name).ilike(like_pattern)
             | col(IfcElement.nbr_classification).ilike(like_pattern)
         )

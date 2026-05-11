@@ -113,12 +113,13 @@ Objetivo: ayudar a testear el flujo sin bloquear en “modelado perfecto”.
 - Sin IFC: empty-state + botón “Importar IFC”.
 - Con IFC:
   - Tabs: Auto-asignados / Sin asignar / Conflictos.
-  - Tabla paginada consumiendo `GET /api/projects/{id}/mapping/elements`.
-  - Selección de fila setea `selectedGlobalId`.
-  - Panel inferior “detalle de elemento”:
-    - snapshot/props del elemento
-    - asignaciones actuales (quitar)
-    - buscador catálogo (reusa `GET /api/catalog/items`) + botón “Asignar”
+  - Tabla paginada por **grupos** (IfcType + tipo) consumiendo `GET /api/projects/{id}/mapping/groups`.
+  - Selección de grupo habilita “detalle de grupo” (mapeo masivo).
+  - Panel inferior “detalle de grupo”:
+    - resumen del grupo (IfcType + tipo + cantidad)
+    - buscador catálogo (reusa `GET /api/catalog/items`) + botón “Asignar al grupo”
+
+**Nota (MVP):** para mantener el flujo simple y testeable, se prioriza **1 ítem por elemento**. La asignación de múltiples ítems por elemento se considera **post-MVP**.
 
 ### `Viewer3D` (visor 3D real)
 - Implementar con `@thatopen/components`.
@@ -164,4 +165,3 @@ Frontend (smoke):
 - Importar IFC y verlo en 3D.
 - Selección desde visor y desde tabla.
 - Asignar ítem desde buscador y ver persistencia al recargar.
-

@@ -48,6 +48,11 @@ class IfcElement(SQLModel, table=True):
 
     global_id: str = Field(max_length=64, index=True, description="GlobalId IFC del elemento.")
     ifc_type: str = Field(max_length=100, description="Clase IFC. Ej: IfcWall")
+    ifc_type_name: str | None = Field(
+        default=None,
+        max_length=200,
+        description="Tipo del elemento (familia+tipo) best-effort. Ej: 'Muro básico 200mm'.",
+    )
     ifc_name: str | None = Field(default=None, description="Nombre del elemento en el modelo.")
     ifc_level: str | None = Field(default=None, description="Nivel/planta del modelo.")
 
@@ -78,6 +83,7 @@ class IfcImportSummary(SQLModel):
 class IfcElementSeed(SQLModel):
     global_id: str
     ifc_type: str
+    ifc_type_name: str | None = None
     ifc_name: str | None = None
     ifc_level: str | None = None
     nbr_classification: str | None = None
@@ -98,6 +104,7 @@ class IfcElementRead(SQLModel):
     project_id: str
     global_id: str
     ifc_type: str
+    ifc_type_name: str | None
     ifc_name: str | None
     ifc_level: str | None
     nbr_classification: str | None

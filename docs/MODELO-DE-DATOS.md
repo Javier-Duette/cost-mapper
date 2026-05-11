@@ -286,7 +286,10 @@ global_id           TEXT          El GlobalId IFC del elemento.
                                   es única.
 
 ifc_type            TEXT          Clase IFC del elemento.
-                                  Ej: "IfcWall", "IfcSlab", "IfcColumn"
+                                   Ej: "IfcWall", "IfcSlab", "IfcColumn"
+
+ifc_type_name       TEXT          Tipo del elemento (familia+tipo) best-effort.
+                                   Ej: "Muro básico 200mm". NULL si no está disponible.
 
 ifc_name            TEXT          Nombre del elemento en el modelo.
 ifc_level           TEXT          Nivel/planta del modelo.

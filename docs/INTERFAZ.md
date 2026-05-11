@@ -129,7 +129,7 @@ Flujo de importación del modelo 3D y asignación de ítems a elementos IFC.
 Pantalla de bienvenida con botón "Importar IFC" y descripción del flujo. Al importar, el archivo se sube al backend y el módulo `ifc_importer` procesa los elementos.
 
 **Estado post-importación:**
-La tabla muestra todos los elementos IFC del modelo divididos en tres grupos mediante tabs:
+La tabla muestra **grupos** de elementos IFC (agrupados por tipo) divididos en tres grupos mediante tabs:
 
 | Tab | Contenido |
 |-----|-----------|
@@ -138,8 +138,9 @@ La tabla muestra todos los elementos IFC del modelo divididos en tres grupos med
 | 🔴 Conflictos | Elementos cuyo `qualitative_snapshot` cambió en una reimportación y tenían asignación manual previa. |
 
 **Mapeo manual (tab "Sin asignar"):**
-Columnas: Tipo IFC · Nombre · Nivel · Sugerencias (ítems sugeridos por `ifc_type`).
-Al seleccionar un elemento, el panel de detalle muestra las sugerencias de ítem. El usuario acepta la sugerencia o busca manualmente. Un elemento puede recibir múltiples ítems (ej. muro: resultado estructural + revoque + pintura).
+La tabla agrupa por **IfcType + “familia y tipo”** (cuando esté disponible desde el IFC). Al seleccionar un grupo, el panel de detalle permite asignar un ítem del catálogo a **todos los elementos** de ese grupo de una sola vez.
+
+**Nota (MVP):** en esta versión se prioriza un flujo simple: **1 ítem por elemento**. La asignación de múltiples ítems por un mismo elemento queda **post-MVP** (cuando se definan reglas claras de cómo se calcula el presupuesto por capas/terminaciones).
 
 **Integración con visor 3D:** al seleccionar una fila en cualquier tab, el visor resalta el elemento correspondiente en el modelo 3D.
 

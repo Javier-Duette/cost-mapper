@@ -112,3 +112,27 @@ class AutoAssignSummary(SQLModel):
     skipped_user: int
     skipped_existing: int
     no_match: int
+
+
+class MappingGroupRead(SQLModel):
+    ifc_type: str
+    ifc_type_name: str | None
+    total_elements: int
+
+
+class MappingGroupsResponse(SQLModel):
+    items: list[MappingGroupRead]
+    total: int
+    offset: int
+    limit: int
+
+
+class GroupAssignRequest(SQLModel):
+    ifc_type: str
+    ifc_type_name: str | None = None
+    item_id: str
+
+
+class GroupAssignSummary(SQLModel):
+    created: int
+    skipped_already_assigned: int

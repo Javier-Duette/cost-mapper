@@ -48,3 +48,27 @@ export interface AutoAssignSummary {
   skipped_existing: number
   no_match: number
 }
+
+export interface MappingGroupRead {
+  ifc_type: string
+  ifc_type_name: string | null
+  total_elements: number
+}
+
+export interface MappingGroupsPage {
+  items: MappingGroupRead[]
+  total: number
+  offset: number
+  limit: number
+}
+
+export interface GroupAssignInput {
+  ifc_type: string
+  ifc_type_name?: string | null
+  item_id: string
+}
+
+export interface GroupAssignSummary {
+  created: number
+  skipped_already_assigned: number
+}

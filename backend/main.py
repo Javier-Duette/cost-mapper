@@ -48,6 +48,8 @@ def _migrate_dev_db() -> None:
     migrations = [
         # ADR-011: distingue nodos NBR de ítems de trabajo TCPO
         "ALTER TABLE catalog_items ADD COLUMN is_work_item INTEGER NOT NULL DEFAULT 0",
+        # Mapeo IFC: permite agrupar por familia+tipo (best-effort)
+        "ALTER TABLE ifc_elements ADD COLUMN ifc_type_name TEXT",
     ]
     with engine.connect() as conn:
         for sql in migrations:

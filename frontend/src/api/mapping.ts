@@ -1,4 +1,13 @@
-import type { AutoAssignSummary, CreateAssignmentInput, MappingElementsPage, MappingTab, ProjectAssignmentRead } from '../types/mapping'
+import type {
+  AutoAssignSummary,
+  CreateAssignmentInput,
+  GroupAssignInput,
+  GroupAssignSummary,
+  MappingElementsPage,
+  MappingGroupsPage,
+  MappingTab,
+  ProjectAssignmentRead,
+} from '../types/mapping'
 
 /**
  * Lista filas del mapper (elemento + asignaciones + sugerencias).
@@ -47,4 +56,37 @@ export async function autoAssignByIfcClassification(projectId: string): Promise<
   const res = await fetch(`/api/projects/${projectId}/mapping/assignments:auto`, { method: 'POST' })
   if (!res.ok) throw new Error(`POST /projects/${projectId}/mapping/assignments:auto falló: ${res.status}`)
   return res.json() as Promise<AutoAssignSummary>
+}
+
+/**
+ * Lista grupos (IfcType + tipo) para mapeo manual masivo.
+ * Endpoint: GET /api/projects/{projectId}/mapping/groups
+ */
+export async function listMappingGroups(params: {
+  projectId: string
+  tab: MappingTab
+  offset?: number
+  limit?: number
+  q?: string
+}): Promise<MappingGroupsPage> {
+  const url = new URL(`/api/projects/${params.projectId}/mapping/groups`, window.location.origin)
+  url.searchParams.set('tab', params.tab)
+  if (params.offset != null) url.searchParams.set('offset', String(params.offset))
+  if (params.limit != null) url.searchParams.set('limit', String(params.limit))
+  if (params.q?.trim()) url.searchParams.set('q', params.q.trim())
+
+  const res = await fetch(url.toString())
+  if (!res.ok) throw new Error(`GET /projects/${params.projectId}/mapping/groups falló: ${res.status}`)
+  return res.json() as Promise<MappingGroupsPage>
+}
+
+/** Endpoint: POST /api/projects/{projectId}/mapping/groups:assign */
+export async function assignMappingGroup(projectId: string, data: GroupAssignInput): Promise<GroupAssignSummary> {
+  const res = await fetch(`/api/projects/${projectId}/mapping/groups:assign`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(`POST /projects/${projectId}/mapping/groups:assign falló: ${res.status}`)
+  return res.json() as Promise<GroupAssignSummary>
 }
