@@ -106,7 +106,6 @@ export function MappingViewerOnly({ ifcFile, onIfcFileChange, onEnableFullMode }
           onChange={e => {
             const file = e.target.files?.[0] ?? null
             onIfcFileChange(file)
-            // Permite re-seleccionar el mismo archivo y disparar onChange nuevamente.
             e.currentTarget.value = ''
           }}
         />
