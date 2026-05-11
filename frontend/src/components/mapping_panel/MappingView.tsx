@@ -18,6 +18,7 @@ interface MappingViewProps {
   onSelectGlobalId?: (globalId: string | null) => void
   onSelectedRowChange?: (row: MappingElementRow | null) => void
   onIfcImported?: (project: Project) => void
+  onEnableLocalMode?: () => void
   refreshKey?: number
   toast?: (text: string, kind?: ToastKind) => void
 }
@@ -29,6 +30,7 @@ export function MappingView({
   onSelectGlobalId,
   onSelectedRowChange,
   onIfcImported,
+  onEnableLocalMode,
   refreshKey = 0,
   toast = (text: string) => console.info(text),
 }: MappingViewProps) {
@@ -254,6 +256,11 @@ export function MappingView({
           <button className="btn" style={{ height: 28, padding: '0 10px', fontSize: 12 }} onClick={() => { void load() }}>
             <Icon name="reset" size={14} /> Actualizar
           </button>
+          {onEnableLocalMode && (
+            <button className="btn" style={{ height: 28, padding: '0 10px', fontSize: 12 }} onClick={onEnableLocalMode}>
+              <Icon name="import" size={14} /> Modo local
+            </button>
+          )}
           <button className="btn" style={{ height: 28, padding: '0 10px', fontSize: 12 }} onClick={openFilePicker}>
             <Icon name="import" size={14} /> Reimportar IFC
           </button>

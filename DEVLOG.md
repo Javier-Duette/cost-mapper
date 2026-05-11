@@ -18,6 +18,22 @@
 
 **Próximo paso:** definir qué señales mínimas (nivel, Psets clave, clasificación) se extraen en MVP y si se hace en frontend o backend.
 
+## 2026-05-10 23:35 — Fix: recargar IFC local después de “Limpiar”
+
+**Implementado:**
+- Frontend: `input[type=file]` ahora se resetea al abrir el selector y al seleccionar un archivo, permitiendo re-seleccionar el mismo `.ifc` después de “Limpiar”.
+- Frontend: el modo “completo” agrega un botón para volver al modo “local” (evita quedar bloqueado sin forma de volver).
+- Frontend: el modo por defecto para “Mapeo IFC” pasa a ser `full`.
+
+**Problemas resueltos:**
+- Luego de “Limpiar”, elegir el mismo IFC podía no disparar `onChange` y parecía que “ya no cargaba” hasta reiniciar la app.
+- Al pasar a “Modo completo”, no había forma de volver a cargar IFC local.
+
+**Decisiones cambiadas:**
+- Ninguna.
+
+**Próximo paso:** estabilizar el flujo “Modo completo” end-to-end (upload → seed/listado → mapeo) y luego decidir si se elimina el modo local o queda como herramienta de debugging.
+
 ## 2026-05-09 20:58 — Lectura local de elementos IFC (sin visor 3D)
 
 **Implementado:**

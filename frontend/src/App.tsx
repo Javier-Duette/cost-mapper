@@ -158,7 +158,7 @@ export default function App() {
   const [mappingSelectedGlobalId, setMappingSelectedGlobalId] = useState<string | null>(null)
   const [mappingSelectedRow, setMappingSelectedRow] = useState<MappingElementRow | null>(null)
   const [mappingRefreshKey, setMappingRefreshKey] = useState(0)
-  const [mappingMode, setMappingMode] = useState<'read_local' | 'full'>('read_local')
+  const [mappingMode, setMappingMode] = useState<'read_local' | 'full'>('full')
   const [mappingLocalIfcFile, setMappingLocalIfcFile] = useState<File | null>(null)
 
   /* Resizing panel */
@@ -334,6 +334,12 @@ export default function App() {
               onSelectGlobalId={setMappingSelectedGlobalId}
               onSelectedRowChange={setMappingSelectedRow}
               onIfcImported={(p) => setProject(p)}
+              onEnableLocalMode={() => {
+                setMappingLocalIfcFile(null)
+                setMappingSelectedGlobalId(null)
+                setMappingSelectedRow(null)
+                setMappingMode('read_local')
+              }}
               refreshKey={mappingRefreshKey}
               toast={toast}
             />

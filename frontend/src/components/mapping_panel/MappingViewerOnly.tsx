@@ -53,7 +53,15 @@ export function MappingViewerOnly({ ifcFile, onIfcFileChange, onEnableFullMode }
     }
   }, [ifcFile])
 
-  const openFilePicker = () => fileRef.current?.click()
+  const openFilePicker = () => {
+    if (fileRef.current) fileRef.current.value = ''
+    fileRef.current?.click()
+  }
+
+  const clearIfcFile = () => {
+    if (fileRef.current) fileRef.current.value = ''
+    onIfcFileChange(null)
+  }
 
   const sizeLabel = (() => {
     if (!ifcFile) return null
@@ -86,7 +94,7 @@ export function MappingViewerOnly({ ifcFile, onIfcFileChange, onEnableFullMode }
           </button>
         )}
         {ifcFile && (
-          <button className="btn" onClick={() => onIfcFileChange(null)} title="Limpia el IFC local">
+          <button className="btn" onClick={clearIfcFile} title="Limpia el IFC local">
             <Icon name="reset" size={14} /> Limpiar
           </button>
         )}
@@ -95,7 +103,12 @@ export function MappingViewerOnly({ ifcFile, onIfcFileChange, onEnableFullMode }
           type="file"
           accept=".ifc"
           style={{ display: 'none' }}
-          onChange={e => onIfcFileChange(e.target.files?.[0] ?? null)}
+          onChange={e => {
+            const file = e.target.files?.[0] ?? null
+            onIfcFileChange(file)
+            // Permite re-seleccionar el mismo archivo y disparar onChange nuevamente.
+            e.currentTarget.value = ''
+          }}
         />
       </div>
 
