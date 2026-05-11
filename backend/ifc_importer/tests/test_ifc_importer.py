@@ -33,10 +33,11 @@ def session_fixture():
 
 
 @pytest.fixture(name="client")
-def client_fixture(session: Session):
+def client_fixture(session: Session, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     def get_session_override():
         return session
 
+    monkeypatch.setenv("COST_MAPPER_DATA_DIR", str(tmp_path))
     app.dependency_overrides[get_session] = get_session_override
     client = TestClient(app)
     yield client
@@ -52,9 +53,12 @@ def _create_project(client: TestClient) -> str:
 class TestIfcUploadAndServe:
     def test_upload_updates_project_metadata_and_serves_file(self, client: TestClient, session: Session):
         try:
-            import multipart  # type: ignore  # noqa: F401
+            import python_multipart  # type: ignore  # noqa: F401
         except Exception:
-            pytest.skip("python-multipart no está instalado; se saltea test de upload multipart.")
+            try:
+                import multipart  # type: ignore  # noqa: F401
+            except Exception:
+                pytest.skip("python-multipart no está instalado; se saltea test de upload multipart.")
 
         project_id = _create_project(client)
 
@@ -72,6 +76,62 @@ class TestIfcUploadAndServe:
         r2 = client.get(f"/api/projects/{project_id}/ifc/file")
         assert r2.status_code == 200
         assert r2.content == b"IFC-DUMMY"
+
+    def test_upload_imports_elements_with_ifcopenshell(self, client: TestClient, tmp_path: Path):
+        try:
+            import python_multipart  # type: ignore  # noqa: F401
+        except Exception:
+            try:
+                import multipart  # type: ignore  # noqa: F401
+            except Exception:
+                pytest.skip("python-multipart no está instalado; se saltea test de upload multipart.")
+
+        import ifcopenshell  # type: ignore
+        import ifcopenshell.api.project  # type: ignore
+        import ifcopenshell.api.root  # type: ignore
+
+        model = ifcopenshell.api.project.create_file()
+        ifcopenshell.api.root.create_entity(model, ifc_class="IfcProject", name="Test Project")
+        ifcopenshell.api.root.create_entity(model, ifc_class="IfcWall", name="Wall 01")
+
+        ifc_path = tmp_path / "model.ifc"
+        model.write(str(ifc_path))
+
+        project_id = _create_project(client)
+
+        r = client.post(
+            f"/api/projects/{project_id}/ifc",
+            files={"file": ("model.ifc", ifc_path.read_bytes(), "application/octet-stream")},
+        )
+        assert r.status_code == 201
+        data = r.json()
+        assert data["ok"] is True
+        assert data["import_summary"]["total_elements"] >= 1
+
+        listed = client.get(f"/api/projects/{project_id}/ifc/elements?status=active").json()
+        assert listed["total"] >= 1
+
+
+class TestIfcExtraction:
+    def test_extract_elements_with_ifcopenshell_minimal_file(self, tmp_path: Path):
+        import ifcopenshell  # type: ignore
+        import ifcopenshell.api.project  # type: ignore
+        import ifcopenshell.api.root  # type: ignore
+
+        from ifc_importer import service
+
+        model = ifcopenshell.api.project.create_file()
+        ifcopenshell.api.root.create_entity(model, ifc_class="IfcProject", name="Test Project")
+        ifcopenshell.api.root.create_entity(model, ifc_class="IfcWall", name="Wall 01")
+
+        ifc_path = tmp_path / "model.ifc"
+        model.write(str(ifc_path))
+
+        seeds = service._extract_elements_with_ifcopenshell(str(ifc_path), ifcopenshell)
+        assert len(seeds) >= 1
+        assert seeds[0].global_id
+        assert seeds[0].ifc_type.startswith("Ifc")
+        assert "ifc_type" in (seeds[0].qualitative_snapshot or {})
 
 
 class TestIfcSeedAndList:

@@ -128,6 +128,13 @@ function shouldIncludeType(ifcTypeRaw: string): boolean {
   return true
 }
 
+function isValidIfcGlobalId(value: string): boolean {
+  // IfcGloballyUniqueId is a fixed 22-character string using this base64 char set:
+  // "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_$"
+  // The first character must be 0-3.
+  return /^[0-3][0-9A-Za-z_$]{21}$/.test(value)
+}
+
 /**
  * Parser liviano (sin WASM) para IFC-SPF (STEP).
  * Extrae elementos "tipo elemento" detectando entidades IFC con GlobalId como 1er argumento.
@@ -219,6 +226,10 @@ export function parseIfcElementsWithStepText(stepText: string): StepParsedElemen
       i = p + 1
       continue
     }
+    if (!isValidIfcGlobalId(globalId)) {
+      i = p + 1
+      continue
+    }
 
     if (!shouldIncludeType(ifcType)) {
       i = p + 1
@@ -233,4 +244,3 @@ export function parseIfcElementsWithStepText(stepText: string): StepParsedElemen
 
   return elements
 }
-

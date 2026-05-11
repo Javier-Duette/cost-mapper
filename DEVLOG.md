@@ -34,6 +34,24 @@
 
 **Próximo paso:** estabilizar el flujo “Modo completo” end-to-end (upload → seed/listado → mapeo) y luego decidir si se elimina el modo local o queda como herramienta de debugging.
 
+## 2026-05-10 23:55 — Backend: importar elementos con ifcopenshell (MVP)
+
+**Implementado:**
+- Backend: `ifcopenshell==0.8.5` agregado a `backend/requirements.txt`.
+- Backend: detección de `python-multipart` actualizada (`python_multipart` + compat `multipart`) para no deshabilitar el upload.
+- Backend: extractor ahora usa `IfcElement` (en vez de `IfcProduct`) y guarda `qualitative_snapshot` mínimo + `ifc_level` best-effort (storey container cuando existe).
+- Backend: tests agregan un caso que genera un IFC mínimo con `ifcopenshell` y valida que el upload importe elementos (y usa `COST_MAPPER_DATA_DIR` hacia `tmp_path` para no ensuciar el repo).
+- Frontend: el parser STEP valida formato de `GlobalId` (22 chars) para evitar falsos positivos (ej: `IfcMaterial`).
+
+**Problemas resueltos:**
+- El modo completo podía depender demasiado del fallback; ahora el backend tiene un camino más confiable para poblar `ifc_elements`.
+- Se evitó seedear entidades que no son elementos (pero tienen string como primer argumento) por error de heurística.
+
+**Decisiones cambiadas:**
+- Ninguna.
+
+**Próximo paso:** extraer clasificación (IfcRelAssociatesClassification) y definir “element whitelist” para performance/pertinencia.
+
 ## 2026-05-09 20:58 — Lectura local de elementos IFC (sin visor 3D)
 
 **Implementado:**

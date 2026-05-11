@@ -99,19 +99,42 @@ def _extract_elements_with_ifcopenshell(ifc_path: str, ifcopenshell_module) -> l
 
     seeds: list[IfcElementSeed] = []
 
-    for product in model.by_type("IfcProduct"):
-        global_id = getattr(product, "GlobalId", None)
+    try:
+        import ifcopenshell.util.element as ifc_element_util  # type: ignore
+    except Exception:  # pragma: no cover
+        ifc_element_util = None
+
+    for element in model.by_type("IfcElement"):
+        global_id = getattr(element, "GlobalId", None)
         if not global_id:
             continue
-        ifc_type = product.is_a()
-        ifc_name = getattr(product, "Name", None)
+        ifc_type = element.is_a()
+        ifc_name = getattr(element, "Name", None)
 
         # Nivel: best-effort (puede no existir)
         ifc_level = None
+        if ifc_element_util is not None:
+            try:
+                container = ifc_element_util.get_container(element)
+            except Exception:
+                container = None
+            if container is not None and getattr(container, "is_a", None) is not None:
+                try:
+                    if container.is_a("IfcBuildingStorey"):
+                        ifc_level = getattr(container, "Name", None)
+                except Exception:
+                    pass
 
         nbr_classification = None
         # Clasificación: best-effort, evita lógica pesada en MVP
         # (se completa cuando haya un IFC de referencia real)
+
+        snapshot = {
+            "express_id": getattr(element, "id", lambda: None)(),
+            "ifc_type": str(ifc_type),
+            "ifc_name": str(ifc_name) if ifc_name is not None else None,
+            "ifc_level": str(ifc_level) if ifc_level is not None else None,
+        }
 
         seeds.append(
             IfcElementSeed(
@@ -120,7 +143,7 @@ def _extract_elements_with_ifcopenshell(ifc_path: str, ifcopenshell_module) -> l
                 ifc_name=str(ifc_name) if ifc_name is not None else None,
                 ifc_level=ifc_level,
                 nbr_classification=nbr_classification,
-                qualitative_snapshot={},
+                qualitative_snapshot=snapshot,
             )
         )
 

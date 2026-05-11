@@ -15,11 +15,18 @@ router = APIRouter(prefix="/api/projects/{project_id}/ifc", tags=["IFC Importer"
 
 
 try:
-    import multipart  # type: ignore  # noqa: F401
-
-    _HAS_MULTIPART = True
+    # python-multipart >= 0.0.14 expone el paquete como `python_multipart`
+    import python_multipart  # type: ignore  # noqa: F401
 except Exception:
-    _HAS_MULTIPART = False
+    try:
+        # Compat: algunas versiones viejas exponían `multipart`
+        import multipart  # type: ignore  # noqa: F401
+    except Exception:
+        _HAS_MULTIPART = False
+    else:
+        _HAS_MULTIPART = True
+else:
+    _HAS_MULTIPART = True
 
 
 if _HAS_MULTIPART:
