@@ -4,6 +4,22 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-11 09:08 — E2E: flujos “Limpiar → volver a cargar” y auto-asignación (Playwright)
+
+**Implementado:**
+- Frontend: configuración Playwright (`playwright.config.ts`) y runner que levanta backend (8002) + frontend (5173) para tests E2E.
+- Frontend: fixture IFC con clasificación `3E 05 20` y tests E2E para:
+  - Modo completo: import IFC → auto-asignación → tab “Auto-asignados” con `NBR=3E 05 20` y `ASIG=1`.
+  - Modo local: “Limpiar” permite re-seleccionar el mismo IFC.
+
+**Problemas resueltos:**
+- Sin cobertura automatizada del flujo de re-selección del mismo archivo y del auto-asignado desde IFC.
+
+**Decisiones cambiadas:**
+- Ninguna.
+
+**Próximo paso:** correr `npm install` y `npm test` en `frontend/` (si falta `playwright install` por browsers, ejecutarlo una vez) y estabilizar selectores si la UI cambia.
+
 ## 2026-05-11 08:52 — Auto-asignación por match exacto de NBR (desde IFC)
 
 **Implementado:**

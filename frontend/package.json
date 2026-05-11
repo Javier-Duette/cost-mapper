@@ -17,6 +17,7 @@
     "web-ifc": "^0.0.77"
   },
   "devDependencies": {
+    "@playwright/test": "1.59.1",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
     "@types/three": "^0.182.0",
