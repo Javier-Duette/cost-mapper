@@ -4,6 +4,23 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-11 21:01 — Presupuesto desde IFC: modo “IFC” + muros en m² (MVP)
+
+**Implementado:**
+- Backend (`budget`): endpoint `GET /api/projects/{id}/budget:ifc` que agrupa asignaciones activas y calcula `computed_quantity` en runtime desde el IFC (sin persistir cantidades).
+- Backend (`budget`): `IfcWall` calcula **área m²** (best-effort vía QTO) y **solo** si el `unit` del ítem está en m² (evita mezclar m²/m³).
+- Frontend (`budget_panel`): selector de fuente **Manual (Biblioteca)** vs **IFC**, con tabla y KPIs (incluye `elements_count` cuando aplica).
+- Frontend (E2E): fix crash por hooks en `BudgetView` + ajuste de proxy IPv4 (`127.0.0.1`) para evitar problemas `localhost -> ::1` en Windows; Playwright vuelve a pasar.
+
+**Problemas resueltos:**
+- La UI no cargaba en E2E (React “Rendered more hooks than during the previous render” por `useMemo` después de early-returns).
+- E2E intermitente por resolución de `localhost` a IPv6 cuando el backend bindeaba solo en IPv4.
+
+**Decisiones cambiadas:**
+- Ninguna.
+
+**Próximo paso:** definir “sistema de unidades” (normalización + conversión) y extender cantidades IFC a más tipos (slabs, beams, columns) manteniendo guardas por unidad.
+
 ## 2026-05-11 09:08 — E2E: flujos “Limpiar → volver a cargar” y auto-asignación (Playwright)
 
 ## 2026-05-11 15:30 — Mapeo IFC: asignación por grupo (fix selección + performance)

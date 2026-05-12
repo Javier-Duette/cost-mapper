@@ -35,3 +35,30 @@ class BudgetSummary(SQLModel):
     items_count: int
     items_without_price: int
     items_without_quantity: int
+
+
+class IfcBudgetRow(SQLModel):
+    """Fila de presupuesto desde IFC: ítem asignado + cantidad calculada en runtime."""
+
+    item_id: str
+    nbr_code: str
+    facet: str
+    description_es: str
+    unit: str
+    unit_price: Decimal | None
+    currency: str | None
+    fuente_precios: str | None
+    computed_quantity: Decimal | None
+    elements_count: int
+    subtotal: Decimal | None
+
+
+class IfcBudgetSummary(SQLModel):
+    """Resumen del presupuesto calculado desde mapeo IFC (project_assignments)."""
+
+    project_id: str
+    rows: list[IfcBudgetRow]
+    total: Decimal
+    items_count: int
+    items_without_price: int
+    items_without_quantity: int

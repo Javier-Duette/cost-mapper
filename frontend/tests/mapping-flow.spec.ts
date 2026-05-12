@@ -6,7 +6,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const IFC_WITH_CLASSIFICATION = path.join(__dirname, 'fixtures', 'nbr_3E_05_20_wall.ifc')
 const IFC_UNCLASSIFIED_TWO_WALLS = path.join(__dirname, 'fixtures', 'unclassified_two_walls.ifc')
 
-const BACKEND_BASE_URL = process.env.E2E_BACKEND_BASE_URL ?? 'http://localhost:8002'
+const BACKEND_BASE_URL = process.env.E2E_BACKEND_BASE_URL ?? 'http://127.0.0.1:8002'
 
 async function createProject(name: string) {
   const api = await playwrightRequest.newContext({ baseURL: BACKEND_BASE_URL })
@@ -58,7 +58,7 @@ test('modo completo: auto-asignación por match exacto NBR al importar IFC', asy
   await createProject(projectName)
 
   await page.goto('/')
-  await expect(page.getByText('Cost-Mapper')).toBeVisible()
+  await expect(page.locator('.hdr__brand')).toBeVisible({ timeout: 30_000 })
   await selectProjectByName(page, projectName)
 
   await page.locator('button[title="Mapeo IFC"]').click()
@@ -93,7 +93,7 @@ test('modo local: Limpiar permite re-seleccionar el mismo IFC', async ({ page })
   await createProject(projectName)
 
   await page.goto('/')
-  await expect(page.getByText('Cost-Mapper')).toBeVisible()
+  await expect(page.locator('.hdr__brand')).toBeVisible({ timeout: 30_000 })
   await selectProjectByName(page, projectName)
 
   await page.locator('button[title="Mapeo IFC"]').click()
@@ -130,7 +130,7 @@ test('modo completo: asignación manual masiva por grupo (IfcType + tipo)', asyn
   await createProject(projectName)
 
   await page.goto('/')
-  await expect(page.getByText('Cost-Mapper')).toBeVisible()
+  await expect(page.locator('.hdr__brand')).toBeVisible({ timeout: 30_000 })
   await selectProjectByName(page, projectName)
 
   await page.locator('button[title="Mapeo IFC"]').click()

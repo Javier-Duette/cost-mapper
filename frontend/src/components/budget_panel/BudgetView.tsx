@@ -1,10 +1,11 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, Fragment } from 'react'
+
 import { Chip } from '../shared/Chip'
 import { fmt } from '../shared/formatters'
 import { Icon } from '../shared/Icon'
-import { getBudget } from '../../api/budget'
+import { getBudget, getBudgetIfc } from '../../api/budget'
 import { updateLibraryEntry } from '../../api/library'
-import type { BudgetSummary } from '../../types/budget'
+import type { BudgetRow, BudgetSummary, IfcBudgetRow, IfcBudgetSummary } from '../../types/budget'
 import type { ToastKind } from '../shared/Toast'
 
 interface BudgetViewProps {
@@ -15,9 +16,15 @@ interface BudgetViewProps {
   toast: (text: string, kind?: ToastKind) => void
 }
 
-/** Vista de Presupuesto: KPIs + tabla agrupada por faceta con edición inline de cantidad. */
+type BudgetMode = 'library' | 'ifc'
+type AnyRow = BudgetRow | IfcBudgetRow
+
+/** Vista de Presupuesto: KPIs + tabla agrupada por faceta con ediciÃ³n inline de cantidad. */
 export function BudgetView({ projectId, search, selectedId, onSelect, toast }: BudgetViewProps) {
+  const [mode, setMode] = useState<BudgetMode>('library')
+
   const [budget, setBudget] = useState<BudgetSummary | null>(null)
+  const [ifcBudget, setIfcBudget] = useState<IfcBudgetSummary | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -29,11 +36,15 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
     if (!projectId) return
     setLoading(true)
     setError(null)
-    getBudget(projectId)
-      .then(setBudget)
+
+    const p = mode === 'ifc'
+      ? getBudgetIfc(projectId).then(setIfcBudget)
+      : getBudget(projectId).then(setBudget)
+
+    p
       .catch(e => setError(e instanceof Error ? e.message : 'Error al cargar presupuesto'))
       .finally(() => setLoading(false))
-  }, [projectId])
+  }, [projectId, mode])
 
   useEffect(() => { load() }, [load])
 
@@ -57,7 +68,7 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
     const qty = raw === '' ? null : Number(raw)
 
     if (raw !== '' && (isNaN(qty!) || qty! < 0)) {
-      toast('Cantidad inválida — ingresá un número positivo', 'error')
+      toast('Cantidad invÃ¡lida â€” ingresÃ¡ un nÃºmero positivo', 'error')
       return
     }
 
@@ -75,46 +86,74 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
       <div className="section__body">
         <div className="empty-state">
           <div className="empty-state__title">Sin proyecto activo</div>
-          <div className="empty-state__sub">Seleccioná un proyecto para ver el presupuesto.</div>
+          <div className="empty-state__sub">SeleccionÃ¡ un proyecto para ver el presupuesto.</div>
         </div>
       </div>
     )
   }
 
-  if (loading) return <div style={{ padding: 20, color: 'var(--text-secondary)', fontSize: 13 }}>Cargando presupuesto…</div>
-  if (error) return <div style={{ padding: 20, color: 'var(--error)', fontSize: 13 }}>⚠ {error}</div>
-  if (!budget) return null
+  if (loading) return <div style={{ padding: 20, color: 'var(--text-secondary)', fontSize: 13 }}>Cargando presupuestoâ€¦</div>
+  if (error) return <div style={{ padding: 20, color: 'var(--error)', fontSize: 13 }}>âš  {error}</div>
+  if (mode === 'library' && !budget) return null
+  if (mode === 'ifc' && !ifcBudget) return null
 
-  const missingPrice = budget.items_without_price
-  const missingQty   = budget.items_without_quantity
+  const summary = mode === 'ifc' ? ifcBudget! : budget!
+  const rows = summary.rows as AnyRow[]
+
+  const missingPrice = summary.items_without_price
+  const missingQty = summary.items_without_quantity
   const warningCount = missingPrice + missingQty
 
   const visible = search
-    ? budget.rows.filter(r => {
+    ? rows.filter(r => {
         const q = search.toLowerCase()
         return r.description_es.toLowerCase().includes(q) || r.nbr_code.toLowerCase().includes(q)
       })
-    : budget.rows
+    : rows
 
-  const groups: { facet: string; rows: typeof visible }[] = []
-  for (const row of visible) {
-    const last = groups[groups.length - 1]
-    if (!last || last.facet !== row.facet) {
-      groups.push({ facet: row.facet, rows: [row] })
-    } else {
-      last.rows.push(row)
+  const groups = (() => {
+    const out: { facet: string; rows: AnyRow[] }[] = []
+    for (const row of visible) {
+      const last = out[out.length - 1]
+      if (!last || last.facet !== row.facet) {
+        out.push({ facet: row.facet, rows: [row] })
+      } else {
+        last.rows.push(row)
+      }
     }
-  }
+    return out
+  })()
+
+  const isIfcMode = mode === 'ifc'
 
   return (
     <>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Fuente</div>
+        <button
+          className={`btn${!isIfcMode ? ' btn--primary' : ''}`}
+          style={{ height: 28, padding: '0 10px', fontSize: 12 }}
+          onClick={() => { setMode('library'); setIfcBudget(null) }}
+        >
+          Manual (Biblioteca)
+        </button>
+        <button
+          className={`btn${isIfcMode ? ' btn--primary' : ''}`}
+          style={{ height: 28, padding: '0 10px', fontSize: 12 }}
+          onClick={() => { setMode('ifc'); setBudget(null) }}
+          title="Calcula desde mapeo IFC + cantidades runtime (MVP: muros en m²)"
+        >
+          IFC (Mapeo)
+        </button>
+      </div>
+
       {warningCount > 0 && (
         <div className="banner">
           <Icon name="warning" size={16} />
           <span className="banner__msg">
-            {missingPrice > 0 && <><strong>{missingPrice} ítems sin precio</strong>{missingQty > 0 ? ' · ' : ''}</>}
-            {missingQty > 0 && <><strong>{missingQty} ítems sin cantidad</strong></>}
-            . Algunos cálculos están incompletos.
+            {missingPrice > 0 && <><strong>{missingPrice} Ã­tems sin precio</strong>{missingQty > 0 ? ' Â· ' : ''}</>}
+            {missingQty > 0 && <><strong>{missingQty} Ã­tems sin cantidad</strong></>}
+            . Algunos cÃ¡lculos estÃ¡n incompletos.
           </span>
         </div>
       )}
@@ -122,11 +161,11 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
       <div className="kpi-strip">
         <div className="kpi">
           <div className="kpi__lbl">Costo directo</div>
-          <div className="kpi__val">₲ {fmt(budget.total)}</div>
+          <div className="kpi__val">â‚² {fmt(summary.total)}</div>
         </div>
         <div className="kpi">
-          <div className="kpi__lbl">Ítems totales</div>
-          <div className="kpi__val">{budget.items_count}</div>
+          <div className="kpi__lbl">Ãtems totales</div>
+          <div className="kpi__val">{summary.items_count}</div>
         </div>
         <div className="kpi">
           <div className="kpi__lbl">Sin precio</div>
@@ -139,12 +178,14 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
       </div>
 
       <div className="section__body">
-        {budget.items_count === 0 ? (
+        {summary.items_count === 0 ? (
           <div className="empty-state">
             <Icon name="budget" size={48} style={{ color: 'var(--bg-surface-raised)' }} />
-            <div className="empty-state__title">Presupuesto vacío</div>
+            <div className="empty-state__title">Presupuesto vacÃ­o</div>
             <div className="empty-state__sub">
-              Agregá ítems desde el Catálogo para construir el presupuesto del proyecto.
+              {isIfcMode
+                ? 'AsignÃ¡ Ã­tems a elementos IFC en "Mapeo IFC" para calcular un presupuesto desde el modelo.'
+                : 'AgregÃ¡ Ã­tems desde el CatÃ¡logo para construir el presupuesto del proyecto.'}
             </div>
           </div>
         ) : (
@@ -152,58 +193,70 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
             <thead>
               <tr>
                 <th style={{ width: 48 }}>FAC</th>
-                <th style={{ width: 170 }}>CÓDIGO NBR</th>
-                <th>DESCRIPCIÓN</th>
+                <th style={{ width: 170 }}>CÃ“DIGO NBR</th>
+                <th>DESCRIPCIÃ“N</th>
                 <th style={{ width: 60 }}>UND</th>
                 <th className="num" style={{ width: 90 }}>CANT.</th>
-                <th className="num" style={{ width: 130 }}>P. UNIT (₲)</th>
-                <th className="num" style={{ width: 150 }}>SUBTOTAL (₲)</th>
+                <th className="num" style={{ width: 130 }}>P. UNIT (â‚²)</th>
+                {isIfcMode && <th className="num" style={{ width: 70 }}>EL.</th>}
+                <th className="num" style={{ width: 150 }}>SUBTOTAL (â‚²)</th>
               </tr>
             </thead>
             <tbody>
               {groups.map(({ facet, rows: gRows }) => (
-                <>
+                <Fragment key={`g-${facet}`}>
                   <tr key={`g-${facet}`} className="group-hdr">
-                    <td colSpan={6}>
-                      <span style={{ color: 'var(--text-secondary)', marginRight: 6 }}>▾</span>
+                    <td colSpan={isIfcMode ? 7 : 6}>
+                      <span style={{ color: 'var(--text-secondary)', marginRight: 6 }}>â–¾</span>
                       <Chip faceta={facet} />
-                      &nbsp;{gRows.length} ítem{gRows.length !== 1 ? 's' : ''}
+                      &nbsp;{gRows.length} Ã­tem{gRows.length !== 1 ? 's' : ''}
                     </td>
                     <td className="num" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
                       {fmt(gRows.reduce((a, r) => a + (r.subtotal ?? 0), 0))}
                     </td>
                   </tr>
                   {gRows.map(r => {
-                    const sel = r.entry_id === selectedId
-                    const editing = r.entry_id === editingId
+                    const rowKey = isIfcMode ? (r as IfcBudgetRow).item_id : (r as BudgetRow).entry_id
+                    const sel = rowKey === selectedId
+                    const editing = !isIfcMode && rowKey === editingId
+
                     return (
-                      <tr key={r.entry_id} className={sel ? 'is-selected' : ''} onClick={() => onSelect(r.entry_id)}>
+                      <tr key={rowKey} className={sel ? 'is-selected' : ''} onClick={() => onSelect(rowKey)}>
                         <td><Chip faceta={r.facet} /></td>
                         <td className="num">{r.nbr_code}</td>
                         <td className="desc">{r.description_es}</td>
                         <td>{r.unit}</td>
                         <td
                           className="num qty-cell"
-                          title="Clic para editar cantidad"
-                          onClick={e => { e.stopPropagation(); startEdit(r.entry_id, r.manual_quantity) }}
+                          title={isIfcMode ? 'Cantidad calculada desde IFC (MVP: muros en m² si el ítem está en m²)' : 'Clic para editar cantidad'}
+                          onClick={e => {
+                            if (isIfcMode) return
+                            e.stopPropagation()
+                            const rr = r as BudgetRow
+                            startEdit(rr.entry_id, rr.manual_quantity)
+                          }}
                         >
-                          {editing ? (
+                          {isIfcMode ? (
+                            (r as IfcBudgetRow).computed_quantity == null
+                              ? <span className="qty-empty">â€”</span>
+                              : <span className="qty-value">{fmt((r as IfcBudgetRow).computed_quantity)}</span>
+                          ) : editing ? (
                             <input
                               ref={inputRef}
                               className="qty-input"
                               value={editingVal}
                               onChange={e => setEditingVal(e.target.value)}
                               onKeyDown={e => {
-                                if (e.key === 'Enter') void confirmEdit(r.entry_id)
+                                if (e.key === 'Enter') void confirmEdit((r as BudgetRow).entry_id)
                                 if (e.key === 'Escape') cancelEdit()
                               }}
-                              onBlur={() => void confirmEdit(r.entry_id)}
+                              onBlur={() => void confirmEdit((r as BudgetRow).entry_id)}
                               onClick={e => e.stopPropagation()}
                             />
                           ) : (
-                            r.manual_quantity == null
-                              ? <span className="qty-empty">—</span>
-                              : <span className="qty-value">{fmt(r.manual_quantity)}</span>
+                            (r as BudgetRow).manual_quantity == null
+                              ? <span className="qty-empty">â€”</span>
+                              : <span className="qty-value">{fmt((r as BudgetRow).manual_quantity)}</span>
                           )}
                         </td>
                         <td className="num">
@@ -211,15 +264,16 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
                             ? <span style={{ color: 'var(--warning)' }}>sin precio</span>
                             : fmt(r.unit_price)}
                         </td>
+                        {isIfcMode && <td className="num">{(r as IfcBudgetRow).elements_count}</td>}
                         <td className="num">{fmt(r.subtotal)}</td>
                       </tr>
                     )
                   })}
-                </>
+                </Fragment>
               ))}
               <tr className="ftr">
-                <td colSpan={6} style={{ textAlign: 'right' }}>TOTAL COSTO DIRECTO</td>
-                <td className="num">₲ {fmt(budget.total)}</td>
+                <td colSpan={isIfcMode ? 7 : 6} style={{ textAlign: 'right' }}>TOTAL COSTO DIRECTO</td>
+                <td className="num">â‚² {fmt(summary.total)}</td>
               </tr>
             </tbody>
           </table>

@@ -12,7 +12,8 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:8002',
+        // Usar IPv4 explícito para evitar problemas de resolución localhost -> ::1 (backend suele bindear en 127.0.0.1).
+        target: 'http://127.0.0.1:8002',
         changeOrigin: true,
       },
     },

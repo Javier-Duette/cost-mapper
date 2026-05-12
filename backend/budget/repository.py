@@ -7,7 +7,9 @@ from decimal import Decimal
 from sqlmodel import Session, select
 
 from catalog.models import CatalogItem
+from ifc_importer.models import IfcElement
 from library.models import ProjectLibraryEntry
+from mapper.models import ProjectAssignment
 from .models import BudgetRow, BudgetSummary
 
 
@@ -60,3 +62,28 @@ def get_budget(session: Session, project_id: str) -> BudgetSummary:
         items_without_price=without_price,
         items_without_quantity=without_qty,
     )
+
+
+class AssignmentElementItem:
+    """Row shape para presupuesto IFC: assignment + element + item."""
+
+    def __init__(self, assignment: ProjectAssignment, element: IfcElement, item: CatalogItem):
+        self.assignment = assignment
+        self.element = element
+        self.item = item
+
+
+def list_active_assignments_with_element_and_item(session: Session, *, project_id: str) -> list[AssignmentElementItem]:
+    statement = (
+        select(ProjectAssignment, IfcElement, CatalogItem)
+        .join(IfcElement, IfcElement.id == ProjectAssignment.ifc_element_id)
+        .join(CatalogItem, CatalogItem.id == ProjectAssignment.item_id)
+        .where(ProjectAssignment.project_id == project_id)
+        .where(IfcElement.status == "active")
+    )
+
+    rows = session.exec(statement).all()
+    result: list[AssignmentElementItem] = []
+    for assignment, element, item in rows:
+        result.append(AssignmentElementItem(assignment=assignment, element=element, item=item))
+    return result

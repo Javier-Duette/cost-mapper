@@ -70,7 +70,11 @@ const frontendArgs = [
   '--strictPort',
 ]
 
-const backend = spawnLogged('backend', backendPython, backendArgs, backendDir)
+// En el entorno Codex Desktop (Windows), Node no puede lanzar python.exe directamente.
+// Workaround: lanzar el backend via PowerShell (usa `&` call operator).
+const backend = isWin
+  ? spawnLogged('backend', 'powershell.exe', ['-NoProfile', '-Command', `& '${backendPython}' ${backendArgs.join(' ')}`], backendDir)
+  : spawnLogged('backend', backendPython, backendArgs, backendDir)
 const frontend = isWin
   ? spawnLogged('frontend', 'cmd.exe', ['/c', npmCmd, ...frontendArgs], frontendDir)
   : spawnLogged('frontend', npmCmd, frontendArgs, frontendDir)

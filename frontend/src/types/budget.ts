@@ -20,3 +20,26 @@ export interface BudgetSummary {
   items_without_price: number
   items_without_quantity: number
 }
+
+export interface IfcBudgetRow {
+  item_id: string
+  nbr_code: string
+  facet: string
+  description_es: string
+  unit: string
+  unit_price: number | null
+  currency: string | null
+  fuente_precios: string | null
+  computed_quantity: number | null
+  elements_count: number
+  subtotal: number | null
+}
+
+export interface IfcBudgetSummary {
+  project_id: string
+  rows: IfcBudgetRow[]
+  total: number
+  items_count: number
+  items_without_price: number
+  items_without_quantity: number
+}
