@@ -158,7 +158,7 @@ def get_budget_ifc(session: Session, project_id: str) -> IfcBudgetSummary:
                     if val is not None:
                         d = _decimal_or_none(val)
                         if d is not None:
-                            return d
+                            return round(d, 3)
         except Exception:
             pass
         return None

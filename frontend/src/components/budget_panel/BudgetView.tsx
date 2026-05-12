@@ -19,7 +19,7 @@ interface BudgetViewProps {
 type BudgetMode = 'library' | 'ifc'
 type AnyRow = BudgetRow | IfcBudgetRow
 
-/** Vista de Presupuesto: KPIs + tabla agrupada por faceta con ediciÃ³n inline de cantidad. */
+/** Vista de Presupuesto: KPIs + tabla agrupada por faceta con edición inline de cantidad. */
 export function BudgetView({ projectId, search, selectedId, onSelect, toast }: BudgetViewProps) {
   const [mode, setMode] = useState<BudgetMode>('library')
 
@@ -108,14 +108,14 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
       <div className="section__body">
         <div className="empty-state">
           <div className="empty-state__title">Sin proyecto activo</div>
-          <div className="empty-state__sub">SeleccionÃ¡ un proyecto para ver el presupuesto.</div>
+          <div className="empty-state__sub">Seleccioná un proyecto para ver el presupuesto.</div>
         </div>
       </div>
     )
   }
 
-  if (loading) return <div style={{ padding: 20, color: 'var(--text-secondary)', fontSize: 13 }}>Cargando presupuestoâ€¦</div>
-  if (error) return <div style={{ padding: 20, color: 'var(--error)', fontSize: 13 }}>âš  {error}</div>
+  if (loading) return <div style={{ padding: 20, color: 'var(--text-secondary)', fontSize: 13 }}>Cargando presupuesto…</div>
+  if (error) return <div style={{ padding: 20, color: 'var(--error)', fontSize: 13 }}>⚠ {error}</div>
   if (mode === 'library' && !budget) return null
   if (mode === 'ifc' && !ifcBudget) return null
 
@@ -163,7 +163,7 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
           className={`btn${isIfcMode ? ' btn--primary' : ''}`}
           style={{ height: 28, padding: '0 10px', fontSize: 12 }}
           onClick={() => { setMode('ifc'); setBudget(null) }}
-          title="Calcula desde mapeo IFC + cantidades runtime (MVP: muros en m²)"
+          title="Calcula desde mapeo IFC + cantidades runtime (slab, column, beam, door, window)"
         >
           IFC (Mapeo)
         </button>
@@ -173,9 +173,9 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
         <div className="banner">
           <Icon name="warning" size={16} />
           <span className="banner__msg">
-            {missingPrice > 0 && <><strong>{missingPrice} Ã­tems sin precio</strong>{missingQty > 0 ? ' Â· ' : ''}</>}
-            {missingQty > 0 && <><strong>{missingQty} Ã­tems sin cantidad</strong></>}
-            . Algunos cÃ¡lculos estÃ¡n incompletos.
+            {missingPrice > 0 && <><strong>{missingPrice} ítems sin precio</strong>{missingQty > 0 ? ' · ' : ''}</>}
+            {missingQty > 0 && <><strong>{missingQty} ítems sin cantidad</strong></>}
+            . Algunos cálculos están incompletos.
           </span>
         </div>
       )}
@@ -183,10 +183,10 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
       <div className="kpi-strip">
         <div className="kpi">
           <div className="kpi__lbl">Costo directo</div>
-          <div className="kpi__val">â‚² {fmt(summary.total)}</div>
+          <div className="kpi__val">₲ {fmt(summary.total)}</div>
         </div>
         <div className="kpi">
-          <div className="kpi__lbl">Ãtems totales</div>
+          <div className="kpi__lbl">Ítems totales</div>
           <div className="kpi__val">{summary.items_count}</div>
         </div>
         <div className="kpi">
@@ -203,11 +203,11 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
         {summary.items_count === 0 ? (
           <div className="empty-state">
             <Icon name="budget" size={48} style={{ color: 'var(--bg-surface-raised)' }} />
-            <div className="empty-state__title">Presupuesto vacÃ­o</div>
+            <div className="empty-state__title">Presupuesto vacío</div>
             <div className="empty-state__sub">
               {isIfcMode
-                ? 'AsignÃ¡ Ã­tems a elementos IFC en "Mapeo IFC" para calcular un presupuesto desde el modelo.'
-                : 'AgregÃ¡ Ã­tems desde el CatÃ¡logo para construir el presupuesto del proyecto.'}
+                ? 'Asigná ítems a elementos IFC en "Mapeo IFC" para calcular un presupuesto desde el modelo.'
+                : 'Agregá ítems desde el Catálogo para construir el presupuesto del proyecto.'}
             </div>
           </div>
         ) : (
@@ -215,13 +215,13 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
             <thead>
               <tr>
                 <th style={{ width: 48 }}>FAC</th>
-                <th style={{ width: 170 }}>CÃ“DIGO NBR</th>
-                <th>DESCRIPCIÃ“N</th>
+                <th style={{ width: 170 }}>CÓDIGO NBR</th>
+                <th>DESCRIPCIÓN</th>
                 <th style={{ width: 60 }}>UND</th>
                 <th className="num" style={{ width: 90 }}>CANT.</th>
-                <th className="num" style={{ width: 130 }}>P. UNIT (â‚²)</th>
+                <th className="num" style={{ width: 130 }}>P. UNIT (₲)</th>
                 {isIfcMode && <th className="num" style={{ width: 70 }}>EL.</th>}
-                <th className="num" style={{ width: 150 }}>SUBTOTAL (â‚²)</th>
+                <th className="num" style={{ width: 150 }}>SUBTOTAL (₲)</th>
               </tr>
             </thead>
             <tbody>
@@ -229,9 +229,9 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
                 <Fragment key={`g-${facet}`}>
                   <tr key={`g-${facet}`} className="group-hdr">
                     <td colSpan={isIfcMode ? 7 : 6}>
-                      <span style={{ color: 'var(--text-secondary)', marginRight: 6 }}>â–¾</span>
+                      <span style={{ color: 'var(--text-secondary)', marginRight: 6 }}>▾</span>
                       <Chip faceta={facet} />
-                      &nbsp;{gRows.length} Ã­tem{gRows.length !== 1 ? 's' : ''}
+                      &nbsp;{gRows.length} ítem{gRows.length !== 1 ? 's' : ''}
                     </td>
                     <td className="num" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
                       {fmt(gRows.reduce((a, r) => a + (r.subtotal ?? 0), 0))}
@@ -250,7 +250,7 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
                         <td>{r.unit}</td>
                         <td
                           className="num qty-cell"
-                          title={isIfcMode ? 'Cantidad calculada desde IFC (MVP: muros en m² si el ítem está en m²)' : 'Clic para editar cantidad'}
+                          title={isIfcMode ? 'Cantidad calculada desde IFC' : 'Clic para editar cantidad'}
                           onClick={e => {
                             if (isIfcMode) return
                             e.stopPropagation()
@@ -260,12 +260,12 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
                         >
                           {isIfcMode ? (
                             (r as IfcBudgetRow).computed_quantity == null
-                              ? <span className=”qty-empty” title=”Tipo de elemento IFC sin cálculo automático de cantidad”>â€”</span>
-                              : <span className=”qty-value”>{fmt((r as IfcBudgetRow).computed_quantity)}</span>
+                              ? <span className="qty-empty" title="Tipo de elemento IFC sin cálculo automático de cantidad">—</span>
+                              : <span className="qty-value">{fmt((r as IfcBudgetRow).computed_quantity)}</span>
                           ) : editing ? (
                             <input
                               ref={inputRef}
-                              className=”qty-input”
+                              className="qty-input"
                               value={editingVal}
                               onChange={e => setEditingVal(e.target.value)}
                               onKeyDown={e => {
@@ -277,8 +277,8 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
                             />
                           ) : (
                             (r as BudgetRow).manual_quantity == null
-                              ? <span className=”qty-empty”>â€”</span>
-                              : <span className=”qty-value”>{fmt((r as BudgetRow).manual_quantity)}</span>
+                              ? <span className="qty-empty">—</span>
+                              : <span className="qty-value">{fmt((r as BudgetRow).manual_quantity)}</span>
                           )}
                         </td>
                         <td className="num">
@@ -295,7 +295,7 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
               ))}
               <tr className="ftr">
                 <td colSpan={isIfcMode ? 7 : 6} style={{ textAlign: 'right' }}>TOTAL COSTO DIRECTO</td>
-                <td className="num">â‚² {fmt(summary.total)}</td>
+                <td className="num">₲ {fmt(summary.total)}</td>
               </tr>
             </tbody>
           </table>

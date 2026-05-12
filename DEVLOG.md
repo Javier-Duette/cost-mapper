@@ -4,6 +4,29 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-12 — Catálogo, Mapeo IFC y Presupuesto: correcciones y extensiones
+
+**Implementado:**
+- Budget IFC: `_quantity_for_element()` refactorizado con lookup table `_QTO_MAP`. Ahora calcula cantidades para `IfcSlab`, `IfcRoof`, `IfcCovering`, `IfcStair`, `IfcRamp` (m²), `IfcColumn`, `IfcBeam`, `IfcPile`, `IfcMember` (m o m³), `IfcFooting` (m³), `IfcDoor`, `IfcWindow`, `IfcFurnishingElement` (count=1). `_normalize_unit()` extendida con aliases de todas las unidades del sistema.
+- Budget IFC: cantidades QTO redondeadas a 3 decimales (antes devolvía floats con muchos decimales).
+- Mapper: límite de carga de elementos cambiado de 5.000 hardcodeado a constante configurable `_MAX_ELEMENTS_PER_TAB = 10_000`.
+- Catalog: validación de unidades en backend — `CatalogItemCreate` y `CatalogItemUpdate` validan que `unit` esté en `VALID_UNITS` (frozenset de 20 unidades); devuelve 422 si no.
+- Library: edición inline de `manual_quantity` directamente desde LibraryView (antes solo era posible desde BudgetView).
+- BudgetView: error handling robusto en edición de cantidad — revert optimista si el PATCH falla, input disabled durante el request.
+- BudgetView: encoding corrupto (mojibake) corregido en todo el archivo — símbolos como `₲`, `—`, `▾`, `ítems`, `CÓDIGO`, `DESCRIPCIÓN` ahora se muestran correctamente.
+- Tests: 5 tests nuevos en `budget/tests/test_budget_ifc.py` para los nuevos tipos IFC; 6 tests nuevos en catalog para validación de unidades. Total: 39 passing.
+
+**Problemas resueltos:**
+- El presupuesto IFC mostraba 0 cantidad para cualquier elemento que no fuera IfcWall.
+- BudgetView mostraba caracteres corruptos (`Ã­tems`, `CÃ"DIGO`, etc.) en toda la interfaz.
+- El límite de 5.000 elementos en el mapper podía causar pérdida silenciosa de grupos grandes.
+- Sin validación de unidades en backend, el ETL podía insertar unidades no reconocidas.
+
+**Decisiones cambiadas:**
+- Ninguna.
+
+**Próximo paso:** Advertencia al editar `unit_price` directamente cuando el ítem tiene APU (informar que los insumos dejan de ser el origen del precio). Ver BUGS.md para detalle.
+
 ## 2026-05-11 21:52 — Fixes BUGS.md: APU suma, borrar ítems, remapeo y seed de precios demo
 
 **Implementado:**
