@@ -18,14 +18,25 @@ from sqlmodel import Field, Relationship, SQLModel
 # Constantes de dominio
 # ---------------------------------------------------------------------------
 
-# Unidades de medida válidas para ítems del catálogo y componentes APU.
-# El ETL y los endpoints de escritura deben respetar este conjunto.
-# Si se necesita agregar una unidad nueva, hacerlo aquí y en los tests.
-VALID_UNITS: frozenset[str] = frozenset({
-    "m²", "m2", "m³", "m3", "m", "ml",
-    "un", "und", "unidad", "pza", "pieza",
-    "kg", "l", "lt", "h", "hr", "bls", "bolsa", "gl", "global",
-})
+# Mapa de normalización de unidades: alias → forma canónica.
+# El validator normaliza en escritura; la DB siempre guarda la forma canónica.
+_UNIT_ALIASES: dict[str, str] = {
+    "m²": "m²", "m2": "m²",
+    "m³": "m³", "m3": "m³",
+    "m": "m", "ml": "m",
+    "un": "un", "und": "un", "unidad": "un", "pza": "un", "pieza": "un",
+    "kg": "kg",
+    "l": "l", "lt": "l",
+    "h": "h", "hr": "h",
+    "bls": "bls", "bolsa": "bls",
+    "gl": "gl", "global": "gl",
+}
+
+# Conjunto de todas las formas de entrada aceptadas (para mensajes de error).
+VALID_UNITS: frozenset[str] = frozenset(_UNIT_ALIASES.keys())
+
+# Formas canónicas (lo que se guarda en la DB).
+CANONICAL_UNITS: frozenset[str] = frozenset(_UNIT_ALIASES.values())
 
 
 # ---------------------------------------------------------------------------
@@ -275,11 +286,12 @@ class CatalogItemCreate(SQLModel):
     @classmethod
     def validate_unit(cls, v: str) -> str:
         v = str(v).strip()
-        if v not in VALID_UNITS:
+        canonical = _UNIT_ALIASES.get(v)
+        if canonical is None:
             raise ValueError(
-                f"Unidad '{v}' no es válida. Unidades aceptadas: {sorted(VALID_UNITS)}"
+                f"Unidad '{v}' no válida. Opciones: {sorted(VALID_UNITS)}"
             )
-        return v
+        return canonical
 
 
 class CatalogItemUpdate(SQLModel):
@@ -305,11 +317,12 @@ class CatalogItemUpdate(SQLModel):
         if v is None:
             return v
         v = str(v).strip()
-        if v not in VALID_UNITS:
+        canonical = _UNIT_ALIASES.get(v)
+        if canonical is None:
             raise ValueError(
-                f"Unidad '{v}' no es válida. Unidades aceptadas: {sorted(VALID_UNITS)}"
+                f"Unidad '{v}' no válida. Opciones: {sorted(VALID_UNITS)}"
             )
-        return v
+        return canonical
 
 
 class CatalogItemRead(SQLModel):

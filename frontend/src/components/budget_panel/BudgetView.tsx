@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback, Fragment } from 'react'
 
 import { Chip } from '../shared/Chip'
-import { fmt } from '../shared/formatters'
+import { fmt, fmtQty } from '../shared/formatters'
 import { Icon } from '../shared/Icon'
 import { getBudget, getBudgetIfc } from '../../api/budget'
 import { updateLibraryEntry } from '../../api/library'
@@ -261,7 +261,7 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
                           {isIfcMode ? (
                             (r as IfcBudgetRow).computed_quantity == null
                               ? <span className="qty-empty" title="Tipo de elemento IFC sin cálculo automático de cantidad">—</span>
-                              : <span className="qty-value">{fmt((r as IfcBudgetRow).computed_quantity)}</span>
+                              : <span className="qty-value">{fmtQty((r as IfcBudgetRow).computed_quantity)}</span>
                           ) : editing ? (
                             <input
                               ref={inputRef}
@@ -278,7 +278,7 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
                           ) : (
                             (r as BudgetRow).manual_quantity == null
                               ? <span className="qty-empty">—</span>
-                              : <span className="qty-value">{fmt((r as BudgetRow).manual_quantity)}</span>
+                              : <span className="qty-value">{fmtQty((r as BudgetRow).manual_quantity)}</span>
                           )}
                         </td>
                         <td className="num">

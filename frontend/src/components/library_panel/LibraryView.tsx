@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { keynotesExportUrl, listLibrary, removeFromLibrary, updateLibraryEntry } from '../../api/library'
+import { fmtQty } from '../shared/formatters'
 import type { LibraryEntryReadWithItem } from '../../types/library'
 import { Chip } from '../shared/Chip'
 import { Icon } from '../shared/Icon'
@@ -231,7 +232,7 @@ export function LibraryView({ projectId, toast }: LibraryViewProps) {
                       ) : e.manual_quantity == null ? (
                         <span className="qty-empty">—</span>
                       ) : (
-                        <span className="qty-value">{e.manual_quantity}</span>
+                        <span className="qty-value">{fmtQty(e.manual_quantity)}</span>
                       )}
                     </td>
                     <td style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
