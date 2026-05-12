@@ -1,5 +1,6 @@
+# -*- coding: utf-8 -*-
 """
-Service del mÃ³dulo budget â€” lÃ³gica de negocio.
+Service del modulo budget - logica de negocio.
 """
 
 from __future__ import annotations
@@ -15,6 +16,38 @@ from .models import BudgetSummary, IfcBudgetRow, IfcBudgetSummary
 from . import repository
 
 
+# ---------------------------------------------------------------------------
+# Mapa de tipos IFC -> (unidad normalizada, QTO keys a intentar en orden).
+# None como valor de keys significa "count = 1" (p.ej. puertas, ventanas).
+# ---------------------------------------------------------------------------
+_QTO_MAP: dict[tuple[str, str], list[str] | None] = {
+    ("IfcWall", "m2"):                  ["NetSideArea", "GrossSideArea", "NetArea", "GrossArea", "Area"],
+    ("IfcWallStandardCase", "m2"):      ["NetSideArea", "GrossSideArea", "NetArea", "GrossArea", "Area"],
+    ("IfcSlab", "m2"):                  ["NetArea", "GrossArea", "ProjectedArea", "Area"],
+    ("IfcRoof", "m2"):                  ["NetArea", "GrossArea", "Area"],
+    ("IfcCovering", "m2"):              ["NetArea", "GrossArea", "Area"],
+    ("IfcStair", "m2"):                 ["NetArea", "GrossArea", "Area"],
+    ("IfcRamp", "m2"):                  ["NetArea", "GrossArea", "Area"],
+    ("IfcColumn", "m"):                 ["Length"],
+    ("IfcColumnStandardCase", "m"):     ["Length"],
+    ("IfcColumn", "m3"):                ["NetVolume", "GrossVolume"],
+    ("IfcColumnStandardCase", "m3"):    ["NetVolume", "GrossVolume"],
+    ("IfcBeam", "m"):                   ["Length", "Span"],
+    ("IfcBeamStandardCase", "m"):       ["Length", "Span"],
+    ("IfcBeam", "m3"):                  ["NetVolume", "GrossVolume"],
+    ("IfcBeamStandardCase", "m3"):      ["NetVolume", "GrossVolume"],
+    ("IfcPile", "m"):                   ["Length"],
+    ("IfcPile", "m3"):                  ["NetVolume", "GrossVolume"],
+    ("IfcFooting", "m3"):               ["NetVolume", "GrossVolume"],
+    ("IfcDoor", "un"):                  None,   # count = 1
+    ("IfcWindow", "un"):                None,   # count = 1
+    ("IfcFurnishingElement", "un"):     None,
+    ("IfcFurniture", "un"):             None,
+    ("IfcMember", "m"):                 ["Length"],
+    ("IfcMember", "m3"):                ["NetVolume", "GrossVolume"],
+}
+
+
 def get_budget(session: Session, project_id: str) -> BudgetSummary:
     return repository.get_budget(session, project_id)
 
@@ -24,8 +57,9 @@ def get_budget_ifc(session: Session, project_id: str) -> IfcBudgetSummary:
 
     Reglas MVP:
     - Cantidades NO se persisten: se calculan en runtime desde el IFC.
-    - Para un elemento con múltiples asignaciones, se prioriza `user` sobre `ifc_classification`.
-    - En esta iteración: `IfcWall` se computa en m² (best-effort vía QTO) y solo si el ítem está en m².
+    - Para un elemento con multiples asignaciones, se prioriza `user` sobre `ifc_classification`.
+    - Tipos soportados: IfcWall/IfcSlab/IfcRoof/IfcCovering (m2), IfcColumn/IfcBeam/IfcPile/IfcMember
+      (m o m3), IfcFooting (m3), IfcDoor/IfcWindow/IfcFurnishingElement/IfcFurniture (un=count 1).
     """
     project = projects_service.get_project(session, project_id)
     if not project.ifc_file_path:
@@ -53,7 +87,7 @@ def get_budget_ifc(session: Session, project_id: str) -> IfcBudgetSummary:
             items_without_quantity=0,
         )
 
-    # Elegir 1 asignación por elemento (user > ifc_classification)
+    # Elegir 1 asignacion por elemento (user > ifc_classification)
     by_element: dict[str, list[repository.AssignmentElementItem]] = {}
     for row in assignments:
         by_element.setdefault(row.element.id, []).append(row)
@@ -80,35 +114,70 @@ def get_budget_ifc(session: Session, project_id: str) -> IfcBudgetSummary:
         if unit is None:
             return ""
         s = unit.strip().lower().replace(" ", "")
-        # Normalización defensiva ante strings mal decodificados (p.ej. "mÂ²" -> "m2").
+        # Normalizacion defensiva ante strings mal decodificados (p.ej. "mA2" -> "m2").
         s = s.replace("â", "")
         s = s.replace("²", "2").replace("^2", "2")
         s = s.replace("³", "3").replace("^3", "3")
+        # Aliases de unidades de area
+        if s in ("m²", "mcuadrado", "msq", "m2"):
+            return "m2"
+        # Aliases de unidades de volumen
+        if s in ("m³", "mcubico", "m3"):
+            return "m3"
+        # Aliases de unidades lineales
+        if s in ("ml", "mlineal", "m"):
+            return "m"
+        # Aliases de unidades de conteo
+        if s in ("un", "und", "unidad", "pza", "pieza", "gl", "global"):
+            return "un"
+        # Aliases de masa
+        if s == "kg":
+            return "kg"
+        # Aliases de volumen liquido
+        if s in ("l", "lt", "litro"):
+            return "l"
+        # Aliases de tiempo
+        if s in ("h", "hr", "hora"):
+            return "h"
+        # Aliases de bolsas
+        if s in ("bls", "bolsa"):
+            return "bls"
         return s
 
-    def _wall_area_m2(ifc_entity) -> Decimal | None:
-        qsets = ifc_element_util.get_psets(ifc_entity, qtos_only=True) or {}
-        for qset in qsets.values():
-            if not isinstance(qset, dict):
-                continue
-            for key in ("NetSideArea", "GrossSideArea", "NetArea", "GrossArea", "Area"):
-                if key in qset:
-                    d = _decimal_or_none(qset.get(key))
-                    if d is not None:
-                        return d
+    def _read_qto(ent, keys: list[str]) -> Decimal | None:
+        """Lee el primer valor numerico encontrado de la lista de keys en los QTO del elemento."""
+        try:
+            psets = ifc_element_util.get_psets(ent, qtos_only=True)
+            if not psets:
+                return None
+            for pset_data in psets.values():
+                if not isinstance(pset_data, dict):
+                    continue
+                for k in keys:
+                    val = pset_data.get(k)
+                    if val is not None:
+                        d = _decimal_or_none(val)
+                        if d is not None:
+                            return d
+        except Exception:
+            pass
         return None
 
     def _quantity_for_element(global_id: str, ifc_type: str, unit: str) -> Decimal | None:
         ent = model.by_guid(global_id)
         if ent is None:
             return None
-        if ifc_type == "IfcWall":
-            if _normalize_unit(unit) != "m2":
-                return None
-            return _wall_area_m2(ent)
-        return None
+        norm = _normalize_unit(unit)
+        lookup_key = (ifc_type, norm)
+        if lookup_key not in _QTO_MAP:
+            return None  # tipo/unidad no mapeados
+        keys = _QTO_MAP[lookup_key]
+        if keys is None:
+            # Explicitamente mapeado como count = 1 (p.ej. IfcDoor en "un")
+            return Decimal("1")
+        return _read_qto(ent, keys)
 
-    # Agrupar por ítem
+    # Agrupar por item
     sums: dict[str, dict] = {}
     for r in chosen:
         qty = _quantity_for_element(r.element.global_id, r.element.ifc_type, r.item.unit)
