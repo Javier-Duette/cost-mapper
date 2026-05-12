@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getItemAPU, updateItem, updateAPUComponent, addAPUComponent } from '../../api/catalog'
+import { getItem, getItemAPU, updateItem, updateAPUComponent, addAPUComponent, deleteItem } from '../../api/catalog'
 import { Chip, SourceBadge } from './Chip'
 import { Icon } from './Icon'
 import { fmt } from './formatters'
@@ -12,10 +12,11 @@ import type { APUComponentRead, CatalogItem } from '../../types/catalog'
 interface DetailPanelProps {
   item: CatalogItem | null
   onUpdate?: (updated: CatalogItem) => void
+  onDelete?: () => void
 }
 
 /** Panel inferior APU — muestra el desglose de un ítem seleccionado. */
-export function DetailPanel({ item, onUpdate }: DetailPanelProps) {
+export function DetailPanel({ item, onUpdate, onDelete }: DetailPanelProps) {
   const [apu, setApu] = useState<APUComponentRead[]>([])
   const [loading, setLoading] = useState(false)
   const [isAddingInsumo, setIsAddingInsumo] = useState(false)
@@ -34,6 +35,16 @@ export function DetailPanel({ item, onUpdate }: DetailPanelProps) {
       .then(setApu)
       .catch(() => setApu([]))
       .finally(() => setLoading(false))
+  }
+
+  const refreshItem = async () => {
+    if (!item) return
+    try {
+      const updated = await getItem(item.id)
+      onUpdate?.(updated)
+    } catch {
+      // ignore
+    }
   }
 
   useEffect(() => {
@@ -99,6 +110,7 @@ export function DetailPanel({ item, onUpdate }: DetailPanelProps) {
     try {
       await updateAPUComponent(apu_component_id, { quantity: num, source: 'CUSTOM' })
       fetchAPU()
+      await refreshItem()
     } catch (e) {
       console.error('Error al actualizar coeficiente', e)
     }
@@ -114,6 +126,7 @@ export function DetailPanel({ item, onUpdate }: DetailPanelProps) {
     try {
       await updateItem(auditAction.targetId, { unit_price: num, fuente_precios: source }, username)
       fetchAPU()
+      await refreshItem()
       setAuditAction(null)
     } catch (e) {
       console.error('Error al actualizar precio', e)
@@ -186,20 +199,33 @@ export function DetailPanel({ item, onUpdate }: DetailPanelProps) {
     }
   }
 
-  const handleAddInsumo = async (component_id: string, coef: number) => {
+  const handleAddInsumo = async (component_id: string, unit: string, coef: number) => {
     if (!item) return
     try {
       await addAPUComponent(item.id, {
         component_id,
         quantity: coef,
-        unit: 'un',
+        unit,
         source: 'CUSTOM'
       })
       setIsAddingInsumo(false)
       fetchAPU()
+      await refreshItem()
     } catch (e) {
       console.error('Error al agregar insumo', e)
       alert('Error al agregar insumo')
+    }
+  }
+
+  const handleDeleteItem = async () => {
+    if (!item) return
+    const ok = confirm(`Eliminar ítem ${item.nbr_code}?\n\nEsto solo funciona si el ítem no está usado en Biblioteca/Mapeo.`)
+    if (!ok) return
+    try {
+      await deleteItem(item.id)
+      onDelete?.()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'No se pudo eliminar el ítem')
     }
   }
 
@@ -231,6 +257,22 @@ export function DetailPanel({ item, onUpdate }: DetailPanelProps) {
           </span>
         </div>
         <div className="dpanel__strip-tools">
+          <button
+            onClick={() => { void handleDeleteItem() }}
+            title="Eliminar ítem"
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--border-subtle)',
+              color: 'var(--text-secondary)',
+              borderRadius: 4,
+              padding: '4px 6px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <Icon name="trash" size={14} />
+          </button>
           <button 
             onClick={handleToggleVerified}
             style={{ 

@@ -97,6 +97,15 @@ def create_item(
     """
     return service.crear_item(session, data)
 
+
+@router.delete("/items/{item_id}", status_code=204, summary="Eliminar un Ã­tem")
+def delete_item(
+    item_id: str,
+    session: Session = Depends(get_session),
+    x_user: str | None = Header(None),
+) -> None:
+    service.eliminar_item(session, item_id, user=x_user or "user:anonymous")
+
 @router.patch("/apu/{apu_id}", summary="Editar un componente APU")
 def update_apu_component(
     apu_id: str,

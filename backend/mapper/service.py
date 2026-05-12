@@ -450,12 +450,27 @@ def assign_group_manual(
         raise HTTPException(status_code=404, detail="Ítem de catálogo no encontrado.")
 
     # Solo elementos actualmente sin asignación (MVP: 1 ítem por elemento)
-    group_elements = repository.list_unassigned_elements_by_group(
-        session,
-        project_id=project_id,
-        ifc_type=data.ifc_type,
-        ifc_type_name=data.ifc_type_name,
-    )
+    deleted_assignments = 0
+
+    if data.replace_existing:
+        group_elements = repository.list_active_elements_by_group(
+            session,
+            project_id=project_id,
+            ifc_type=data.ifc_type,
+            ifc_type_name=data.ifc_type_name,
+        )
+        deleted_assignments = repository.delete_assignments_for_elements(
+            session,
+            project_id=project_id,
+            element_ids=[e.id for e in group_elements],
+        )
+    else:
+        group_elements = repository.list_unassigned_elements_by_group(
+            session,
+            project_id=project_id,
+            ifc_type=data.ifc_type,
+            ifc_type_name=data.ifc_type_name,
+        )
 
     created = 0
     total_in_group = repository.count_active_elements_by_group(
@@ -464,7 +479,7 @@ def assign_group_manual(
         ifc_type=data.ifc_type,
         ifc_type_name=data.ifc_type_name,
     )
-    skipped_already_assigned = max(0, total_in_group - len(group_elements))
+    skipped_already_assigned = 0 if data.replace_existing else max(0, total_in_group - len(group_elements))
     now = _now()
     to_create: list[ProjectAssignment] = []
 
@@ -485,4 +500,8 @@ def assign_group_manual(
 
     repository.create_assignments_bulk(session, to_create)
 
-    return GroupAssignSummary(created=created, skipped_already_assigned=skipped_already_assigned)
+    return GroupAssignSummary(
+        created=created,
+        skipped_already_assigned=skipped_already_assigned,
+        deleted_assignments=deleted_assignments,
+    )

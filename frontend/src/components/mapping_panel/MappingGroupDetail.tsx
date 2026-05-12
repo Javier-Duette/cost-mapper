@@ -30,7 +30,7 @@ export function MappingGroupDetail({ projectId, tab, group, toast, onRefresh }: 
     setCatalogError(null)
   }, [group?.ifc_type, group?.ifc_type_name, tab])
 
-  const canOperate = Boolean(projectId && group && tab === 'unassigned')
+  const canOperate = Boolean(projectId && group && (tab === 'unassigned' || tab === 'manual'))
 
   const loadCatalog = useCallback(async () => {
     if (!catalogQuery.trim()) {
@@ -73,8 +73,17 @@ export function MappingGroupDetail({ projectId, tab, group, toast, onRefresh }: 
     if (busyItemId) return
     setBusyItemId(itemId)
     try {
-      const res = await assignMappingGroup(projectId, { ifc_type: group.ifc_type, ifc_type_name: group.ifc_type_name, item_id: itemId })
-      toast(`Asignado a ${res.created} elementos (saltados: ${res.skipped_already_assigned})`, 'success')
+      const res = await assignMappingGroup(projectId, {
+        ifc_type: group.ifc_type,
+        ifc_type_name: group.ifc_type_name,
+        item_id: itemId,
+        replace_existing: tab === 'manual',
+      })
+      if (tab === 'manual') {
+        toast(`Reasignado a ${res.created} elementos (borradas: ${res.deleted_assignments ?? 0})`, 'success')
+      } else {
+        toast(`Asignado a ${res.created} elementos (saltados: ${res.skipped_already_assigned})`, 'success')
+      }
       onRefresh()
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Error al asignar grupo', 'error')
@@ -108,7 +117,7 @@ export function MappingGroupDetail({ projectId, tab, group, toast, onRefresh }: 
         <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
           {tab === 'manual' && assignedLabel ? (
             <>
-              Ítem asignado: <strong>{assignedLabel}</strong>
+              Ítem asignado: <strong>{assignedLabel}</strong>. Podés reasignar el grupo seleccionando otro ítem.
             </>
           ) : (
             <>
@@ -165,7 +174,7 @@ export function MappingGroupDetail({ projectId, tab, group, toast, onRefresh }: 
                   disabled={!canOperate || busyItemId === item.id}
                   onClick={() => { void handleAssign(item.id) }}
                 >
-                  {busyItemId === item.id ? '…' : 'Asignar al grupo'}
+                  {busyItemId === item.id ? '…' : (tab === 'manual' ? 'Reasignar grupo' : 'Asignar al grupo')}
                 </button>
               </div>
             ))}

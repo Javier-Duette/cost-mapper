@@ -2,6 +2,17 @@ import { useState } from 'react'
 import type { CatalogItem } from '../../types/catalog'
 import { createItem } from '../../api/catalog'
 
+const UNIT_OPTIONS = [
+  { value: 'm²', label: 'm² (área)' },
+  { value: 'm³', label: 'm³ (volumen)' },
+  { value: 'm', label: 'm (longitud)' },
+  { value: 'un', label: 'un (unidad)' },
+  { value: 'kg', label: 'kg' },
+  { value: 'l', label: 'l' },
+  { value: 'h', label: 'h (hora)' },
+  { value: 'bls', label: 'bls (bolsa)' },
+] as const
+
 export function CreateItemModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: (item: CatalogItem) => void }) {
   const [data, setData] = useState({
     nbr_code: '',
@@ -74,7 +85,11 @@ export function CreateItemModal({ onClose, onSuccess }: { onClose: () => void, o
         <div style={{ display: 'flex', gap: 16 }}>
           <div style={{ flex: 1 }}>
             <label style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)' }}>Unidad</label>
-            <input required value={data.unit} onChange={e => setData({...data, unit: e.target.value})} style={{ width: '100%', padding: 4 }} />
+            <select required value={data.unit} onChange={e => setData({ ...data, unit: e.target.value })} style={{ width: '100%', padding: 4 }}>
+              {UNIT_OPTIONS.map(u => (
+                <option key={u.value} value={u.value}>{u.label}</option>
+              ))}
+            </select>
           </div>
           <div style={{ flex: 1 }}>
             <label style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)' }}>Precio Unitario (₲)</label>

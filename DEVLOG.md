@@ -4,6 +4,24 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-11 21:52 — Fixes BUGS.md: APU suma, borrar ítems, remapeo y seed de precios demo
+
+**Implementado:**
+- Catálogo (backend): al agregar/editar APU se recalcula `unit_price` del ítem padre; si cambia el precio de un componente, se recalculan todos sus padres.
+- Catálogo (backend+frontend): `DELETE /api/catalog/items/{id}` + botón de eliminar en panel (bloquea si está referenciado por Biblioteca/Mapeo o como insumo).
+- Catálogo (frontend): `CreateItemModal` ahora usa dropdown de unidades soportadas.
+- Mapeo IFC: remapeo por grupo desde tab **Asignados (manual)** (sobrescribe asignaciones previas del grupo).
+- Scripts: `scripts/seed_demo_prices.py` para asignar precios aproximados a work items y normalizar unidades (opción `--delete-noncanonical`).
+
+**Problemas resueltos:**
+- No se sumaban insumos al total del ítem (APU no impactaba `unit_price`).
+- No existía forma de eliminar ítems y el remapeo por grupo estaba bloqueado luego de asignar.
+
+**Decisiones cambiadas:**
+- Ninguna.
+
+**Próximo paso:** definir política de unidades (normalización + conversión) y extender cantidades IFC por tipo (slabs/columns/beams) manteniendo guardas por unidad.
+
 ## 2026-05-11 21:01 — Presupuesto desde IFC: modo “IFC” + muros en m² (MVP)
 
 **Implementado:**

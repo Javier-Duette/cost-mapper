@@ -68,9 +68,11 @@ export interface GroupAssignInput {
   ifc_type: string
   ifc_type_name?: string | null
   item_id: string
+  replace_existing?: boolean
 }
 
 export interface GroupAssignSummary {
   created: number
   skipped_already_assigned: number
+  deleted_assignments?: number
 }

@@ -183,6 +183,50 @@ def list_unassigned_elements_by_group(
     return list(session.exec(statement).all())
 
 
+def list_active_elements_by_group(
+    session: Session,
+    *,
+    project_id: str,
+    ifc_type: str,
+    ifc_type_name: str | None,
+) -> list[IfcElement]:
+    """Lista elementos activos de un grupo (IfcType + ifc_type_name), asignados o no."""
+    statement = select(IfcElement).where(
+        IfcElement.project_id == project_id,
+        IfcElement.status == "active",
+        IfcElement.ifc_type == ifc_type,
+    )
+    if ifc_type_name is None:
+        statement = statement.where(col(IfcElement.ifc_type_name).is_(None))
+    else:
+        statement = statement.where(IfcElement.ifc_type_name == ifc_type_name)
+
+    statement = statement.order_by(IfcElement.global_id)
+    return list(session.exec(statement).all())
+
+
+def delete_assignments_for_elements(session: Session, *, project_id: str, element_ids: list[str]) -> int:
+    """Elimina todas las asignaciones de un conjunto de elementos (user + auto)."""
+    if not element_ids:
+        return 0
+    from sqlalchemy import delete, func
+
+    count_stmt = (
+        select(func.count())
+        .select_from(ProjectAssignment)
+        .where(ProjectAssignment.project_id == project_id, ProjectAssignment.ifc_element_id.in_(element_ids))
+    )
+    to_delete = int(session.exec(count_stmt).one())
+
+    del_stmt = delete(ProjectAssignment).where(
+        ProjectAssignment.project_id == project_id,
+        ProjectAssignment.ifc_element_id.in_(element_ids),
+    )
+    session.exec(del_stmt)
+    session.commit()
+    return to_delete
+
+
 def count_active_elements_by_group(
     session: Session,
     *,

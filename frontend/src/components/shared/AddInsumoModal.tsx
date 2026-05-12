@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import type { CatalogItem } from '../../types/catalog'
 import { searchItems } from '../../api/catalog'
 
-export function AddInsumoModal({ onClose, onAdd }: { onClose: () => void, onAdd: (component_id: string, coef: number) => void }) {
+export function AddInsumoModal({ onClose, onAdd }: { onClose: () => void, onAdd: (component_id: string, unit: string, coef: number) => void }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<CatalogItem[]>([])
   const [selected, setSelected] = useState<CatalogItem | null>(null)
@@ -22,7 +22,7 @@ export function AddInsumoModal({ onClose, onAdd }: { onClose: () => void, onAdd:
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (selected) {
-      onAdd(selected.id, coef)
+      onAdd(selected.id, selected.unit, coef)
     }
   }
 

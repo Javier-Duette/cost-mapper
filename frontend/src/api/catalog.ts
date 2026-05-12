@@ -80,3 +80,20 @@ export async function addAPUComponent(itemId: string, data: { component_id: stri
   })
   if (!res.ok) throw new Error(`POST /items/${itemId}/apu falló: ` + res.status)
 }
+
+/** Elimina un ítem del catálogo (si no está referenciado). */
+export async function deleteItem(id: string, user?: string): Promise<void> {
+  const headers: Record<string, string> = {}
+  if (user) headers['X-User'] = user
+  const res = await fetch(`${BASE}/items/${id}`, { method: 'DELETE', headers })
+  if (!res.ok) {
+    let detail = `${res.status}`
+    try {
+      const json = await res.json()
+      if (json?.detail?.message) detail = json.detail.message
+    } catch {
+      // ignore
+    }
+    throw new Error(`DELETE /items/${id} falló: ${detail}`)
+  }
+}

@@ -415,7 +415,15 @@ export default function App() {
           />
 
           {section === 'catalog' ? (
-            <DetailPanel item={catSelectedItem} onUpdate={handleItemUpdate} />
+            <DetailPanel
+              item={catSelectedItem}
+              onUpdate={handleItemUpdate}
+              onDelete={() => {
+                setCatSelectedId(null)
+                setCatSelectedItem(null)
+                setRefreshCounter(prev => prev + 1)
+              }}
+            />
           ) : (
             mappingSelectedGroup ? (
               <MappingGroupDetail

@@ -22,6 +22,47 @@ from catalog.models import (
 )
 
 
+def _recalculate_item_price_from_apu(session: Session, *, item_id: str, user: str) -> None:
+    """Recalcula `unit_price` del Ã­tem padre a partir de su APU.
+
+    MVP: suma coef * precio de cada componente que tenga precio.
+    Si no hay componentes con precio, deja el Ã­tem sin precio (NULL).
+    """
+    apu = repository.get_apu_components(session, item_id)
+    if not apu:
+        return
+
+    priced = [r for r in apu if r.precio is not None]
+    if not priced:
+        update = CatalogItemUpdate(
+            unit_price=None,
+            currency=None,
+            fuente_precios="apu_calc",
+            is_verified=False,
+            verificado_por=None,
+            fecha_verificacion=None,
+        )
+        parent = obtener_item(session, item_id)
+        repository.update(session, parent, update, modificado_por=user)
+        return
+
+    total = sum((r.coef * (r.precio or Decimal("0"))) for r in apu)
+
+    currencies = sorted({r.currency for r in priced if r.currency})
+    currency = currencies[0] if len(currencies) == 1 else None
+
+    update = CatalogItemUpdate(
+        unit_price=total,
+        currency=currency,
+        fuente_precios="apu_calc",
+        is_verified=False,
+        verificado_por=None,
+        fecha_verificacion=None,
+    )
+    parent = obtener_item(session, item_id)
+    repository.update(session, parent, update, modificado_por=user)
+
+
 def buscar_items(
     session: Session,
     *,
@@ -90,7 +131,16 @@ def actualizar_item(
     El router debe avisar al usuario del alcance del cambio.
     """
     item = obtener_item(session, item_id)
-    return repository.update(session, item, data, modificado_por=user)
+    update_data = data.model_dump(exclude_unset=True)
+    updated = repository.update(session, item, data, modificado_por=user)
+
+    # Si se actualiza el precio de un componente, recalcular todos los padres que lo usan (APU).
+    if "unit_price" in update_data or "currency" in update_data:
+        parent_ids = repository.list_parent_item_ids_using_component(session, component_id=updated.id)
+        for parent_id in sorted(set(parent_ids)):
+            _recalculate_item_price_from_apu(session, item_id=parent_id, user=user)
+
+    return obtener_item(session, item_id)
 
 
 def crear_item(
@@ -150,6 +200,9 @@ def actualizar_apu_componente(
     session.add(parent)
     session.commit()
     
+    # Recalcular precio del Ã­tem padre en base al APU.
+    _recalculate_item_price_from_apu(session, item_id=apu.item_id, user="system:apu_calc")
+
     return apu
 
 
@@ -169,7 +222,7 @@ def agregar_componente_apu(
         item_id=item_id,
         component_id=data.component_id,
         quantity=data.quantity,
-        unit=data.unit,
+        unit=component.unit,
         source=data.source
     )
     apu = repository.add_apu_component(session, apu)
@@ -179,4 +232,28 @@ def agregar_componente_apu(
     session.add(parent)
     session.commit()
     
+    # Recalcular precio del Ã­tem padre en base al APU.
+    _recalculate_item_price_from_apu(session, item_id=item_id, user="system:apu_calc")
+
     return apu
+
+
+def eliminar_item(session: Session, item_id: str, user: str = "user:anonymous") -> None:
+    """Elimina un Ã­tem del catÃ¡logo si no estÃ¡ referenciado por otras tablas.
+
+    Por reglas de mÃ³dulo, el catÃ¡logo NO elimina filas en library/mapper.
+    Si estÃ¡ referenciado, se devuelve 409.
+    """
+    item = obtener_item(session, item_id)
+
+    refs = repository.count_external_references(session, item_id=item.id)
+    if any(v > 0 for v in refs.values()):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": "No se puede eliminar el Ã­tem porque estÃ¡ referenciado.",
+                "references": refs,
+            },
+        )
+
+    repository.delete_item_and_own_apu(session, item=item)

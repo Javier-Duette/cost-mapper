@@ -211,3 +211,45 @@ def add_apu_component(session: Session, apu: APUComponent) -> APUComponent:
     session.commit()
     session.refresh(apu)
     return apu
+
+
+def list_parent_item_ids_using_component(session: Session, *, component_id: str) -> list[str]:
+    """Lista IDs de Ã­tems padre que usan un componente dado en su APU."""
+    statement = select(APUComponent.item_id).where(APUComponent.component_id == component_id)
+    return list(session.exec(statement).all())
+
+
+def count_external_references(session: Session, *, item_id: str) -> dict[str, int]:
+    """Cuenta referencias a un Ã­tem desde otras tablas (solo lectura).
+
+    Se usa para validar borrado seguro sin romper integridad referencial.
+    """
+    from sqlalchemy import func
+    from library.models import ProjectLibraryEntry
+    from mapper.models import ProjectAssignment
+
+    lib_count = session.exec(
+        select(func.count()).select_from(ProjectLibraryEntry).where(ProjectLibraryEntry.item_id == item_id)
+    ).one()
+    assign_count = session.exec(
+        select(func.count()).select_from(ProjectAssignment).where(ProjectAssignment.item_id == item_id)
+    ).one()
+    used_as_component_count = session.exec(
+        select(func.count()).select_from(APUComponent).where(APUComponent.component_id == item_id)
+    ).one()
+    return {
+        "project_library": int(lib_count),
+        "project_assignments": int(assign_count),
+        "apu_as_component": int(used_as_component_count),
+    }
+
+
+def delete_item_and_own_apu(session: Session, *, item: CatalogItem) -> None:
+    """Elimina un Ã­tem y sus APUComponents donde es padre (item_id).
+
+    Nota: NO elimina referencias en otras tablas (library/mapper).
+    """
+    for apu in session.exec(select(APUComponent).where(APUComponent.item_id == item.id)).all():
+        session.delete(apu)
+    session.delete(item)
+    session.commit()
