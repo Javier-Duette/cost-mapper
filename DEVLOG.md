@@ -4,6 +4,20 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-12 — Sin decimales en precios ₲ y normalización de unidades
+
+**Implementado:**
+- `formatters.ts`: `fmt()` ahora redondea a 0 decimales (₲ siempre entero); nueva `fmtQty()` para cantidades de medición (hasta 3 decimales, locale es-PY).
+- `BudgetView` y `LibraryView`: usan `fmtQty()` en celdas de cantidad para separar la presentación de precios (0 dec) de cantidades (hasta 3 dec).
+- `catalog/models.py`: `_UNIT_ALIASES` dict normaliza unidades en los validadores de `CatalogItemCreate` y `CatalogItemUpdate` (m2→m², m3→m³, hr→h, und→un, etc.). La DB guarda siempre la forma canónica Unicode.
+- DB migrada directamente: corregidas todas las filas con unidades no canónicas (m2→m², m3→m³, hr→h, "h prod"→h).
+
+**Problemas resueltos:**
+- Catálogo mostraba mezcla de m², m2, m3 en la columna UND por falta de normalización.
+- Precios en ₲ mostraban decimales innecesarios (trabajamos en Guaraníes enteros).
+
+**Próximo paso:** Advertencia al editar `unit_price` directamente cuando el ítem tiene APU (informar que los insumos dejan de ser el origen del precio). Ver BUGS.md para detalle.
+
 ## 2026-05-12 — Catálogo, Mapeo IFC y Presupuesto: correcciones y extensiones
 
 **Implementado:**
