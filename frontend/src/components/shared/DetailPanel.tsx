@@ -403,7 +403,13 @@ export function DetailPanel({ item, onUpdate, onDelete }: DetailPanelProps) {
       {auditAction && (
         <AuditModal
           title="Confirmar Cambio de Precio"
-          message={`Estás modificando el precio a ₲ ${parseFloat(auditAction.newValue).toLocaleString('es-PY')}. Este cambio afectará a todos los ítems que utilicen este insumo.`}
+          message={
+            auditAction.type === 'item_price'
+              ? apu.length > 0
+                ? `Vas a fijar el precio del ítem a ₲ ${parseFloat(auditAction.newValue).toLocaleString('es-PY')} de forma manual. Este ítem tiene ${apu.length} insumo${apu.length !== 1 ? 's' : ''} en su APU — si confirmás, el precio manual sobreescribe el APU. Los insumos seguirán visibles pero dejarán de controlar el precio del ítem. Usá esta opción solo si no tenés APU cargado o si el precio de mercado difiere del APU.`
+                : `Vas a establecer el precio unitario del ítem a ₲ ${parseFloat(auditAction.newValue).toLocaleString('es-PY')}.`
+              : `Vas a modificar el precio del insumo a ₲ ${parseFloat(auditAction.newValue).toLocaleString('es-PY')}. Este precio se comparte en todos los APUs donde aparece este insumo — el cambio afecta a todos los ítems que lo usan.`
+          }
           confirmText="Confirmar Cambio"
           onClose={() => setAuditAction(null)}
           onConfirm={auditAction.type === 'item_price' ? handleUpdateItemPriceConfirm : handleUpdatePrecioConfirm}
