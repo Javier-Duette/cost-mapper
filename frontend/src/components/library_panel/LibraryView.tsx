@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { keynotesExportUrl, listLibrary, removeFromLibrary } from '../../api/library'
+import { keynotesExportUrl, listLibrary, removeFromLibrary, updateLibraryEntry } from '../../api/library'
 import type { LibraryEntryReadWithItem } from '../../types/library'
 import { Chip } from '../shared/Chip'
 import { Icon } from '../shared/Icon'
@@ -18,6 +18,11 @@ export function LibraryView({ projectId, toast }: LibraryViewProps) {
   const [error, setError] = useState<string | null>(null)
   const [removingId, setRemovingId] = useState<string | null>(null)
 
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingVal, setEditingVal] = useState('')
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
   const load = useCallback(async () => {
     if (!projectId) return
     setLoading(true)
@@ -33,6 +38,47 @@ export function LibraryView({ projectId, toast }: LibraryViewProps) {
   }, [projectId])
 
   useEffect(() => { void load() }, [load])
+
+  useEffect(() => {
+    if (editingId) inputRef.current?.focus()
+  }, [editingId])
+
+  const startEdit = (entryId: string, currentQty: number | null) => {
+    setEditingId(entryId)
+    setEditingVal(currentQty != null ? String(currentQty) : '')
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditingVal('')
+  }
+
+  const confirmEdit = async (entryId: string, originalQty: number | null) => {
+    if (!projectId) return
+    const raw = editingVal.trim().replace(',', '.')
+    const qty = raw === '' ? null : Number(raw)
+
+    if (raw !== '' && (isNaN(qty!) || qty! <= 0)) {
+      toast('Cantidad invalida — ingresa un numero positivo', 'warning')
+      return
+    }
+
+    cancelEdit()
+    setSavingId(entryId)
+    try {
+      await updateLibraryEntry(projectId, entryId, { manual_quantity: qty })
+      setEntries(prev =>
+        prev.map(e => e.id === entryId ? { ...e, manual_quantity: qty } : e),
+      )
+    } catch {
+      setEntries(prev =>
+        prev.map(e => e.id === entryId ? { ...e, manual_quantity: originalQty } : e),
+      )
+      toast('Error al guardar la cantidad', 'error')
+    } finally {
+      setSavingId(null)
+    }
+  }
 
   const handleRemove = async (entryId: string, description: string) => {
     if (!projectId || removingId) return
@@ -137,45 +183,81 @@ export function LibraryView({ projectId, toast }: LibraryViewProps) {
                 <th style={{ width: 170 }}>CODIGO NBR</th>
                 <th>DESCRIPCION</th>
                 <th style={{ width: 60 }}>UND</th>
+                <th className="num" style={{ width: 90 }}>CANT.</th>
                 <th style={{ width: 100 }}>AGREGADO</th>
                 <th style={{ width: 100, textAlign: 'center' }}>VERIF.</th>
                 <th style={{ width: 44 }} />
               </tr>
             </thead>
             <tbody>
-              {entries.map(e => (
-                <tr
-                  key={e.id}
-                  style={!e.is_verified ? { background: 'rgba(244, 67, 54, 0.05)' } : {}}
-                  title={!e.is_verified ? 'Item pendiente de verificacion humana' : ''}
-                >
-                  <td><Chip faceta={e.facet} /></td>
-                  <td className="num">{e.nbr_code}</td>
-                  <td className="desc">{e.description_es}</td>
-                  <td>{e.unit}</td>
-                  <td style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                    {new Date(e.added_at).toLocaleDateString('es-PY')}
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    {e.is_verified ? (
-                      <span style={{ color: 'var(--success)' }}>OK</span>
-                    ) : (
-                      <span style={{ color: 'var(--error)', fontWeight: 600 }}>NO</span>
-                    )}
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <button
-                      className="btn-icon"
-                      title="Remover de la biblioteca"
-                      onClick={() => handleRemove(e.id, e.description_es)}
-                      disabled={removingId === e.id}
-                      style={{ color: 'var(--error)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+              {entries.map(e => {
+                const isEditing = editingId === e.id
+                const isSaving = savingId === e.id
+                return (
+                  <tr
+                    key={e.id}
+                    style={!e.is_verified ? { background: 'rgba(244, 67, 54, 0.05)' } : {}}
+                    title={!e.is_verified ? 'Item pendiente de verificacion humana' : ''}
+                  >
+                    <td><Chip faceta={e.facet} /></td>
+                    <td className="num">{e.nbr_code}</td>
+                    <td className="desc">{e.description_es}</td>
+                    <td>{e.unit}</td>
+                    <td
+                      className="num qty-cell"
+                      title="Clic para editar cantidad"
+                      onClick={() => {
+                        if (!isEditing && !isSaving) startEdit(e.id, e.manual_quantity)
+                      }}
                     >
-                      {removingId === e.id ? '...' : <Icon name="trash" size={16} />}
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                      {isEditing ? (
+                        <input
+                          ref={inputRef}
+                          className="qty-input"
+                          value={editingVal}
+                          disabled={isSaving}
+                          onChange={ev => setEditingVal(ev.target.value)}
+                          onKeyDown={ev => {
+                            if (ev.key === 'Enter') void confirmEdit(e.id, e.manual_quantity)
+                            if (ev.key === 'Escape') cancelEdit()
+                          }}
+                          onBlur={() => void confirmEdit(e.id, e.manual_quantity)}
+                          onClick={ev => ev.stopPropagation()}
+                        />
+                      ) : isSaving ? (
+                        <span className="qty-value" style={{ opacity: 0.5 }}>
+                          {e.manual_quantity != null ? String(e.manual_quantity) : '—'}
+                        </span>
+                      ) : e.manual_quantity == null ? (
+                        <span className="qty-empty">—</span>
+                      ) : (
+                        <span className="qty-value">{e.manual_quantity}</span>
+                      )}
+                    </td>
+                    <td style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                      {new Date(e.added_at).toLocaleDateString('es-PY')}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      {e.is_verified ? (
+                        <span style={{ color: 'var(--success)' }}>OK</span>
+                      ) : (
+                        <span style={{ color: 'var(--error)', fontWeight: 600 }}>NO</span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <button
+                        className="btn-icon"
+                        title="Remover de la biblioteca"
+                        onClick={() => handleRemove(e.id, e.description_es)}
+                        disabled={removingId === e.id}
+                        style={{ color: 'var(--error)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                      >
+                        {removingId === e.id ? '...' : <Icon name="trash" size={16} />}
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

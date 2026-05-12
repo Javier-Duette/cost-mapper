@@ -62,21 +62,43 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
     setEditingVal('')
   }
 
-  const confirmEdit = async (entryId: string) => {
+  const confirmEdit = async (entryId: string, originalQty: number | null) => {
     if (!projectId) return
     const raw = editingVal.trim().replace(',', '.')
     const qty = raw === '' ? null : Number(raw)
 
     if (raw !== '' && (isNaN(qty!) || qty! < 0)) {
-      toast('Cantidad invÃ¡lida â€” ingresÃ¡ un nÃºmero positivo', 'error')
+      toast('Cantidad inválida — ingresá un número positivo', 'error')
       return
     }
 
     cancelEdit()
+
+    // Optimistic update: set the new value immediately in local state
+    setBudget(prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        rows: prev.rows.map(r =>
+          r.entry_id === entryId ? { ...r, manual_quantity: qty } : r,
+        ),
+      }
+    })
+
     try {
       await updateLibraryEntry(projectId, entryId, { manual_quantity: qty })
-      load()
+      // Success — no toast, keep the optimistic value
     } catch {
+      // Revert to original value on failure
+      setBudget(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          rows: prev.rows.map(r =>
+            r.entry_id === entryId ? { ...r, manual_quantity: originalQty } : r,
+          ),
+        }
+      })
       toast('Error al guardar la cantidad', 'error')
     }
   }
@@ -238,25 +260,25 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
                         >
                           {isIfcMode ? (
                             (r as IfcBudgetRow).computed_quantity == null
-                              ? <span className="qty-empty">â€”</span>
-                              : <span className="qty-value">{fmt((r as IfcBudgetRow).computed_quantity)}</span>
+                              ? <span className=”qty-empty” title=”Tipo de elemento IFC sin cálculo automático de cantidad”>â€”</span>
+                              : <span className=”qty-value”>{fmt((r as IfcBudgetRow).computed_quantity)}</span>
                           ) : editing ? (
                             <input
                               ref={inputRef}
-                              className="qty-input"
+                              className=”qty-input”
                               value={editingVal}
                               onChange={e => setEditingVal(e.target.value)}
                               onKeyDown={e => {
-                                if (e.key === 'Enter') void confirmEdit((r as BudgetRow).entry_id)
+                                if (e.key === 'Enter') void confirmEdit((r as BudgetRow).entry_id, (r as BudgetRow).manual_quantity)
                                 if (e.key === 'Escape') cancelEdit()
                               }}
-                              onBlur={() => void confirmEdit((r as BudgetRow).entry_id)}
+                              onBlur={() => void confirmEdit((r as BudgetRow).entry_id, (r as BudgetRow).manual_quantity)}
                               onClick={e => e.stopPropagation()}
                             />
                           ) : (
                             (r as BudgetRow).manual_quantity == null
-                              ? <span className="qty-empty">â€”</span>
-                              : <span className="qty-value">{fmt((r as BudgetRow).manual_quantity)}</span>
+                              ? <span className=”qty-empty”>â€”</span>
+                              : <span className=”qty-value”>{fmt((r as BudgetRow).manual_quantity)}</span>
                           )}
                         </td>
                         <td className="num">
