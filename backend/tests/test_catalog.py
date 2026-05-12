@@ -204,3 +204,80 @@ class TestAPU:
         r = client.get(f"/api/catalog/items/{item_id}/apu")
         assert r.status_code == 200
         assert r.json() == []
+
+
+class TestUnitValidation:
+    """Validación de unidades de medida en creación y actualización de ítems."""
+
+    def test_create_item_with_valid_unit(self, client: TestClient):
+        """Crear un ítem con unidad válida debe devolver 201."""
+        for unit in ["m²", "m2", "hr", "un", "kg", "gl", "global"]:
+            r = client.post("/api/catalog/items", json={
+                "nbr_code": "3E 05 20",
+                "facet": "3E",
+                "description_es": f"Ítem con unidad {unit}",
+                "unit": unit,
+            })
+            assert r.status_code == 201, f"Falló con unidad válida '{unit}': {r.json()}"
+            assert r.json()["unit"] == unit
+
+    def test_create_item_with_invalid_unit_returns_422(self, client: TestClient):
+        """Crear un ítem con unidad inválida debe devolver 422."""
+        r = client.post("/api/catalog/items", json={
+            "nbr_code": "3E 05 20",
+            "facet": "3E",
+            "description_es": "Muro con unidad inválida",
+            "unit": "metro cuadrado",
+        })
+        assert r.status_code == 422
+
+    def test_create_item_with_another_invalid_unit_returns_422(self, client: TestClient):
+        """Crear un ítem con unidad completamente arbitraria devuelve 422."""
+        r = client.post("/api/catalog/items", json={
+            "nbr_code": "2N 30 00",
+            "facet": "2N",
+            "description_es": "Albañil",
+            "unit": "hora_hombre",
+        })
+        assert r.status_code == 422
+
+    def test_update_item_with_valid_unit(self, client: TestClient):
+        """Actualizar la unidad a un valor válido debe devolver 200."""
+        r = client.post("/api/catalog/items", json={
+            "nbr_code": "3E 05 30",
+            "facet": "3E",
+            "description_es": "Columna de hormigón",
+            "unit": "m³",
+        })
+        item_id = r.json()["id"]
+
+        r = client.put(f"/api/catalog/items/{item_id}", json={"unit": "m3"})
+        assert r.status_code == 200
+        assert r.json()["unit"] == "m3"
+
+    def test_update_item_with_invalid_unit_returns_422(self, client: TestClient):
+        """Actualizar la unidad a un valor inválido debe devolver 422."""
+        r = client.post("/api/catalog/items", json={
+            "nbr_code": "3E 05 30",
+            "facet": "3E",
+            "description_es": "Columna de hormigón",
+            "unit": "m³",
+        })
+        item_id = r.json()["id"]
+
+        r = client.put(f"/api/catalog/items/{item_id}", json={"unit": "metros_cúbicos"})
+        assert r.status_code == 422
+
+    def test_update_item_without_unit_field_is_allowed(self, client: TestClient):
+        """Actualizar otros campos sin tocar 'unit' no debe fallar."""
+        r = client.post("/api/catalog/items", json={
+            "nbr_code": "3E 05 30",
+            "facet": "3E",
+            "description_es": "Columna de hormigón",
+            "unit": "m³",
+        })
+        item_id = r.json()["id"]
+
+        r = client.put(f"/api/catalog/items/{item_id}", json={"description_es": "Columna de H°A° e=30cm"})
+        assert r.status_code == 200
+        assert r.json()["description_es"] == "Columna de H°A° e=30cm"

@@ -79,7 +79,7 @@ def _create_catalog_item(
 class TestCatalogAPURecalc:
     def test_parent_unit_price_updates_from_apu_and_component_price(self, client: TestClient):
         comp_id = _create_catalog_item(client, nbr_code="2C 00 00 00 00 01", facet="2C", unit="un", unit_price=100.0)
-        parent_id = _create_catalog_item(client, nbr_code="3R 00 00 00 00 01", facet="3R", unit="mÂ²")
+        parent_id = _create_catalog_item(client, nbr_code="3R 00 00 00 00 01", facet="3R", unit="m²")
 
         r_add = client.post(
             f"/api/catalog/items/{parent_id}/apu",

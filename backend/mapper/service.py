@@ -61,7 +61,7 @@ def list_mapping_elements(
             project_id=project_id,
             tab=tab,
             offset=0,
-            limit=5000,
+            limit=repository._MAX_ELEMENTS_PER_TAB,
             query=query,
         )
         candidate_ids = [e.id for e in candidates]

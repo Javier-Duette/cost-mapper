@@ -11,7 +11,21 @@ import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 
+from pydantic import field_validator
 from sqlmodel import Field, Relationship, SQLModel
+
+# ---------------------------------------------------------------------------
+# Constantes de dominio
+# ---------------------------------------------------------------------------
+
+# Unidades de medida válidas para ítems del catálogo y componentes APU.
+# El ETL y los endpoints de escritura deben respetar este conjunto.
+# Si se necesita agregar una unidad nueva, hacerlo aquí y en los tests.
+VALID_UNITS: frozenset[str] = frozenset({
+    "m²", "m2", "m³", "m3", "m", "ml",
+    "un", "und", "unidad", "pza", "pieza",
+    "kg", "l", "lt", "h", "hr", "bls", "bolsa", "gl", "global",
+})
 
 
 # ---------------------------------------------------------------------------
@@ -257,6 +271,16 @@ class CatalogItemCreate(SQLModel):
     fuente_precios: str | None = None
     fuente_factores: str | None = None
 
+    @field_validator("unit", mode="before")
+    @classmethod
+    def validate_unit(cls, v: str) -> str:
+        v = str(v).strip()
+        if v not in VALID_UNITS:
+            raise ValueError(
+                f"Unidad '{v}' no es válida. Unidades aceptadas: {sorted(VALID_UNITS)}"
+            )
+        return v
+
 
 class CatalogItemUpdate(SQLModel):
     """Request body para edición parcial de un ítem.
@@ -274,6 +298,18 @@ class CatalogItemUpdate(SQLModel):
     is_verified: bool | None = None
     verificado_por: str | None = None
     fecha_verificacion: datetime | None = None
+
+    @field_validator("unit", mode="before")
+    @classmethod
+    def validate_unit(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        v = str(v).strip()
+        if v not in VALID_UNITS:
+            raise ValueError(
+                f"Unidad '{v}' no es válida. Unidades aceptadas: {sorted(VALID_UNITS)}"
+            )
+        return v
 
 
 class CatalogItemRead(SQLModel):

@@ -6,6 +6,13 @@ from decimal import Decimal
 
 from sqlmodel import Session, col, select
 
+# Límite de elementos cargados en memoria para operaciones sin paginación (ej.
+# agrupación por tipo en list_mapping_groups).  Un valor mayor protege proyectos
+# grandes, pero aumenta el uso de RAM.  10 000 es suficiente para cualquier
+# modelo IFC real en producción; si algún proyecto supera este número se deberá
+# refactorizar la agrupación para hacerla en la base de datos.
+_MAX_ELEMENTS_PER_TAB = 10_000
+
 from catalog.models import CatalogItem
 from ifc_importer.models import IfcElement
 from library.models import ProjectLibraryEntry
@@ -118,7 +125,7 @@ def list_elements_for_tab_unpaged(
     project_id: str,
     tab: str,
     query: str | None,
-    limit: int = 5000,
+    limit: int = _MAX_ELEMENTS_PER_TAB,
 ) -> list[IfcElement]:
     statement = select(IfcElement).where(IfcElement.project_id == project_id, IfcElement.status == "active")
 
