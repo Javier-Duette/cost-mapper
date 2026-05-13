@@ -8,6 +8,8 @@ const IFC_UNCLASSIFIED_TWO_WALLS = path.join(__dirname, 'fixtures', 'unclassifie
 
 const BACKEND_BASE_URL = process.env.E2E_BACKEND_BASE_URL ?? 'http://127.0.0.1:8002'
 
+const createdItemIds: string[] = []
+
 async function createProject(name: string) {
   const api = await playwrightRequest.newContext({ baseURL: BACKEND_BASE_URL })
   const res = await api.post('/api/projects', {
@@ -19,7 +21,7 @@ async function createProject(name: string) {
   return data as { id: string; name: string }
 }
 
-async function createCatalogItemExactNbr() {
+async function createCatalogItemExactNbr(): Promise<string> {
   const api = await playwrightRequest.newContext({ baseURL: BACKEND_BASE_URL })
   const res = await api.post('/api/catalog/items', {
     data: {
@@ -30,10 +32,12 @@ async function createCatalogItemExactNbr() {
     },
   })
   expect(res.ok()).toBeTruthy()
+  const data = await res.json()
   await api.dispose()
+  return data.id as string
 }
 
-async function createCatalogItemForGroupAssign() {
+async function createCatalogItemForGroupAssign(): Promise<string> {
   const api = await playwrightRequest.newContext({ baseURL: BACKEND_BASE_URL })
   const res = await api.post('/api/catalog/items', {
     data: {
@@ -44,8 +48,22 @@ async function createCatalogItemForGroupAssign() {
     },
   })
   expect(res.ok()).toBeTruthy()
+  const data = await res.json()
+  await api.dispose()
+  return data.id as string
+}
+
+async function deleteCatalogItem(id: string) {
+  const api = await playwrightRequest.newContext({ baseURL: BACKEND_BASE_URL })
+  await api.delete(`/api/catalog/items/${id}`)
   await api.dispose()
 }
+
+test.afterAll(async () => {
+  for (const id of createdItemIds) {
+    await deleteCatalogItem(id)
+  }
+})
 
 async function selectProjectByName(page: Page, projectName: string) {
   await page.locator('.proj-select').click()
@@ -54,7 +72,7 @@ async function selectProjectByName(page: Page, projectName: string) {
 
 test('modo completo: auto-asignación por match exacto NBR al importar IFC', async ({ page }) => {
   const projectName = `E2E AutoAssign ${Date.now()}`
-  await createCatalogItemExactNbr()
+  createdItemIds.push(await createCatalogItemExactNbr())
   await createProject(projectName)
 
   await page.goto('/')
@@ -88,45 +106,9 @@ test('modo completo: auto-asignación por match exacto NBR al importar IFC', asy
   await expect(row.locator('td').nth(3)).toHaveText('1')
 })
 
-test('modo local: Limpiar permite re-seleccionar el mismo IFC', async ({ page }) => {
-  const projectName = `E2E LocalMode ${Date.now()}`
-  await createProject(projectName)
-
-  await page.goto('/')
-  await expect(page.locator('.hdr__brand')).toBeVisible({ timeout: 30_000 })
-  await selectProjectByName(page, projectName)
-
-  await page.locator('button[title="Mapeo IFC"]').click()
-  const [fileChooser] = await Promise.all([
-    page.waitForEvent('filechooser'),
-    page.getByRole('button', { name: 'Importar modelo IFC' }).click(),
-  ])
-  await fileChooser.setFiles(IFC_WITH_CLASSIFICATION)
-
-  await expect(page.getByRole('button', { name: 'Modo local' })).toBeVisible()
-  await page.getByRole('button', { name: 'Modo local' }).click()
-
-  const [localChooser] = await Promise.all([
-    page.waitForEvent('filechooser'),
-    page.getByRole('button', { name: 'Cargar IFC local' }).click(),
-  ])
-  await localChooser.setFiles(IFC_WITH_CLASSIFICATION)
-  await expect(page.getByText('IFC local seleccionado:')).toBeVisible()
-
-  await page.getByRole('button', { name: 'Limpiar' }).click()
-  await expect(page.getByText('Seleccioná un archivo')).toBeVisible()
-
-  const [localChooser2] = await Promise.all([
-    page.waitForEvent('filechooser'),
-    page.getByRole('button', { name: 'Cargar IFC local' }).click(),
-  ])
-  await localChooser2.setFiles(IFC_WITH_CLASSIFICATION)
-  await expect(page.getByText('IFC local seleccionado:')).toBeVisible()
-})
-
 test('modo completo: asignación manual masiva por grupo (IfcType + tipo)', async ({ page }) => {
   const projectName = `E2E GroupAssign ${Date.now()}`
-  await createCatalogItemForGroupAssign()
+  createdItemIds.push(await createCatalogItemForGroupAssign())
   await createProject(projectName)
 
   await page.goto('/')

@@ -15,7 +15,6 @@ import { BudgetView } from './components/budget_panel/BudgetView'
 import { MappingView } from './components/mapping_panel/MappingView'
 import { MappingElementDetail } from './components/mapping_panel/MappingElementDetail'
 import { MappingGroupDetail } from './components/mapping_panel/MappingGroupDetail'
-import { MappingViewerOnly } from './components/mapping_panel/MappingViewerOnly'
 
 import { ReportsView } from './components/reports_panel/ReportsView'
 import { LibraryView } from './components/library_panel/LibraryView'
@@ -161,8 +160,6 @@ export default function App() {
   const [mappingSelectedGroup, setMappingSelectedGroup] = useState<MappingGroupRead | null>(null)
   const [mappingTab, setMappingTab] = useState<MappingTab>('unassigned')
   const [mappingRefreshKey, setMappingRefreshKey] = useState(0)
-  const [mappingMode, setMappingMode] = useState<'read_local' | 'full'>('full')
-  const [mappingLocalIfcFile, setMappingLocalIfcFile] = useState<File | null>(null)
 
   const handleMappingSelectGroup = useCallback((g: MappingGroupRead | null) => {
     setMappingSelectedGroup(g)
@@ -336,38 +333,15 @@ export default function App() {
 
 
 
-          {section === 'mapping' && mappingMode === 'full' && (
+          {section === 'mapping' && (
             <MappingView
               projectId={project?.id ?? null}
               selectedGroup={mappingSelectedGroup}
               onSelectGroup={handleMappingSelectGroup}
               onTabChange={setMappingTab}
               onIfcImported={(p) => setProject(p)}
-              onEnableLocalMode={() => {
-                setMappingLocalIfcFile(null)
-                setMappingSelectedGlobalId(null)
-                setMappingSelectedRow(null)
-                setMappingSelectedGroup(null)
-                setMappingMode('read_local')
-              }}
               refreshKey={mappingRefreshKey}
               toast={toast}
-            />
-          )}
-
-          {section === 'mapping' && mappingMode === 'read_local' && (
-            <MappingViewerOnly
-              ifcFile={mappingLocalIfcFile}
-              onIfcFileChange={(file) => {
-                setMappingLocalIfcFile(file)
-                setMappingSelectedGlobalId(null)
-                setMappingSelectedRow(null)
-                setMappingSelectedGroup(null)
-              }}
-              onEnableFullMode={() => {
-                setMappingLocalIfcFile(null)
-                setMappingMode('full')
-              }}
             />
           )}
 
@@ -394,7 +368,7 @@ export default function App() {
 
 
 
-      {(section === 'catalog' || (section === 'mapping' && mappingMode === 'full')) && (
+      {(section === 'catalog' || section === 'mapping') && (
 
         <div className="area-panel" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
 
