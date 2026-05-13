@@ -170,7 +170,9 @@ def detect(pages: str, save_crops: bool):
 @click.option("--model", default="gemini-2.5-flash", show_default=True, help="Modelo Gemini a usar.")
 @click.option("--single-pass", "single_pass", is_flag=True, default=False,
               help="Desactivar optimizacion 2-pasos: extrae todo sin consultar DB primero.")
-def run(pages: str, force: bool, dry_run: bool, model: str, single_pass: bool):
+@click.option("--json-output", "json_output", is_flag=True, default=False,
+              help="Emitir ítems extraídos como JSON a stdout (implica --dry-run). Para uso por la API.")
+def run(pages: str, force: bool, dry_run: bool, model: str, single_pass: bool, json_output: bool):
     """Procesa paginas del TCPO: detecta tablas -> Gemini -> inserta en DB.
 
     Por defecto usa 2 pasos por tabla:
@@ -178,10 +180,14 @@ def run(pages: str, force: bool, dry_run: bool, model: str, single_pass: bool):
       Paso 2 (completo): extrae solo los codigos nuevos (no presentes en DB).
 
     Usar --single-pass para saltear la optimizacion (util para depuracion).
+    Usar --json-output para emitir JSON estructurado a stdout (implica --dry-run).
     """
     import detector
     import extractor
     import loader
+
+    if json_output:
+        dry_run = True  # json-output siempre es dry-run
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
@@ -201,34 +207,40 @@ def run(pages: str, force: bool, dry_run: bool, model: str, single_pass: bool):
     page_list = _parse_pages(pages)
     total_pages = detector.page_count(PDF_PATH)
 
-    click.echo(f"\nModelo: {model}  |  Modo: {'single-pass' if single_pass else '2-pasos'}")
-    click.echo(f"Paginas a procesar: {page_list}")
-    click.echo(f"PDF: {PDF_PATH.name} ({total_pages} paginas total)")
-    click.echo(f"DB:  {DB_PATH.name}")
-    if dry_run:
-        click.echo("[DRY-RUN] No se insertara en DB.\n")
+    if not json_output:
+        click.echo(f"\nModelo: {model}  |  Modo: {'single-pass' if single_pass else '2-pasos'}")
+        click.echo(f"Paginas a procesar: {page_list}")
+        click.echo(f"PDF: {PDF_PATH.name} ({total_pages} paginas total)")
+        click.echo(f"DB:  {DB_PATH.name}")
+        if dry_run:
+            click.echo("[DRY-RUN] No se insertara en DB.\n")
 
     session_items = 0
     session_skipped = 0
     session_errors = 0
+    all_session_items: list[dict] = []
 
     for p in page_list:
         if p < 1 or p > total_pages:
-            click.echo(f"  [SKIP] Pagina {p} fuera de rango")
+            if not json_output:
+                click.echo(f"  [SKIP] Pagina {p} fuera de rango")
             continue
 
         page_str = str(p)
         already_done = prog["processed_pages"].get(page_str, {}).get("status") == "done"
         if already_done and not force:
-            prev = prog["processed_pages"][page_str]
-            click.echo(f"  [CACHE] Pag {p:4d} - ya procesada ({prev['items_extracted']} items). Usar --force para re-procesar.")
+            if not json_output:
+                prev = prog["processed_pages"][page_str]
+                click.echo(f"  [CACHE] Pag {p:4d} - ya procesada ({prev['items_extracted']} items). Usar --force para re-procesar.")
             continue
 
-        click.echo(f"  Pag {p:4d}: renderizando...", nl=False)
+        if not json_output:
+            click.echo(f"  Pag {p:4d}: renderizando...", nl=False)
         try:
             page_img = detector.render_page(PDF_PATH, p)
             crops = detector.detect_tables(page_img)
-            click.echo(f" {len(crops)} tabla(s)", nl=False)
+            if not json_output:
+                click.echo(f" {len(crops)} tabla(s)", nl=False)
 
             all_items: list[dict] = []
             table_errors = 0
@@ -247,7 +259,7 @@ def run(pages: str, force: bool, dry_run: bool, model: str, single_pass: bool):
                             page_skipped += 1
                             continue
 
-                        # Paso 2: filtrar contra DB
+                        # Paso 2: filtrar contra DB (en json-output siempre extraemos todo)
                         known = set() if dry_run else loader.get_existing_codes(DB_PATH, codes)
                         new_codes = [c for c in codes if c not in known]
 
@@ -262,39 +274,57 @@ def run(pages: str, force: bool, dry_run: bool, model: str, single_pass: bool):
 
                 except Exception as e:  # noqa: BLE001
                     table_errors += 1
-                    click.echo(f"\n    [WARN] Error en tabla: {e}", nl=False)
+                    if not json_output:
+                        click.echo(f"\n    [WARN] Error en tabla: {e}", nl=False)
 
             session_skipped += page_skipped
-            skip_info = f", {page_skipped} ya-en-DB" if page_skipped else ""
-            click.echo(f" >> {len(all_items)} item(s) extraidos{skip_info}", nl=False)
+            if not json_output:
+                skip_info = f", {page_skipped} ya-en-DB" if page_skipped else ""
+                click.echo(f" >> {len(all_items)} item(s) extraidos{skip_info}", nl=False)
 
             if not dry_run and all_items:
                 stats = loader.load_items(DB_PATH, all_items)
-                click.echo(
-                    f" | DB: +{stats['inserted']} nuevos, ~{stats['updated']} actualizados,"
-                    f" {stats['apu_rows']} filas APU"
-                    + (f", {len(stats['errors'])} errores" if stats["errors"] else ""),
-                )
-                if stats["errors"]:
-                    for err in stats["errors"]:
-                        click.echo(f"      [ERR] {err['nbr_code']}: {err['errors']}")
+                if not json_output:
+                    click.echo(
+                        f" | DB: +{stats['inserted']} nuevos, ~{stats['updated']} actualizados,"
+                        f" {stats['apu_rows']} filas APU"
+                        + (f", {len(stats['errors'])} errores" if stats["errors"] else ""),
+                    )
+                    if stats["errors"]:
+                        for err in stats["errors"]:
+                            click.echo(f"      [ERR] {err['nbr_code']}: {err['errors']}")
             else:
-                click.echo("")
+                if not json_output:
+                    click.echo("")
 
             cache_size = extractor.flush_cache()
             _mark_page(prog, p, "done" if table_errors == 0 else "partial", len(all_items))
             session_items += len(all_items)
             session_errors += table_errors
-            if cache_size:
+            all_session_items.extend(all_items)
+            if not json_output and cache_size:
                 click.echo(f"    cache MD5: {cache_size} traducciones guardadas")
 
         except Exception as e:  # noqa: BLE001
-            click.echo(f" [ERROR] {e}")
+            if not json_output:
+                click.echo(f" [ERROR] {e}")
             _mark_page(prog, p, "error", error=str(e))
             session_errors += 1
 
-    click.echo(f"\nSesion terminada: {session_items} items extraidos, {session_skipped} tablas ya-en-DB, {session_errors} errores.")
-    click.echo(f"Total acumulado en progress.json: {prog.get('total_items', 0)} items.")
+    if json_output:
+        # Emitir JSON limpio — toda la salida de texto fue suprimida
+        output = {
+            "items": all_session_items,
+            "stats": {
+                "extracted": session_items,
+                "skipped_in_db": session_skipped,
+                "errors": session_errors,
+            },
+        }
+        click.echo(json.dumps(output, ensure_ascii=False))
+    else:
+        click.echo(f"\nSesion terminada: {session_items} items extraidos, {session_skipped} tablas ya-en-DB, {session_errors} errores.")
+        click.echo(f"Total acumulado en progress.json: {prog.get('total_items', 0)} items.")
 
 
 @cli.command()

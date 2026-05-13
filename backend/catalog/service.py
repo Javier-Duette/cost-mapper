@@ -69,10 +69,11 @@ def buscar_items(
     query: str | None = None,
     facet: str | None = None,
     relevant_py: bool | None = None,
+    include_archived: bool = False,
     offset: int = 0,
     limit: int = 50,
 ) -> dict:
-    """BÃºsqueda paginada de Ã­tems con filtros.
+    """Búsqueda paginada de ítems con filtros.
 
     Returns:
         dict con 'items', 'total', 'offset', 'limit'.
@@ -82,6 +83,7 @@ def buscar_items(
         query=query,
         facet=facet,
         relevant_py=relevant_py,
+        include_archived=include_archived,
         offset=offset,
         limit=limit,
     )
@@ -90,6 +92,7 @@ def buscar_items(
         query=query,
         facet=facet,
         relevant_py=relevant_py,
+        include_archived=include_archived,
     )
     return {
         "items": items,
@@ -270,6 +273,18 @@ def eliminar_apu_componente(session: Session, apu_id: str) -> None:
     item_id = apu.item_id
     repository.delete_apu_component(session, apu)
     _recalculate_item_price_from_apu(session, item_id=item_id, user="system:apu_calc")
+
+
+def archivar_item(session: Session, item_id: str) -> CatalogItemRead:
+    """Oculta un ítem del catálogo sin eliminarlo."""
+    item = repository.set_archived(session, item_id, True)
+    return CatalogItemRead.model_validate(item)
+
+
+def desarchivar_item(session: Session, item_id: str) -> CatalogItemRead:
+    """Restaura la visibilidad de un ítem archivado."""
+    item = repository.set_archived(session, item_id, False)
+    return CatalogItemRead.model_validate(item)
 
 
 def listar_items_usando_componente(session: Session, *, component_id: str) -> list[CatalogItemRead]:

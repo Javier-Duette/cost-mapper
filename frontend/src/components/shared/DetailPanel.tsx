@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from 'react'
-import { getItem, getItemAPU, updateItem, updateAPUComponent, addAPUComponent, deleteItem, getItemUsedIn, deleteAPUComponent } from '../../api/catalog'
+import { getItem, getItemAPU, updateItem, updateAPUComponent, addAPUComponent, deleteItem, getItemUsedIn, deleteAPUComponent, archiveItem, unarchiveItem } from '../../api/catalog'
 import { Chip, SourceBadge } from './Chip'
 import { Icon } from './Icon'
 import { fmt } from './formatters'
@@ -244,6 +244,16 @@ export function DetailPanel({ item, onUpdate, onDelete }: DetailPanelProps) {
     }
   }
 
+  const handleToggleArchived = async () => {
+    if (!item) return
+    try {
+      const updated = item.archived ? await unarchiveItem(item.id) : await archiveItem(item.id)
+      onUpdate?.(updated)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'No se pudo cambiar el estado del ítem')
+    }
+  }
+
   const handleDeleteItem = async () => {
     if (!item) return
     const ok = confirm(`Eliminar ítem ${item.nbr_code}?\n\nSolo funciona si el ítem no está en la Biblioteca, el Mapeo IFC, ni como insumo en el APU de otro ítem.`)
@@ -291,6 +301,22 @@ export function DetailPanel({ item, onUpdate, onDelete }: DetailPanelProps) {
             style={{ fontSize: 11, padding: '4px 8px' }}
           >
             {showUsedIn ? '▲ Usos' : `Usos${itemUsedIn ? ` (${itemUsedIn.length})` : ''}`}
+          </button>
+          <button
+            onClick={() => { void handleToggleArchived() }}
+            title={item.archived ? 'Mostrar en catálogo' : 'Archivar (ocultar del catálogo)'}
+            style={{
+              background: item.archived ? 'var(--warning-subtle, #2d2400)' : 'transparent',
+              border: `1px solid ${item.archived ? 'var(--warning)' : 'var(--border-subtle)'}`,
+              color: item.archived ? 'var(--warning)' : 'var(--text-secondary)',
+              borderRadius: 4,
+              padding: '4px 8px',
+              cursor: 'pointer',
+              fontSize: 11,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {item.archived ? '↩ Mostrar' : '🗄 Archivar'}
           </button>
           <button
             onClick={() => { void handleDeleteItem() }}

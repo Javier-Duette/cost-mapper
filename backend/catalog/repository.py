@@ -36,16 +36,20 @@ def search(
     facet: str | None = None,
     relevant_py: bool | None = None,
     is_work_item: bool = True,
+    include_archived: bool = False,
     offset: int = 0,
     limit: int = 50,
 ) -> list[CatalogItem]:
-    """BÃºsqueda paginada de Ã­tems con filtros opcionales.
+    """Búsqueda paginada de ítems con filtros opcionales.
 
-    Por defecto filtra is_work_item=True (Ã­tems TCPO presupuestables).
-    Pasar is_work_item=False para incluir nodos de clasificaciÃ³n NBR.
+    Por defecto filtra is_work_item=True (ítems TCPO presupuestables) y excluye
+    archivados. Pasar include_archived=True para mostrarlos también.
     Ver ADR-011.
     """
     statement = select(CatalogItem).where(CatalogItem.is_work_item == is_work_item)
+
+    if not include_archived:
+        statement = statement.where(CatalogItem.archived == False)  # noqa: E712
 
     if facet:
         statement = statement.where(CatalogItem.facet == facet)
@@ -71,13 +75,17 @@ def count(
     facet: str | None = None,
     relevant_py: bool | None = None,
     is_work_item: bool = True,
+    include_archived: bool = False,
 ) -> int:
-    """Cuenta total de Ã­tems que coinciden con los filtros (para paginaciÃ³n)."""
+    """Cuenta total de ítems que coinciden con los filtros (para paginación)."""
     from sqlalchemy import func
 
     statement = select(func.count()).select_from(CatalogItem).where(
         CatalogItem.is_work_item == is_work_item
     )
+
+    if not include_archived:
+        statement = statement.where(CatalogItem.archived == False)  # noqa: E712
 
     if facet:
         statement = statement.where(CatalogItem.facet == facet)
@@ -91,6 +99,23 @@ def count(
         )
 
     return session.exec(statement).one()
+
+
+def set_archived(session: Session, item_id: str, value: bool) -> CatalogItem:
+    """Cambia el estado `archived` de un ítem. Retorna el ítem actualizado."""
+    from catalog.models import _now
+
+    item = session.get(CatalogItem, item_id)
+    if item is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"Ítem {item_id!r} no encontrado")
+
+    item.archived = value
+    item.updated_at = _now()
+    session.add(item)
+    session.commit()
+    session.refresh(item)
+    return item
 
 
 def get_nbr_tree(

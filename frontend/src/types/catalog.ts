@@ -16,6 +16,7 @@ export interface CatalogItem {
   fuente_factores: string | null
   bim_taggable: boolean
   relevant_py: boolean
+  archived: boolean
   oficial: boolean
   is_verified: boolean
   verificado_por: string | null

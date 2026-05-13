@@ -4,6 +4,25 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-13 — TCPO: preview de ítems + archivado de catálogo
+
+**Implementado:**
+- `backend/catalog/models.py`: campo `archived: bool = False` en `CatalogItem`, `CatalogItemUpdate`, `CatalogItemRead`.
+- Migración SQLite: `ALTER TABLE catalog_items ADD COLUMN archived INTEGER NOT NULL DEFAULT 0`.
+- `backend/catalog/repository.py`: `set_archived()` + parámetro `include_archived` en `search()` y `count()`.
+- `backend/catalog/service.py`: `archivar_item()` y `desarchivar_item()`.
+- `backend/catalog/router.py`: `PATCH /items/{id}/archive` y `PATCH /items/{id}/unarchive` + `include_archived` en GET /items.
+- `scripts/etl_tcpo/main.py`: flag `--json-output` en comando `run` — suprime texto, emite JSON `{items, stats}` al stdout.
+- `backend/etl_runner.py`: `POST /api/etl/preview` (ejecuta CLI con `--json-output --dry-run`, retorna JSON estructurado) y `POST /api/etl/commit` (importa `loader.py` vía `importlib` e inserta la lista revisada).
+- `frontend/src/components/settings_panel/EtlView.tsx`: reemplazado flujo text → tabla de verificación editable. Columnas: Código NBR / Descripción PT / Descripción ES (editable inline) / Unidad / Componentes / botón Archivar. Botón "Confirmar e insertar" llama `/api/etl/commit`. Botón "Diagnóstico" conserva el output de texto.
+- `frontend/src/api/catalog.ts`: `archiveItem()`, `unarchiveItem()`, `include_archived` en `searchItems()`.
+- `frontend/src/types/catalog.ts`: campo `archived` en `CatalogItem`.
+- `frontend/src/components/shared/DetailPanel.tsx`: botón "🗄 Archivar / ↩ Mostrar" en toolbar del panel detalle.
+- `frontend/src/components/catalog_panel/CatalogView.tsx`: toggle "Mostrar archivados" bajo "+ Nuevo Ítem"; badge "ARCHIVADO" en filas; props `includeArchived` y `onToggleArchived`.
+- `frontend/src/App.tsx`: estado `catIncludeArchived` conectado al `CatalogView`.
+
+**Próximo paso:** definir siguiente feature (backlog / BUGS.md).
+
 ## 2026-05-13 — IFC Importer: exclusión de tipos no presupuestables
 
 **Implementado:**

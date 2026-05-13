@@ -7,15 +7,17 @@ export async function searchItems(params: {
   q?: string
   facet?: string
   relevant_py?: boolean
+  include_archived?: boolean
   offset?: number
   limit?: number
 }): Promise<CatalogSearchResult> {
   const url = new URL(BASE + '/items', window.location.origin)
-  if (params.q)                  url.searchParams.set('q', params.q)
-  if (params.facet)              url.searchParams.set('facet', params.facet)
-  if (params.relevant_py != null) url.searchParams.set('relevant_py', String(params.relevant_py))
-  if (params.offset != null)     url.searchParams.set('offset', String(params.offset))
-  if (params.limit  != null)     url.searchParams.set('limit',  String(params.limit))
+  if (params.q)                      url.searchParams.set('q', params.q)
+  if (params.facet)                  url.searchParams.set('facet', params.facet)
+  if (params.relevant_py != null)    url.searchParams.set('relevant_py', String(params.relevant_py))
+  if (params.include_archived)       url.searchParams.set('include_archived', 'true')
+  if (params.offset != null)         url.searchParams.set('offset', String(params.offset))
+  if (params.limit  != null)         url.searchParams.set('limit',  String(params.limit))
 
   const res = await fetch(url.toString())
   if (!res.ok) throw new Error(`GET /items falló: ${res.status}`)
@@ -92,6 +94,20 @@ export async function getItemUsedIn(componentId: string): Promise<CatalogItem[]>
 export async function deleteAPUComponent(apuId: string): Promise<void> {
   const res = await fetch(`${BASE}/apu/${apuId}`, { method: 'DELETE' })
   if (!res.ok) throw new Error(`DELETE /apu/${apuId} falló: ${res.status}`)
+}
+
+/** Archiva un ítem (lo oculta del catálogo sin eliminarlo). */
+export async function archiveItem(id: string): Promise<CatalogItem> {
+  const res = await fetch(`${BASE}/items/${id}/archive`, { method: 'PATCH' })
+  if (!res.ok) throw new Error(`PATCH /items/${id}/archive falló: ${res.status}`)
+  return res.json() as Promise<CatalogItem>
+}
+
+/** Restaura la visibilidad de un ítem archivado. */
+export async function unarchiveItem(id: string): Promise<CatalogItem> {
+  const res = await fetch(`${BASE}/items/${id}/unarchive`, { method: 'PATCH' })
+  if (!res.ok) throw new Error(`PATCH /items/${id}/unarchive falló: ${res.status}`)
+  return res.json() as Promise<CatalogItem>
 }
 
 /** Elimina un ítem del catálogo (si no está referenciado). */

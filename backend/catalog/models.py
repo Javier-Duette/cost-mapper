@@ -184,6 +184,12 @@ class CatalogItem(SQLModel, table=True):
         description="Fecha y hora de la verificación.",
     )
 
+    # --- Visibilidad ---
+    archived: bool = Field(
+        default=False,
+        description="true = ocultado manualmente (no se muestra en catálogo ni en mapper). No se borra.",
+    )
+
     # --- Auditoría ---
     modificado_por: str | None = Field(
         default=None,
@@ -307,6 +313,7 @@ class CatalogItemUpdate(SQLModel):
     fuente_precios: str | None = None
     fuente_factores: str | None = None
     relevant_py: bool | None = None
+    archived: bool | None = None
     is_verified: bool | None = None
     verificado_por: str | None = None
     fecha_verificacion: datetime | None = None
@@ -341,6 +348,7 @@ class CatalogItemRead(SQLModel):
     fuente_factores: str | None
     bim_taggable: bool
     relevant_py: bool
+    archived: bool
     oficial: bool
     is_verified: bool
     verificado_por: str | None

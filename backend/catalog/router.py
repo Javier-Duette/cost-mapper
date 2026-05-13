@@ -27,12 +27,14 @@ def search_items(
     q: str | None = Query(None, description="Texto a buscar en descripción o código NBR"),
     facet: str | None = Query(None, description="Filtrar por faceta. Ej: '3E', '2N'"),
     relevant_py: bool | None = Query(None, description="Filtrar por relevancia Paraguay"),
+    include_archived: bool = Query(False, description="Incluir ítems archivados en los resultados"),
     offset: int = Query(0, ge=0, description="Offset para paginación"),
     limit: int = Query(50, ge=1, le=200, description="Cantidad de resultados por página"),
     session: Session = Depends(get_session),
 ) -> dict:
     """Búsqueda paginada de ítems con filtros opcionales.
 
+    Por defecto excluye ítems archivados. Pasar include_archived=true para mostrarlos.
     Retorna items, total, offset y limit.
     """
     return service.buscar_items(
@@ -40,6 +42,7 @@ def search_items(
         query=q,
         facet=facet,
         relevant_py=relevant_py,
+        include_archived=include_archived,
         offset=offset,
         limit=limit,
     )
@@ -133,6 +136,24 @@ def update_apu_component(
     """Actualiza campos de un componente APU (ej. coeficiente, fuente)."""
     apu = service.actualizar_apu_componente(session, apu_id, data)
     return {"id": apu.id, "quantity": apu.quantity, "source": apu.source}
+
+@router.patch("/items/{item_id}/archive", response_model=CatalogItemRead, summary="Archivar un ítem")
+def archive_item(
+    item_id: str,
+    session: Session = Depends(get_session),
+) -> CatalogItemRead:
+    """Oculta el ítem del catálogo sin eliminarlo. Se puede restaurar con /unarchive."""
+    return service.archivar_item(session, item_id)
+
+
+@router.patch("/items/{item_id}/unarchive", response_model=CatalogItemRead, summary="Restaurar un ítem archivado")
+def unarchive_item(
+    item_id: str,
+    session: Session = Depends(get_session),
+) -> CatalogItemRead:
+    """Restaura la visibilidad de un ítem previamente archivado."""
+    return service.desarchivar_item(session, item_id)
+
 
 @router.post("/items/{item_id}/apu", summary="Aadir un insumo al APU", status_code=201)
 def add_apu_component(

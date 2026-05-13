@@ -26,13 +26,16 @@ interface CatalogViewProps {
   onAddToProject: (item: CatalogItem) => Promise<void>
   onRemoveFromProject: (item: CatalogItem) => Promise<void>
   refreshKey?: number
+  includeArchived?: boolean
+  onToggleArchived?: (v: boolean) => void
 }
 
 /** Vista de Catálogo: árbol de facetas NBR + tabla de ítems con datos reales del backend. */
 export function CatalogView({
   search, activeFaceta, onSelectFaceta, relevantOnly,
   selectedId, onSelect, projectId, libraryItemIds,
-  onAddToProject, onRemoveFromProject, refreshKey
+  onAddToProject, onRemoveFromProject, refreshKey,
+  includeArchived = false, onToggleArchived,
 }: CatalogViewProps) {
   const [items, setItems] = useState<CatalogItem[]>([])
   const [total, setTotal] = useState(0)
@@ -52,6 +55,7 @@ export function CatalogView({
         q: search || undefined,
         facet: activeFaceta ?? undefined,
         relevant_py: relevantOnly || undefined,
+        include_archived: includeArchived || undefined,
         limit: 100,
       })
       setItems(res.items)
@@ -61,7 +65,7 @@ export function CatalogView({
     } finally {
       setLoading(false)
     }
-  }, [search, activeFaceta, relevantOnly, needsQuery, refreshKey])
+  }, [search, activeFaceta, relevantOnly, includeArchived, needsQuery, refreshKey])
 
   useEffect(() => { void load() }, [load])
 
@@ -96,13 +100,24 @@ export function CatalogView({
           </div>
         ))}
         
-        <div style={{ marginTop: 24, padding: '0 16px' }}>
-          <button 
+        <div style={{ marginTop: 24, padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <button
             onClick={() => setIsCreatingItem(true)}
             style={{ width: '100%', padding: '8px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}
           >
             + Nuevo Ítem
           </button>
+          {onToggleArchived && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12,
+              color: includeArchived ? 'var(--warning)' : 'var(--text-secondary)', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={includeArchived}
+                onChange={e => onToggleArchived(e.target.checked)}
+              />
+              Mostrar archivados
+            </label>
+          )}
         </div>
       </aside>
 
@@ -145,7 +160,15 @@ export function CatalogView({
                 >
                   <td><Chip faceta={r.facet} /></td>
                   <td className="num">{r.nbr_code}</td>
-                  <td className="desc">{r.description_es}</td>
+                  <td className="desc">
+                    {r.archived && (
+                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--warning)',
+                        border: '1px solid var(--warning)', borderRadius: 3, padding: '1px 4px', marginRight: 6 }}>
+                        ARCHIVADO
+                      </span>
+                    )}
+                    {r.description_es}
+                  </td>
                   <td>{r.unit}</td>
                   <td className="num">{fmt(r.unit_price)}</td>
                   <td>

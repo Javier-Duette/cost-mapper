@@ -148,6 +148,8 @@ export default function App() {
 
   const [catSelectedItem, setCatSelectedItem] = useState<CatalogItem | null>(null)
 
+  const [catIncludeArchived, setCatIncludeArchived] = useState(false)
+
 
 
   /* Budget state */
@@ -307,6 +309,8 @@ export default function App() {
               onAddToProject={handleAddToProject}
               onRemoveFromProject={handleRemoveFromProject}
               refreshKey={refreshCounter}
+              includeArchived={catIncludeArchived}
+              onToggleArchived={setCatIncludeArchived}
             />
 
           )}
