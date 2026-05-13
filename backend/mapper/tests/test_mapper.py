@@ -302,7 +302,7 @@ class TestUnitCompatibility:
 
     def test_unknown_ifc_type_allows_any_unit(self, client: TestClient):
         project_id = _create_project(client)
-        element_id = self._seed_element(client, project_id, ifc_type="IfcSpace")
+        element_id = self._seed_element(client, project_id, ifc_type="IfcBuildingElementProxy")
         kg_item_id = _create_catalog_item(client, nbr_code="9A 01 00", unit="kg")
 
         r = client.post(
@@ -340,7 +340,7 @@ class TestUnitCompatibility:
 
     def test_unknown_ifc_type_returns_null_compatible_units(self, client: TestClient):
         project_id = _create_project(client)
-        self._seed_element(client, project_id, ifc_type="IfcSpace")
+        self._seed_element(client, project_id, ifc_type="IfcBuildingElementProxy")
 
         r = client.get(f"/api/projects/{project_id}/mapping/elements?tab=unassigned")
         assert r.status_code == 200

@@ -16,6 +16,18 @@ from projects import service as projects_service
 from .models import IfcElementsSeedRequest, IfcImportSummary
 from . import repository
 
+# Tipos IFC que nunca se importan porque no son elementos constructivos presupuestables.
+# IfcOpeningElement = void geométrico de aberturas (puertas/ventanas).
+# IfcRoof = contenedor de agregación; la geometría real vive en sus IfcSlab hijos.
+# IfcSpace = espacio/ambiente, no elemento constructivo.
+# IfcVirtualElement = delimitación virtual entre espacios.
+_EXCLUDED_IFC_TYPES: frozenset[str] = frozenset({
+    "IfcOpeningElement",
+    "IfcRoof",
+    "IfcSpace",
+    "IfcVirtualElement",
+})
+
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
@@ -179,6 +191,8 @@ def _extract_elements_with_ifcopenshell(ifc_path: str, ifcopenshell_module) -> l
         if not global_id:
             continue
         ifc_type = element.is_a()
+        if ifc_type in _EXCLUDED_IFC_TYPES:
+            continue
         ifc_name = getattr(element, "Name", None)
 
         # Tipo (familia+tipo): best-effort (Revit suele exponerlo en la entidad Type)
@@ -248,6 +262,8 @@ def seed_elements(
 
     if not payload.elements:
         raise HTTPException(status_code=400, detail="payload.elements no puede estar vacío.")
+
+    payload.elements = [e for e in payload.elements if e.ifc_type not in _EXCLUDED_IFC_TYPES]
 
     full_sync_ids: set[str] | None = None
     if payload.full_sync:

@@ -203,6 +203,30 @@ class TestIfcSeedAndList:
         assert r_deleted.json()["total"] == 1
         assert r_deleted.json()["items"][0]["global_id"] == "g2"
 
+    def test_excluded_ifc_types_are_silently_dropped_on_seed(self, client: TestClient):
+        """IfcOpeningElement, IfcRoof, IfcSpace y IfcVirtualElement no deben persistirse."""
+        project_id = _create_project(client)
+
+        r = client.post(
+            f"/api/projects/{project_id}/ifc/elements:seed",
+            json={
+                "elements": [
+                    {"global_id": "g1", "ifc_type": "IfcWall", "qualitative_snapshot": {}},
+                    {"global_id": "g2", "ifc_type": "IfcOpeningElement", "qualitative_snapshot": {}},
+                    {"global_id": "g3", "ifc_type": "IfcRoof", "qualitative_snapshot": {}},
+                    {"global_id": "g4", "ifc_type": "IfcSpace", "qualitative_snapshot": {}},
+                    {"global_id": "g5", "ifc_type": "IfcVirtualElement", "qualitative_snapshot": {}},
+                ],
+                "full_sync": True,
+            },
+        )
+        assert r.status_code == 201
+        assert r.json()["total_elements"] == 1
+
+        active = client.get(f"/api/projects/{project_id}/ifc/elements?status=active").json()
+        assert active["total"] == 1
+        assert active["items"][0]["ifc_type"] == "IfcWall"
+
     def test_seed_chunked_full_sync_with_all_global_ids(self, client: TestClient):
         project_id = _create_project(client)
 

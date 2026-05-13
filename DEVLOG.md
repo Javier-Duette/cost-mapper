@@ -4,6 +4,20 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-13 — IFC Importer: exclusión de tipos no presupuestables
+
+**Implementado:**
+- `ifc_importer/service.py`: constante `_EXCLUDED_IFC_TYPES` con los tipos IFC que nunca deben importarse (`IfcOpeningElement`, `IfcRoof`, `IfcSpace`, `IfcVirtualElement`).
+- Filtro aplicado en dos puntos: `_extract_elements_with_ifcopenshell()` (import vía IFC real) y `seed_elements()` (import vía seed endpoint).
+- Test nuevo `test_excluded_ifc_types_are_silently_dropped_on_seed` verifica que los 4 tipos excluidos se descartan silenciosamente.
+- Tests de unit-compatibility actualizados para no usar `IfcSpace` (ahora excluido) — usan `IfcBuildingElementProxy`.
+
+**Problemas resueltos:**
+- `IfcRoof` aparecía duplicado con `IfcSlab` porque Revit exporta el techo como un contenedor `IfcRoof` + sus hijos `IfcSlab [ROOF]` con la geometría real. El contenedor no tiene geometría útil para presupuesto.
+- `IfcOpeningElement` (63 elementos) son los voids de todas las aberturas — sin costo, no deben aparecer en el mapper.
+
+**Próximo paso:** definir siguiente feature (backlog).
+
 ## 2026-05-13 — Mapper IFC: validación de compatibilidad de unidades
 
 **Implementado:**
