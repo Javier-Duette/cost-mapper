@@ -4,6 +4,20 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-12 — Bugs resueltos: borrado de ítems, advertencia APU y mensaje 409 descriptivo
+
+**Implementado:**
+- `DetailPanel`: advertencia contextual al editar `unit_price` de un ítem con insumos APU — el modal ahora explica que el precio manual sobreescribe el APU.
+- `DetailPanel`: mensaje del `confirm` de borrado actualizado para mencionar APU como condición bloqueante.
+- `catalog/service.py eliminar_item`: el 409 ahora devuelve un mensaje que especifica exactamente dónde está referenciado el ítem (Biblioteca / Mapeo IFC / APU como insumo), con conteos.
+- Corrección de mojibake en el string del 409 (tenía `"estÃ¡ referenciado"`).
+
+**Problemas resueltos:**
+- El borrado de un ítem usado como insumo en el APU de otro devolvía "No se puede eliminar el Ã­tem porque estÃ¡ referenciado" — genérico e ilegible. Ahora dice "APU como insumo en 1 item. Removelo de ahi primero."
+- La confirmación de borrado solo mencionaba Biblioteca/Mapeo, sin avisar sobre APU.
+
+**Próximo paso:** Implementar `project_markups` (GG, utilidad, IVA) para que el presupuesto muestre el costo total real, no solo el costo directo.
+
 ## 2026-05-12 — Sin decimales en precios ₲ y normalización de unidades
 
 **Implementado:**
