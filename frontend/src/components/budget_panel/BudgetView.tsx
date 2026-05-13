@@ -5,6 +5,7 @@ import { fmt, fmtQty } from '../shared/formatters'
 import { Icon } from '../shared/Icon'
 import { getBudget, getBudgetIfc } from '../../api/budget'
 import { updateLibraryEntry } from '../../api/library'
+import { seedDefaultMarkups } from '../../api/markups'
 import type { BudgetRow, BudgetSummary, IfcBudgetRow, IfcBudgetSummary } from '../../types/budget'
 import type { ToastKind } from '../shared/Toast'
 
@@ -183,8 +184,14 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
       <div className="kpi-strip">
         <div className="kpi">
           <div className="kpi__lbl">Costo directo</div>
-          <div className="kpi__val">₲ {fmt(summary.total)}</div>
+          <div className="kpi__val" style={{ fontSize: (summary.markups ?? []).length > 0 ? 14 : undefined }}>₲ {fmt(summary.total)}</div>
         </div>
+        {(summary.markups ?? []).length > 0 && (
+          <div className="kpi">
+            <div className="kpi__lbl">Total final</div>
+            <div className="kpi__val">₲ {fmt(summary.grand_total)}</div>
+          </div>
+        )}
         <div className="kpi">
           <div className="kpi__lbl">Ítems totales</div>
           <div className="kpi__val">{summary.items_count}</div>
@@ -294,9 +301,44 @@ export function BudgetView({ projectId, search, selectedId, onSelect, toast }: B
                 </Fragment>
               ))}
               <tr className="ftr">
-                <td colSpan={isIfcMode ? 7 : 6} style={{ textAlign: 'right' }}>TOTAL COSTO DIRECTO</td>
-                <td className="num">₲ {fmt(summary.total)}</td>
+                <td colSpan={isIfcMode ? 7 : 6} style={{ textAlign: 'right', fontWeight: 400, color: 'var(--text-secondary)' }}>COSTO DIRECTO</td>
+                <td className="num" style={{ fontWeight: 400, color: 'var(--text-secondary)' }}>₲ {fmt(summary.total)}</td>
               </tr>
+              {(summary.markups ?? []).map(m => (
+                <tr key={m.id} style={{ background: 'var(--bg-elevated)' }}>
+                  <td colSpan={isIfcMode ? 7 : 6} style={{ textAlign: 'right', fontSize: 12, color: 'var(--text-secondary)', paddingRight: 12 }}>
+                    {m.name}
+                    {m.rate != null && (
+                      <span style={{ marginLeft: 6, opacity: 0.7 }}>({m.rate}%)</span>
+                    )}
+                  </td>
+                  <td className="num" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>+ ₲ {fmt(m.amount)}</td>
+                </tr>
+              ))}
+              {(summary.markups ?? []).length > 0 && (
+                <tr className="ftr">
+                  <td colSpan={isIfcMode ? 7 : 6} style={{ textAlign: 'right' }}>TOTAL FINAL</td>
+                  <td className="num">₲ {fmt(summary.grand_total)}</td>
+                </tr>
+              )}
+              {(summary.markups ?? []).length === 0 && projectId && (
+                <tr style={{ background: 'var(--bg-elevated)' }}>
+                  <td colSpan={isIfcMode ? 8 : 7} style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-secondary)', padding: '8px 12px' }}>
+                    Sin márgenes configurados —{' '}
+                    <button
+                      style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, padding: 0, textDecoration: 'underline' }}
+                      onClick={async () => {
+                        try {
+                          await seedDefaultMarkups(projectId)
+                          load()
+                        } catch { /* ignore */ }
+                      }}
+                    >
+                      aplicar GG 12% + Utilidad 10% + IVA 10%
+                    </button>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         )}

@@ -10,6 +10,10 @@ from decimal import Decimal
 from sqlmodel import SQLModel
 
 
+# Re-exportar MarkupLine para que budget pueda incluirlo en sus summaries.
+from markups.models import MarkupLine  # noqa: F401
+
+
 class BudgetRow(SQLModel):
     """Fila del presupuesto: un ítem de la biblioteca con cantidad y subtotal."""
 
@@ -31,10 +35,12 @@ class BudgetSummary(SQLModel):
 
     project_id: str
     rows: list[BudgetRow]
-    total: Decimal          # suma de subtotals (filas con precio y cantidad)
+    total: Decimal              # costo directo (suma de subtotals)
     items_count: int
     items_without_price: int
     items_without_quantity: int
+    markups: list[MarkupLine] = []   # markups calculados en orden
+    grand_total: Decimal = Decimal("0")  # total final con markups
 
 
 class IfcBudgetRow(SQLModel):
@@ -58,7 +64,9 @@ class IfcBudgetSummary(SQLModel):
 
     project_id: str
     rows: list[IfcBudgetRow]
-    total: Decimal
+    total: Decimal              # costo directo
     items_count: int
     items_without_price: int
     items_without_quantity: int
+    markups: list[MarkupLine] = []
+    grand_total: Decimal = Decimal("0")

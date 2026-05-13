@@ -16,6 +16,8 @@ from budget.router import router as budget_router
 from settings.router import router as settings_router
 from ifc_importer.router import router as ifc_importer_router
 from mapper.router import router as mapper_router
+from markups.router import router as markups_router
+from markups.models import ProjectMarkup  # noqa: F401 — registrar tabla en metadata
 from etl_runner import router as etl_router
 from projects.models import Project
 from db.session import create_db_and_tables
@@ -34,6 +36,14 @@ def _seed_demo_projects(session: Session) -> None:
     for p in demos:
         session.add(p)
     session.commit()
+
+
+def _seed_demo_markups(session: Session) -> None:
+    """Siembra markups por defecto en todos los proyectos que no tengan ninguno."""
+    from markups import service as markups_service
+    projects = list(session.exec(select(Project)).all())
+    for project in projects:
+        markups_service.seed_defaults(session, project.id)
 
 
 def _migrate_dev_db() -> None:
@@ -68,6 +78,7 @@ async def lifespan(app: FastAPI):
     from db.session import engine
     with Session(engine) as session:
         _seed_demo_projects(session)
+        _seed_demo_markups(session)
     yield
 
 
@@ -88,6 +99,7 @@ app.include_router(budget_router)
 app.include_router(settings_router)
 app.include_router(ifc_importer_router)
 app.include_router(mapper_router)
+app.include_router(markups_router)
 app.include_router(etl_router)
 
 

@@ -11,6 +11,7 @@ from fastapi import HTTPException
 from sqlmodel import Session
 
 from projects import service as projects_service
+from markups import service as markups_service
 
 from .models import BudgetSummary, IfcBudgetRow, IfcBudgetSummary
 from . import repository
@@ -49,7 +50,11 @@ _QTO_MAP: dict[tuple[str, str], list[str] | None] = {
 
 
 def get_budget(session: Session, project_id: str) -> BudgetSummary:
-    return repository.get_budget(session, project_id)
+    summary = repository.get_budget(session, project_id)
+    markup_lines, grand_total = markups_service.apply_markups(session, project_id, summary.total)
+    summary.markups = markup_lines
+    summary.grand_total = grand_total
+    return summary
 
 
 def get_budget_ifc(session: Session, project_id: str) -> IfcBudgetSummary:
@@ -233,6 +238,8 @@ def get_budget_ifc(session: Session, project_id: str) -> IfcBudgetSummary:
 
     rows.sort(key=lambda r: (r.facet, r.nbr_code))
 
+    markup_lines, grand_total = markups_service.apply_markups(session, project_id, total)
+
     return IfcBudgetSummary(
         project_id=project_id,
         rows=rows,
@@ -240,4 +247,6 @@ def get_budget_ifc(session: Session, project_id: str) -> IfcBudgetSummary:
         items_count=len(rows),
         items_without_price=without_price,
         items_without_quantity=without_qty,
+        markups=markup_lines,
+        grand_total=grand_total,
     )
