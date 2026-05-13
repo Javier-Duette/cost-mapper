@@ -213,6 +213,12 @@ def add_apu_component(session: Session, apu: APUComponent) -> APUComponent:
     return apu
 
 
+def delete_apu_component(session: Session, apu: APUComponent) -> None:
+    """Elimina un insumo individual del APU."""
+    session.delete(apu)
+    session.commit()
+
+
 def list_parent_item_ids_using_component(session: Session, *, component_id: str) -> list[str]:
     """Lista IDs de Ã­tems padre que usan un componente dado en su APU."""
     statement = select(APUComponent.item_id).where(APUComponent.component_id == component_id)

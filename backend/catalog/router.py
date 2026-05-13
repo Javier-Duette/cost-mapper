@@ -115,6 +115,15 @@ def delete_item(
 ) -> None:
     service.eliminar_item(session, item_id, user=x_user or "user:anonymous")
 
+@router.delete("/apu/{apu_id}", status_code=204, summary="Quitar un insumo del APU")
+def delete_apu_component(
+    apu_id: str,
+    session: Session = Depends(get_session),
+) -> None:
+    """Elimina un insumo específico del APU. Recalcula el precio del ítem padre."""
+    service.eliminar_apu_componente(session, apu_id)
+
+
 @router.patch("/apu/{apu_id}", summary="Editar un componente APU")
 def update_apu_component(
     apu_id: str,

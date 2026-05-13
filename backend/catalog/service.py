@@ -264,6 +264,14 @@ def eliminar_item(session: Session, item_id: str, user: str = "user:anonymous") 
     repository.delete_item_and_own_apu(session, item=item)
 
 
+def eliminar_apu_componente(session: Session, apu_id: str) -> None:
+    """Quita un insumo del APU y recalcula el precio del ítem padre."""
+    apu = obtener_apu_componente(session, apu_id)
+    item_id = apu.item_id
+    repository.delete_apu_component(session, apu)
+    _recalculate_item_price_from_apu(session, item_id=item_id, user="system:apu_calc")
+
+
 def listar_items_usando_componente(session: Session, *, component_id: str) -> list[CatalogItemRead]:
     """Devuelve los ítems padre que usan este componente en su APU."""
     parent_ids = repository.list_parent_item_ids_using_component(session, component_id=component_id)

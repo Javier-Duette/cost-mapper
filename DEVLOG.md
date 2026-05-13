@@ -4,6 +4,20 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-12 — Fix: "Usos" movido al ítem principal + quitar insumos APU
+
+**Implementado:**
+- `DetailPanel`: botón "Usos" reubicado al header del ítem (muestra en qué APUs se usa el ítem seleccionado, no sus insumos). Carga lazy, se cachea, se resetea al cambiar de ítem.
+- `DetailPanel`: columna USOS eliminada de la tabla APU. Reemplazada por botón "×" por fila para quitar insumos individuales.
+- Nuevo endpoint `DELETE /api/catalog/apu/{apu_id}` — quita el insumo y recalcula el precio del ítem padre vía `_recalculate_item_price_from_apu`.
+- `repository.delete_apu_component()` y `service.eliminar_apu_componente()` agregados.
+
+**Problemas resueltos:**
+- La implementación anterior mostraba los usos de cada insumo dentro del APU, pero el usuario quiere ver dónde se usa el ítem principal.
+- No había forma de quitar insumos individuales del APU sin borrar el ítem padre completo.
+
+**Próximo paso:** definir siguiente feature (BUGS.md / backlog).
+
 ## 2026-05-12 — Bugs: desmapear grupo IFC, descripción en tabla grupos, "Usos" por insumo APU
 
 **Implementado:**

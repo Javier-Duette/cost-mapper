@@ -88,6 +88,12 @@ export async function getItemUsedIn(componentId: string): Promise<CatalogItem[]>
   return res.json() as Promise<CatalogItem[]>
 }
 
+/** Quita un insumo del APU de su ítem padre. */
+export async function deleteAPUComponent(apuId: string): Promise<void> {
+  const res = await fetch(`${BASE}/apu/${apuId}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error(`DELETE /apu/${apuId} falló: ${res.status}`)
+}
+
 /** Elimina un ítem del catálogo (si no está referenciado). */
 export async function deleteItem(id: string, user?: string): Promise<void> {
   const headers: Record<string, string> = {}
