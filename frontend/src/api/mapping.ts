@@ -3,6 +3,8 @@ import type {
   CreateAssignmentInput,
   GroupAssignInput,
   GroupAssignSummary,
+  GroupUnassignInput,
+  GroupUnassignSummary,
   MappingElementsPage,
   MappingGroupsPage,
   MappingTab,
@@ -78,6 +80,17 @@ export async function listMappingGroups(params: {
   const res = await fetch(url.toString())
   if (!res.ok) throw new Error(`GET /projects/${params.projectId}/mapping/groups falló: ${res.status}`)
   return res.json() as Promise<MappingGroupsPage>
+}
+
+/** Endpoint: POST /api/projects/{projectId}/mapping/groups:unassign */
+export async function unassignMappingGroup(projectId: string, data: GroupUnassignInput): Promise<GroupUnassignSummary> {
+  const res = await fetch(`/api/projects/${projectId}/mapping/groups:unassign`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(`POST /projects/${projectId}/mapping/groups:unassign falló: ${res.status}`)
+  return res.json() as Promise<GroupUnassignSummary>
 }
 
 /** Endpoint: POST /api/projects/{projectId}/mapping/groups:assign */

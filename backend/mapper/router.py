@@ -12,6 +12,8 @@ from .models import (
     AutoAssignSummary,
     GroupAssignRequest,
     GroupAssignSummary,
+    GroupUnassignRequest,
+    GroupUnassignSummary,
     MappingGroupsResponse,
 )
 from . import service
@@ -74,3 +76,12 @@ def assign_mapping_group(
     session: Session = Depends(get_session),
 ):
     return service.assign_group_manual(session, project_id=project_id, data=payload)
+
+
+@router.post("/groups:unassign", response_model=GroupUnassignSummary)
+def unassign_mapping_group(
+    project_id: str,
+    payload: GroupUnassignRequest,
+    session: Session = Depends(get_session),
+):
+    return service.unassign_group(session, project_id=project_id, data=payload)

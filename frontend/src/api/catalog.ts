@@ -81,6 +81,13 @@ export async function addAPUComponent(itemId: string, data: { component_id: stri
   if (!res.ok) throw new Error(`POST /items/${itemId}/apu falló: ` + res.status)
 }
 
+/** Lista los ítems padre que tienen este componente en su APU. */
+export async function getItemUsedIn(componentId: string): Promise<CatalogItem[]> {
+  const res = await fetch(`${BASE}/items/${componentId}/used-in`)
+  if (!res.ok) throw new Error(`GET /items/${componentId}/used-in falló: ${res.status}`)
+  return res.json() as Promise<CatalogItem[]>
+}
+
 /** Elimina un ítem del catálogo (si no está referenciado). */
 export async function deleteItem(id: string, user?: string): Promise<void> {
   const headers: Record<string, string> = {}

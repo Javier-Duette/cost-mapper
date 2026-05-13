@@ -262,3 +262,10 @@ def eliminar_item(session: Session, item_id: str, user: str = "user:anonymous") 
         )
 
     repository.delete_item_and_own_apu(session, item=item)
+
+
+def listar_items_usando_componente(session: Session, *, component_id: str) -> list[CatalogItemRead]:
+    """Devuelve los ítems padre que usan este componente en su APU."""
+    parent_ids = repository.list_parent_item_ids_using_component(session, component_id=component_id)
+    items = [repository.get_by_id(session, pid) for pid in parent_ids]
+    return [CatalogItemRead.model_validate(it) for it in items if it is not None]

@@ -18,7 +18,7 @@ export function MappingGroupsTable({ rows, selectedKey, onSelect }: MappingGroup
         <tr>
           <th style={{ width: 140 }}>IFC</th>
           <th>TIPO (familia + tipo)</th>
-          <th style={{ width: 170 }}>ITEM</th>
+          <th style={{ width: 260 }}>ITEM</th>
           <th className="num" style={{ width: 90 }}>CANT.</th>
         </tr>
       </thead>
@@ -35,8 +35,16 @@ export function MappingGroupsTable({ rows, selectedKey, onSelect }: MappingGroup
             >
               <td className="num">{r.ifc_type}</td>
               <td className="desc">{r.ifc_type_name ?? '—'}</td>
-              <td className="num">
-                {r.assigned_is_mixed ? 'Mixto' : (r.assigned_item?.nbr_code ?? '—')}
+              <td
+                className="desc"
+                style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260 }}
+                title={r.assigned_item ? `${r.assigned_item.nbr_code} — ${r.assigned_item.description_es}` : undefined}
+              >
+                {r.assigned_is_mixed
+                  ? 'Mixto'
+                  : r.assigned_item
+                    ? `${r.assigned_item.nbr_code} — ${r.assigned_item.description_es}`
+                    : '—'}
               </td>
               <td className="num">{r.total_elements}</td>
             </tr>

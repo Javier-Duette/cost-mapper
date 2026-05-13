@@ -71,6 +71,15 @@ def get_item_apu(
     return service.obtener_apu_completo(session, item_id)
 
 
+@router.get("/items/{component_id}/used-in", response_model=list[CatalogItemRead], summary="Ítems que usan este componente en su APU")
+def get_item_used_in(
+    component_id: str,
+    session: Session = Depends(get_session),
+) -> list[CatalogItemRead]:
+    """Lista los ítems padre que tienen este ítem como insumo en su APU."""
+    return service.listar_items_usando_componente(session, component_id=component_id)
+
+
 @router.put("/items/{item_id}", response_model=CatalogItemRead, summary="Editar un ítem")
 def update_item(
     item_id: str,
@@ -114,7 +123,7 @@ def update_apu_component(
 ) -> dict:
     """Actualiza campos de un componente APU (ej. coeficiente, fuente)."""
     apu = service.actualizar_apu_componente(session, apu_id, data)
-    return {"id": apu.id, "quantity": apu.quantity, "source": apu.source}
+    return {"id": apu.id, "quantity": apu.quantity, "source": apu.source}
 
 @router.post("/items/{item_id}/apu", summary="Aadir un insumo al APU", status_code=201)
 def add_apu_component(
@@ -124,4 +133,4 @@ def add_apu_component(
 ) -> dict:
     """Aade un nuevo componente al desglose APU de un tem."""
     apu = service.agregar_componente_apu(session, item_id, data)
-    return {"id": apu.id, "quantity": apu.quantity, "source": apu.source}
+    return {"id": apu.id, "quantity": apu.quantity, "source": apu.source}

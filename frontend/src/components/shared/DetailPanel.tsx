@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { getItem, getItemAPU, updateItem, updateAPUComponent, addAPUComponent, deleteItem } from '../../api/catalog'
+import { Fragment, useEffect, useState } from 'react'
+import { getItem, getItemAPU, updateItem, updateAPUComponent, addAPUComponent, deleteItem, getItemUsedIn } from '../../api/catalog'
 import { Chip, SourceBadge } from './Chip'
 import { Icon } from './Icon'
 import { fmt } from './formatters'
@@ -20,6 +20,8 @@ export function DetailPanel({ item, onUpdate, onDelete }: DetailPanelProps) {
   const [apu, setApu] = useState<APUComponentRead[]>([])
   const [loading, setLoading] = useState(false)
   const [isAddingInsumo, setIsAddingInsumo] = useState(false)
+  const [usedInOpen, setUsedInOpen] = useState<string | null>(null)
+  const [usedInMap, setUsedInMap] = useState<Record<string, CatalogItem[] | null>>({})
   const [isVerifying, setIsVerifying] = useState(false)
   const [auditAction, setAuditAction] = useState<{
     type: 'item_price' | 'comp_price',
@@ -217,6 +219,21 @@ export function DetailPanel({ item, onUpdate, onDelete }: DetailPanelProps) {
     }
   }
 
+  const handleToggleUsedIn = async (componentId: string) => {
+    if (usedInOpen === componentId) {
+      setUsedInOpen(null)
+      return
+    }
+    setUsedInOpen(componentId)
+    if (usedInMap[componentId] !== undefined) return
+    try {
+      const parents = await getItemUsedIn(componentId)
+      setUsedInMap(prev => ({ ...prev, [componentId]: parents }))
+    } catch {
+      setUsedInMap(prev => ({ ...prev, [componentId]: [] }))
+    }
+  }
+
   const handleDeleteItem = async () => {
     if (!item) return
     const ok = confirm(`Eliminar ítem ${item.nbr_code}?\n\nSolo funciona si el ítem no está en la Biblioteca, el Mapeo IFC, ni como insumo en el APU de otro ítem.`)
@@ -316,11 +333,13 @@ export function DetailPanel({ item, onUpdate, onDelete }: DetailPanelProps) {
                 <th style={{ width: 100 }}>FUENTE COEF.</th>
                 <th className="num" style={{ width: 110 }}>P. UNIT (₲)</th>
                 <th style={{ width: 90 }}>FUENTE PRECIO</th>
+                <th style={{ width: 56 }}>USOS</th>
               </tr>
             </thead>
             <tbody>
               {apu.map(r => (
-                <tr key={r.apu_component_id}>
+                <Fragment key={r.apu_component_id}>
+                <tr>
                   <td style={{ padding: '0 4px' }}>
                     <div 
                       className="info-trigger" 
@@ -363,14 +382,51 @@ export function DetailPanel({ item, onUpdate, onDelete }: DetailPanelProps) {
                     />
                   </td>
                   <td>
-                    <InlineEdit 
-                      value={r.fuente_precio} 
+                    <InlineEdit
+                      value={r.fuente_precio}
                       onSave={v => handleUpdateFuentePrecio(r.component_id, v)}
                     >
                       <SourceBadge source={r.fuente_precio ?? '—'} />
                     </InlineEdit>
                   </td>
+                  <td style={{ textAlign: 'center' }}>
+                    <button
+                      className="btn"
+                      style={{ height: 20, padding: '0 6px', fontSize: 11 }}
+                      onClick={() => { void handleToggleUsedIn(r.component_id) }}
+                      title="Ver ítems que usan este insumo"
+                    >
+                      {usedInOpen === r.component_id ? '▲' : 'Usos'}
+                    </button>
+                  </td>
                 </tr>
+                {usedInOpen === r.component_id && (
+                  <tr key={`${r.apu_component_id}:used-in`} style={{ background: 'var(--bg-subtle)' }}>
+                    <td colSpan={10} style={{ padding: '8px 16px' }}>
+                      {usedInMap[r.component_id] === undefined && (
+                        <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Cargando…</span>
+                      )}
+                      {usedInMap[r.component_id]?.length === 0 && (
+                        <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>No usado en ningún otro ítem.</span>
+                      )}
+                      {(usedInMap[r.component_id]?.length ?? 0) > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          <span style={{ fontSize: 11, color: 'var(--text-secondary)', alignSelf: 'center' }}>Usado en:</span>
+                          {usedInMap[r.component_id]!.map(p => (
+                            <span
+                              key={p.id}
+                              style={{ fontSize: 11, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 4, padding: '2px 8px' }}
+                              title={p.description_es}
+                            >
+                              {p.nbr_code} — {p.description_es}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
             </tbody>
           </table>

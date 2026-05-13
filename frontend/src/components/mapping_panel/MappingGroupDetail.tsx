@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { assignMappingGroup } from '../../api/mapping'
+import { assignMappingGroup, unassignMappingGroup } from '../../api/mapping'
 import { searchItems } from '../../api/catalog'
 import { Chip } from '../shared/Chip'
 import { Icon } from '../shared/Icon'
@@ -18,6 +18,7 @@ interface MappingGroupDetailProps {
 /** Panel de detalle para mapear un grupo (IfcType + tipo) de una sola vez. */
 export function MappingGroupDetail({ projectId, tab, group, toast, onRefresh }: MappingGroupDetailProps) {
   const [busyItemId, setBusyItemId] = useState<string | null>(null)
+  const [busyUnassign, setBusyUnassign] = useState(false)
 
   const [catalogQuery, setCatalogQuery] = useState('')
   const [catalogLoading, setCatalogLoading] = useState(false)
@@ -92,6 +93,23 @@ export function MappingGroupDetail({ projectId, tab, group, toast, onRefresh }: 
     }
   }
 
+  const handleUnassign = async () => {
+    if (!group || busyUnassign) return
+    setBusyUnassign(true)
+    try {
+      const res = await unassignMappingGroup(projectId, {
+        ifc_type: group.ifc_type,
+        ifc_type_name: group.ifc_type_name,
+      })
+      toast(`Desmapeado: ${res.deleted} asignación${res.deleted !== 1 ? 'es' : ''} eliminada${res.deleted !== 1 ? 's' : ''}`, 'success')
+      onRefresh()
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Error al desmapear grupo', 'error')
+    } finally {
+      setBusyUnassign(false)
+    }
+  }
+
   if (!group) {
     return (
       <div style={{ padding: 16, color: 'var(--text-secondary)', fontSize: 12 }}>
@@ -116,9 +134,17 @@ export function MappingGroupDetail({ projectId, tab, group, toast, onRefresh }: 
       {tab !== 'unassigned' && (
         <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
           {tab === 'manual' && assignedLabel ? (
-            <>
-              Ítem asignado: <strong>{assignedLabel}</strong>. Podés reasignar el grupo seleccionando otro ítem.
-            </>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span>Ítem asignado: <strong>{assignedLabel}</strong>. Podés reasignar o desmapear el grupo.</span>
+              <button
+                className="btn"
+                style={{ height: 26, padding: '0 10px', fontSize: 12, color: 'var(--error)', borderColor: 'var(--error)' }}
+                disabled={busyUnassign}
+                onClick={() => { void handleUnassign() }}
+              >
+                {busyUnassign ? '…' : 'Desmapear grupo'}
+              </button>
+            </div>
           ) : (
             <>
               El mapeo manual masivo se hace desde <strong>Sin asignar</strong>.

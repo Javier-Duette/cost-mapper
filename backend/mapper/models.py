@@ -140,3 +140,12 @@ class GroupAssignSummary(SQLModel):
     created: int
     skipped_already_assigned: int
     deleted_assignments: int = 0
+
+
+class GroupUnassignRequest(SQLModel):
+    ifc_type: str
+    ifc_type_name: str | None = None
+
+
+class GroupUnassignSummary(SQLModel):
+    deleted: int

@@ -76,3 +76,12 @@ export interface GroupAssignSummary {
   skipped_already_assigned: number
   deleted_assignments?: number
 }
+
+export interface GroupUnassignInput {
+  ifc_type: string
+  ifc_type_name: string | null
+}
+
+export interface GroupUnassignSummary {
+  deleted: number
+}

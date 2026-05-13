@@ -4,6 +4,18 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-12 — Bugs: desmapear grupo IFC, descripción en tabla grupos, "Usos" por insumo APU
+
+**Implementado:**
+- Mapeo IFC — Desmapear grupo: botón "Desmapear grupo" en tab Asignados (manual). Llama `POST /api/projects/{id}/mapping/groups:unassign` (nuevo endpoint). Usa `list_active_elements_by_group` + `delete_assignments_for_elements` ya existentes en repository.
+- Mapeo IFC — Descripción visible: columna ITEM en `MappingGroupsTable` muestra `nbr_code — description_es` (truncado, tooltip con texto completo).
+- Catálogo APU — Usos por insumo: botón "Usos" por fila APU abre panel inline con lista de ítems padre que usan ese componente. Nuevo endpoint `GET /api/catalog/items/{id}/used-in`.
+
+**Problemas resueltos:**
+- TypeScript limpio (0 errores). Backend importa correctamente los nuevos modelos.
+
+**Próximo paso:** definir siguiente feature o bug (BUGS.md no tiene más ítems abiertos por ahora).
+
 ## 2026-05-12 — Bugs resueltos: borrado de ítems, advertencia APU y mensaje 409 descriptivo
 
 **Implementado:**

@@ -21,6 +21,8 @@ from .models import (
     CatalogItemSummary,
     GroupAssignRequest,
     GroupAssignSummary,
+    GroupUnassignRequest,
+    GroupUnassignSummary,
     MappingGroupRead,
     MappingGroupsResponse,
     MappingSuggestion,
@@ -505,3 +507,17 @@ def assign_group_manual(
         skipped_already_assigned=skipped_already_assigned,
         deleted_assignments=deleted_assignments,
     )
+
+
+def unassign_group(session: Session, *, project_id: str, data: GroupUnassignRequest) -> GroupUnassignSummary:
+    elements = repository.list_active_elements_by_group(
+        session,
+        project_id=project_id,
+        ifc_type=data.ifc_type,
+        ifc_type_name=data.ifc_type_name,
+    )
+    element_ids = [e.id for e in elements]
+    deleted = repository.delete_assignments_for_elements(
+        session, project_id=project_id, element_ids=element_ids
+    )
+    return GroupUnassignSummary(deleted=deleted)
