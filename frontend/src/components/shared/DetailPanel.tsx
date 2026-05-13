@@ -219,7 +219,7 @@ export function DetailPanel({ item, onUpdate, onDelete }: DetailPanelProps) {
 
   const handleDeleteItem = async () => {
     if (!item) return
-    const ok = confirm(`Eliminar ítem ${item.nbr_code}?\n\nEsto solo funciona si el ítem no está usado en Biblioteca/Mapeo.`)
+    const ok = confirm(`Eliminar ítem ${item.nbr_code}?\n\nSolo funciona si el ítem no está en la Biblioteca, el Mapeo IFC, ni como insumo en el APU de otro ítem.`)
     if (!ok) return
     try {
       await deleteItem(item.id)

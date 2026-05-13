@@ -248,12 +248,17 @@ def eliminar_item(session: Session, item_id: str, user: str = "user:anonymous") 
 
     refs = repository.count_external_references(session, item_id=item.id)
     if any(v > 0 for v in refs.values()):
+        parts = []
+        if refs["project_library"] > 0:
+            parts.append(f"Biblioteca ({refs['project_library']} entrada{'s' if refs['project_library'] != 1 else ''})")
+        if refs["project_assignments"] > 0:
+            parts.append(f"Mapeo IFC ({refs['project_assignments']} asignacion{'es' if refs['project_assignments'] != 1 else ''})")
+        if refs["apu_as_component"] > 0:
+            parts.append(f"APU como insumo en {refs['apu_as_component']} item{'s' if refs['apu_as_component'] != 1 else ''}")
+        msg = "No se puede eliminar: referenciado en " + ", ".join(parts) + ". Removelo de ahi primero."
         raise HTTPException(
             status_code=409,
-            detail={
-                "message": "No se puede eliminar el Ã­tem porque estÃ¡ referenciado.",
-                "references": refs,
-            },
+            detail={"message": msg, "references": refs},
         )
 
     repository.delete_item_and_own_apu(session, item=item)
