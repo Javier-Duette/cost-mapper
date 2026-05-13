@@ -49,14 +49,14 @@ def _create_project(client: TestClient) -> str:
     return r.json()["id"]
 
 
-def _create_catalog_item(client: TestClient, *, nbr_code: str = "3E 05 20") -> str:
+def _create_catalog_item(client: TestClient, *, nbr_code: str = "3E 05 20", unit: str = "m²") -> str:
     r = client.post(
         "/api/catalog/items",
         json={
             "nbr_code": nbr_code,
             "facet": nbr_code[:2],
             "description_es": "Item test",
-            "unit": "m²",
+            "unit": unit,
         },
     )
     assert r.status_code == 201
@@ -250,3 +250,100 @@ class TestGroups:
         assert data_manual["total"] == 1
         assert data_manual["items"][0]["ifc_type"] == "IfcWall"
         assert data_manual["items"][0]["assigned_item"]["nbr_code"] == "3E 05 20"
+
+
+class TestUnitCompatibility:
+    """Valida que el mapper rechace ítems con unidades incompatibles con el tipo IFC."""
+
+    def _seed_wall(self, client: TestClient, project_id: str, global_id: str = "g1") -> str:
+        client.post(
+            f"/api/projects/{project_id}/ifc/elements:seed",
+            json={
+                "elements": [{"global_id": global_id, "ifc_type": "IfcWall", "qualitative_snapshot": {}}],
+                "full_sync": True,
+            },
+        )
+        listed = client.get(f"/api/projects/{project_id}/ifc/elements?status=active").json()
+        return listed["items"][0]["id"]
+
+    def _seed_element(self, client: TestClient, project_id: str, ifc_type: str, global_id: str = "g1") -> str:
+        client.post(
+            f"/api/projects/{project_id}/ifc/elements:seed",
+            json={
+                "elements": [{"global_id": global_id, "ifc_type": ifc_type, "qualitative_snapshot": {}}],
+                "full_sync": True,
+            },
+        )
+        listed = client.get(f"/api/projects/{project_id}/ifc/elements?status=active").json()
+        return listed["items"][0]["id"]
+
+    def test_incompatible_unit_returns_422(self, client: TestClient):
+        project_id = _create_project(client)
+        element_id = self._seed_wall(client, project_id)
+        kg_item_id = _create_catalog_item(client, nbr_code="9A 01 00", unit="kg")
+
+        r = client.post(
+            f"/api/projects/{project_id}/mapping/assignments",
+            json={"ifc_element_id": element_id, "item_id": kg_item_id},
+        )
+        assert r.status_code == 422
+        assert "incompatible" in r.json()["detail"].lower()
+
+    def test_compatible_unit_creates_assignment(self, client: TestClient):
+        project_id = _create_project(client)
+        element_id = self._seed_wall(client, project_id)
+        m2_item_id = _create_catalog_item(client, nbr_code="3E 05 20", unit="m²")
+
+        r = client.post(
+            f"/api/projects/{project_id}/mapping/assignments",
+            json={"ifc_element_id": element_id, "item_id": m2_item_id},
+        )
+        assert r.status_code == 201
+
+    def test_unknown_ifc_type_allows_any_unit(self, client: TestClient):
+        project_id = _create_project(client)
+        element_id = self._seed_element(client, project_id, ifc_type="IfcSpace")
+        kg_item_id = _create_catalog_item(client, nbr_code="9A 01 00", unit="kg")
+
+        r = client.post(
+            f"/api/projects/{project_id}/mapping/assignments",
+            json={"ifc_element_id": element_id, "item_id": kg_item_id},
+        )
+        assert r.status_code == 201
+
+    def test_group_assign_incompatible_unit_returns_422(self, client: TestClient):
+        project_id = _create_project(client)
+        client.post(
+            f"/api/projects/{project_id}/ifc/elements:seed",
+            json={
+                "elements": [{"global_id": "g1", "ifc_type": "IfcWall", "ifc_type_name": "Muro 200mm", "qualitative_snapshot": {}}],
+                "full_sync": True,
+            },
+        )
+        kg_item_id = _create_catalog_item(client, nbr_code="9A 01 00", unit="kg")
+
+        r = client.post(
+            f"/api/projects/{project_id}/mapping/groups:assign",
+            json={"ifc_type": "IfcWall", "ifc_type_name": "Muro 200mm", "item_id": kg_item_id},
+        )
+        assert r.status_code == 422
+
+    def test_compatible_units_returned_in_elements_response(self, client: TestClient):
+        project_id = _create_project(client)
+        self._seed_wall(client, project_id)
+
+        r = client.get(f"/api/projects/{project_id}/mapping/elements?tab=unassigned")
+        assert r.status_code == 200
+        items = r.json()["items"]
+        assert len(items) == 1
+        assert items[0]["compatible_units"] == ["m²"]
+
+    def test_unknown_ifc_type_returns_null_compatible_units(self, client: TestClient):
+        project_id = _create_project(client)
+        self._seed_element(client, project_id, ifc_type="IfcSpace")
+
+        r = client.get(f"/api/projects/{project_id}/mapping/elements?tab=unassigned")
+        assert r.status_code == 200
+        items = r.json()["items"]
+        assert len(items) == 1
+        assert items[0]["compatible_units"] is None

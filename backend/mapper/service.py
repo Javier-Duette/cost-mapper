@@ -12,6 +12,7 @@ from sqlmodel import Session
 
 from catalog.models import CatalogItem
 from ifc_importer.models import IfcElement, snapshot_md5
+from ifc_units import units_for_ifc_type
 from projects import service as projects_service
 
 from .models import (
@@ -130,6 +131,7 @@ def _build_mapping_response(
         element_assignments = assignments_by_element.get(element.id, [])
         suggestions = _suggest_for_element(session, project_id=project_id, element=element)
 
+        compatible = units_for_ifc_type(element.ifc_type)
         rows.append(
             {
                 "element": element.model_dump(),
@@ -145,6 +147,7 @@ def _build_mapping_response(
                     for a in element_assignments
                 ],
                 "suggestions": suggestions,
+                "compatible_units": sorted(compatible) if compatible is not None else None,
             }
         )
 
@@ -157,10 +160,17 @@ def _suggest_for_element(
     project_id: str,
     element: IfcElement,
 ) -> list[MappingSuggestion]:
+    compatible = units_for_ifc_type(element.ifc_type)
+
+    def _filter(items) -> list:
+        if compatible is None:
+            return list(items)
+        return [i for i in items if i.unit in compatible]
+
     # Regla 1: match exacto por NBR (100)
     if element.nbr_classification:
         normalized = _normalize_nbr_code(element.nbr_classification)
-        exact = repository.suggestions_by_exact_nbr_code(session, nbr_code=normalized, limit=5)
+        exact = _filter(repository.suggestions_by_exact_nbr_code(session, nbr_code=normalized, limit=5))
         if exact:
             return [
                 MappingSuggestion(
@@ -175,7 +185,7 @@ def _suggest_for_element(
             ]
 
         # Regla 2: prefijo simple (70)
-        prefix = repository.suggestions_by_prefix_nbr_code(session, nbr_code_prefix=normalized, limit=5)
+        prefix = _filter(repository.suggestions_by_prefix_nbr_code(session, nbr_code_prefix=normalized, limit=5))
         if prefix:
             return [
                 MappingSuggestion(
@@ -190,7 +200,7 @@ def _suggest_for_element(
             ]
 
     # Fallback: ítems de la biblioteca del proyecto (30)
-    library_items = repository.suggestions_from_project_library(session, project_id=project_id, limit=5)
+    library_items = _filter(repository.suggestions_from_project_library(session, project_id=project_id, limit=5))
     return [
         MappingSuggestion(
             item_id=i.id,
@@ -219,6 +229,16 @@ def create_assignment(
     item = session.get(CatalogItem, data.item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Ítem de catálogo no encontrado.")
+
+    compatible = units_for_ifc_type(element.ifc_type)
+    if compatible is not None and item.unit not in compatible:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Unidad incompatible: el ítem usa '{item.unit}' pero "
+                f"'{element.ifc_type}' requiere {sorted(compatible)}."
+            ),
+        )
 
     existing = repository.get_assignment_by_element_and_item(session, ifc_element_id=element.id, item_id=item.id)
     if existing:
@@ -450,6 +470,16 @@ def assign_group_manual(
     item = session.get(CatalogItem, data.item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Ítem de catálogo no encontrado.")
+
+    compatible = units_for_ifc_type(data.ifc_type)
+    if compatible is not None and item.unit not in compatible:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Unidad incompatible: el ítem usa '{item.unit}' pero "
+                f"'{data.ifc_type}' requiere {sorted(compatible)}."
+            ),
+        )
 
     # Solo elementos actualmente sin asignación (MVP: 1 ítem por elemento)
     deleted_assignments = 0

@@ -98,6 +98,7 @@ class MappingElementRow(SQLModel):
     element: dict
     assignments: list[AssignmentRead]
     suggestions: list[MappingSuggestion]
+    compatible_units: list[str] | None = None
 
 
 class MappingElementsResponse(SQLModel):

@@ -27,6 +27,7 @@ export function MappingElementDetail({ projectId, row, toast, onRefresh }: Mappi
   const element = row?.element ?? null
   const assignments = row?.assignments ?? []
   const suggestions = row?.suggestions ?? []
+  const compatibleUnits = row?.compatible_units ?? null
 
   const canOperate = Boolean(projectId && element)
 
@@ -128,6 +129,14 @@ export function MappingElementDetail({ projectId, row, toast, onRefresh }: Mappi
           <div>{element.ifc_level ?? '—'}</div>
           <div style={{ color: 'var(--text-secondary)' }}>NBR (IFC)</div>
           <div style={{ fontFamily: 'var(--font-mono)' }}>{element.nbr_classification ?? '—'}</div>
+          {compatibleUnits !== null && (
+            <>
+              <div style={{ color: 'var(--text-secondary)' }}>Und. válidas</div>
+              <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>
+                {compatibleUnits.join(' · ')}
+              </div>
+            </>
+          )}
         </div>
 
         <div style={{ marginTop: 14, fontSize: 12, color: 'var(--text-secondary)' }}>Asignaciones</div>
@@ -235,7 +244,14 @@ export function MappingElementDetail({ projectId, row, toast, onRefresh }: Mappi
           {!catalogLoading && catalogItems.length > 0 && (
             <div style={{ marginTop: 8, border: '1px solid var(--border-subtle)', borderRadius: 6, overflow: 'hidden' }}>
               {catalogItems.map(item => {
-                const disabled = assignmentItemIds.has(item.id)
+                const alreadyAssigned = assignmentItemIds.has(item.id)
+                const unitIncompat = compatibleUnits !== null && !compatibleUnits.includes(item.unit)
+                const disabled = alreadyAssigned || unitIncompat
+                const tooltipText = alreadyAssigned
+                  ? 'Ya asignado'
+                  : unitIncompat
+                    ? `Unidad incompatible (${item.unit}). Este elemento requiere ${compatibleUnits!.join(' o ')}.`
+                    : 'Asignar'
                 return (
                   <div
                     key={item.id}
@@ -245,7 +261,8 @@ export function MappingElementDetail({ projectId, row, toast, onRefresh }: Mappi
                       gap: 10,
                       padding: '8px 10px',
                       borderBottom: '1px solid var(--border-subtle)',
-                      background: 'var(--bg-surface)',
+                      background: unitIncompat ? 'var(--bg-muted, var(--bg-surface))' : 'var(--bg-surface)',
+                      opacity: unitIncompat ? 0.6 : 1,
                     }}
                   >
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, minWidth: 120 }}>
@@ -255,14 +272,17 @@ export function MappingElementDetail({ projectId, row, toast, onRefresh }: Mappi
                     <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12 }}>
                       {item.description_es}
                     </div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: unitIncompat ? 'var(--error)' : 'var(--text-secondary)', flexShrink: 0 }}>
+                      {item.unit}
+                    </div>
                     <button
                       className={`btn${disabled ? '' : ' btn--primary'}`}
-                      style={{ height: 26, padding: '0 8px', fontSize: 12 }}
+                      style={{ height: 26, padding: '0 8px', fontSize: 12, flexShrink: 0 }}
                       disabled={!canOperate || disabled || busyItemId === item.id}
                       onClick={() => { void handleAssign(item.id) }}
-                      title={disabled ? 'Ya asignado' : 'Asignar'}
+                      title={tooltipText}
                     >
-                      {busyItemId === item.id ? '…' : (disabled ? 'Asignado' : 'Asignar')}
+                      {busyItemId === item.id ? '…' : (alreadyAssigned ? 'Asignado' : 'Asignar')}
                     </button>
                   </div>
                 )

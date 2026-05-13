@@ -4,6 +4,24 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-13 — Mapper IFC: validación de compatibilidad de unidades
+
+**Implementado:**
+- `backend/ifc_units.py` (nuevo módulo compartido): dict `IFC_TYPE_UNITS` que mapea tipo IFC → frozenset de unidades canónicas válidas (18 tipos cubiertos: IfcWall, IfcSlab, IfcColumn, IfcDoor, etc.).
+- `mapper/service.py` — `create_assignment()`: valida que `item.unit` sea compatible con el `ifc_type` del elemento; retorna 422 con mensaje descriptivo si no lo es. Tipos IFC desconocidos no tienen restricción.
+- `mapper/service.py` — `assign_group_manual()`: misma validación al nivel del grupo (una sola verificación antes de iterar todos los elementos).
+- `mapper/service.py` — `_suggest_for_element()`: filtra sugerencias por unidad compatible antes de retornarlas.
+- `mapper/service.py` — `_build_mapping_response()`: agrega campo `compatible_units: list[str] | null` en cada fila de elementos.
+- `frontend/src/types/mapping.ts`: `MappingElementRow` incluye `compatible_units?: string[] | null`.
+- `frontend MappingElementDetail.tsx`: muestra "Und. válidas" en el panel de elemento; en resultados de búsqueda los ítems incompatibles aparecen con opacidad reducida, botón deshabilitado y tooltip explicativo.
+- 6 tests nuevos en `TestUnitCompatibility`; todos pasan (12/12 en mapper).
+- ADR-015 documentado en `docs/adrs/ADR-015.md`.
+
+**Decisiones cambiadas:**
+- ADR-015 (nuevo): validación de compatibilidad de unidades en mapper, mapa IFC→unidades en módulo compartido sin tabla DB.
+
+**Próximo paso:** definir siguiente feature (backlog / BUGS.md).
+
 ## 2026-05-12 — Fix: "Usos" movido al ítem principal + quitar insumos APU
 
 **Implementado:**

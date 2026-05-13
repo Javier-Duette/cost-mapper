@@ -28,6 +28,8 @@ export interface MappingElementRow {
   element: IfcElementSummary
   assignments: ProjectAssignmentRead[]
   suggestions: MappingSuggestion[]
+  /** Unidades canónicas válidas para este tipo IFC. null = tipo desconocido, sin restricción. */
+  compatible_units?: string[] | null
 }
 
 export interface MappingElementsPage {
