@@ -4,6 +4,14 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-14 — Activar 3487 nodos hoja NBR como work items
+
+**Implementado:**
+- `scripts/activate_leaf_nodes.py`: detecta nodos hoja de clasificacion (sin hijos derivados) en las facetas 2C, 2N, 2Q y los activa como `is_work_item=True`. Soporta `--dry-run` y `--facets`.
+- DB actualizada: 3487 nodos activados (2C=2885 nuevos, 2N=118, 2Q=484). Ahora aparecen en el catalogo con precio editable. Ingeniero, Arquitecto y todos los demas insumos de mano de obra y materiales son visibles.
+
+**Proximo paso:** Asignar precios a los nodos recien activados — la mayoria tiene `unit_price=0`. Considerar importar precios de fuentes como DNCP o MTESS para mano de obra.
+
 ## 2026-05-14 — NbrTreePicker completo + creacion manual de items
 
 **Implementado:**
