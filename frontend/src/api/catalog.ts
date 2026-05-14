@@ -110,6 +110,60 @@ export async function unarchiveItem(id: string): Promise<CatalogItem> {
   return res.json() as Promise<CatalogItem>
 }
 
+// ── NBR Tree ────────────────────────────────────────────────────────────────
+
+export interface NbrNode {
+  nbr_code: string
+  facet: string
+  description_es: string | null
+  description_pt: string | null
+  is_work_item: boolean
+  parent_nbr_code: string | null
+}
+
+/** Busca nodos NBR (clasificaciones + work items) por texto o faceta. */
+export async function searchNbrTree(params: {
+  q?: string
+  facet?: string
+  limit?: number
+}): Promise<NbrNode[]> {
+  const url = new URL('/api/catalog/nbr-nodes', window.location.origin)
+  if (params.q)     url.searchParams.set('q', params.q)
+  if (params.facet) url.searchParams.set('facet', params.facet)
+  if (params.limit) url.searchParams.set('limit', String(params.limit))
+  const res = await fetch(url.toString())
+  if (!res.ok) throw new Error(`GET /nbr-nodes falló: ${res.status}`)
+  return res.json() as Promise<NbrNode[]>
+}
+
+/** Carga todos los nodos de una faceta (para construir el árbol client-side). */
+export async function getNbrTree(facet: string): Promise<NbrNode[]> {
+  const url = new URL('/api/catalog/nbr-nodes/tree', window.location.origin)
+  url.searchParams.set('facet', facet)
+  const res = await fetch(url.toString())
+  if (!res.ok) throw new Error(`GET /nbr-nodes/tree falló: ${res.status}`)
+  return res.json() as Promise<NbrNode[]>
+}
+
+/** Retorna los ancestros de un nodo (de raíz a padre). Usado para el breadcrumb. */
+export async function getNbrAncestors(code: string): Promise<NbrNode[]> {
+  const url = new URL('/api/catalog/nbr-nodes/ancestors', window.location.origin)
+  url.searchParams.set('code', code)
+  const res = await fetch(url.toString())
+  if (!res.ok) throw new Error(`GET /nbr-nodes/ancestors falló: ${res.status}`)
+  return res.json() as Promise<NbrNode[]>
+}
+
+/** Sugiere el próximo código disponible para un ítem bajo el nodo padre. */
+export async function getNbrNextItemCode(parentCode: string): Promise<string> {
+  const url = new URL('/api/catalog/nbr-nodes/next-item-code', window.location.origin)
+  url.searchParams.set('parent', parentCode)
+  const res = await fetch(url.toString())
+  if (!res.ok) throw new Error(`GET /nbr-nodes/next-item-code falló: ${res.status}`)
+  const data = await res.json() as { next_code: string }
+  return data.next_code
+}
+
 /** Elimina un ítem del catálogo (si no está referenciado). */
 export async function deleteItem(id: string, user?: string): Promise<void> {
   const headers: Record<string, string> = {}

@@ -16,10 +16,57 @@ from catalog.models import (
     CatalogItemCreate,
     CatalogItemRead,
     CatalogItemUpdate,
+    NbrNodeRead,
 )
 from db.session import get_session
 
 router = APIRouter(prefix="/api/catalog", tags=["Catálogo"])
+
+
+@router.get("/nbr-nodes", response_model=list[NbrNodeRead], summary="Buscar nodos NBR 15965")
+def search_nbr_nodes(
+    q: str | None = Query(None, description="Texto a buscar en descripción o código"),
+    facet: str | None = Query(None, description="Filtrar por faceta. Ej: '2C', '3E'"),
+    limit: int = Query(80, ge=1, le=500),
+    session: Session = Depends(get_session),
+) -> list[NbrNodeRead]:
+    """Búsqueda plana de nodos NBR (clasificaciones e ítems). Usado por el modo 'Buscar' del picker."""
+    nodes = service.buscar_nodos_nbr(session, q=q, facet=facet, limit=limit)
+    return [NbrNodeRead.model_validate(n) for n in nodes]
+
+
+@router.get("/nbr-nodes/tree", response_model=list[NbrNodeRead], summary="Árbol completo de una faceta NBR")
+def get_nbr_tree(
+    facet: str = Query(..., description="Faceta NBR a cargar. Ej: '2C', '3E'"),
+    session: Session = Depends(get_session),
+) -> list[NbrNodeRead]:
+    """Retorna todos los nodos de una faceta ordenados por código.
+
+    El frontend usa esta lista completa para construir el árbol jerárquico
+    client-side (modo 'Navegar' del picker).
+    """
+    nodes = service.obtener_arbol_nbr(session, facet=facet)
+    return [NbrNodeRead.model_validate(n) for n in nodes]
+
+
+@router.get("/nbr-nodes/ancestors", response_model=list[NbrNodeRead], summary="Ancestros de un nodo NBR")
+def get_nbr_ancestors(
+    code: str = Query(..., description="Código NBR del nodo. Ej: '2C 02 02 02 00 00 00'"),
+    session: Session = Depends(get_session),
+) -> list[NbrNodeRead]:
+    """Retorna la cadena de ancestros de un nodo (de raíz a padre). Usado para el breadcrumb."""
+    nodes = service.obtener_ancestros_nbr(session, nbr_code=code)
+    return [NbrNodeRead.model_validate(n) for n in nodes]
+
+
+@router.get("/nbr-nodes/next-item-code", summary="Sugiere el próximo código para un ítem manual")
+def get_nbr_next_item_code(
+    parent: str = Query(..., description="Código NBR del nodo padre"),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Retorna el próximo código disponible para un work item bajo el nodo padre dado."""
+    next_code = service.obtener_siguiente_codigo(session, parent_code=parent)
+    return {"next_code": next_code}
 
 
 @router.get("/items", summary="Buscar ítems del catálogo")

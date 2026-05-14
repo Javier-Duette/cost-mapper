@@ -124,11 +124,11 @@ def get_nbr_tree(
     facet: str | None = None,
     bim_taggable: bool | None = None,
 ) -> list[CatalogItem]:
-    """Retorna nodos del Ã¡rbol de clasificaciÃ³n NBR para keynotes y navegaciÃ³n.
+    """Retorna nodos del arbol de clasificacion NBR para keynotes y navegacion.
 
-    Incluye TODOS los nodos (is_work_item ignorado) â€” tanto nodos intermedios
-    como Ã­tems hoja. La relaciÃ³n padre-hijo se reconstruye via parent_nbr_code.
-    Ver MODELO-DE-DATOS.md secciÃ³n 10 (query de keynote file).
+    Incluye TODOS los nodos (is_work_item ignorado) - tanto nodos intermedios
+    como items hoja. La relacion padre-hijo se reconstruye via parent_nbr_code.
+    Ver MODELO-DE-DATOS.md seccion 10 (query de keynote file).
     """
     statement = select(CatalogItem)
 
@@ -139,6 +139,193 @@ def get_nbr_tree(
 
     statement = statement.order_by(CatalogItem.nbr_code)
     return list(session.exec(statement).all())
+
+
+def search_nbr_nodes(
+    session: Session,
+    *,
+    q: str | None = None,
+    facet: str | None = None,
+    limit: int = 80,
+) -> list[CatalogItem]:
+    """Búsqueda de nodos NBR 15965 (incluye clasificación Y work items).
+
+    A diferencia de search(), no filtra por is_work_item — retorna cualquier
+    nodo que coincida: clasificaciones intermedias e ítems presupuestables.
+    Usado por el modo 'Buscar' del NbrTreePicker.
+    """
+    statement = select(CatalogItem)
+
+    if facet:
+        statement = statement.where(CatalogItem.facet == facet)
+
+    if q:
+        like_pattern = f"%{q}%"
+        statement = statement.where(
+            col(CatalogItem.description_es).ilike(like_pattern)
+            | col(CatalogItem.nbr_code).ilike(like_pattern)
+        )
+
+    statement = statement.order_by(CatalogItem.nbr_code).limit(limit)
+    return list(session.exec(statement).all())
+
+
+def get_nbr_tree_for_facet(
+    session: Session,
+    *,
+    facet: str,
+) -> list[CatalogItem]:
+    """Retorna TODOS los nodos de una faceta, ordenados por código.
+
+    El frontend usa esta lista completa para construir el árbol jerárquico
+    client-side usando la lógica de derivación de padre por formato de código.
+    Usado por el modo 'Navegar' del NbrTreePicker.
+    """
+    statement = (
+        select(CatalogItem)
+        .where(CatalogItem.facet == facet)
+        .order_by(CatalogItem.nbr_code)
+    )
+    return list(session.exec(statement).all())
+
+
+def get_nbr_ancestors(
+    session: Session,
+    *,
+    nbr_code: str,
+) -> list[CatalogItem]:
+    """Retorna la cadena de ancestros de un nodo NBR (de raíz a padre inmediato).
+
+    Deriva los códigos ancestros del formato del código:
+    para '2C 02 02 02 00 00 00' retorna los nodos con códigos
+    '2C 02 00 00 00 00 00' y '2C 02 02 00 00 00 00'.
+
+    Los nodos que existen en la DB se retornan; los que no existen se omiten.
+    Cuando parent_nbr_code está seteado (work items TCPO), lo usa directamente.
+    """
+    ancestor_codes = _derive_ancestor_codes(nbr_code)
+    if not ancestor_codes:
+        return []
+
+    statement = (
+        select(CatalogItem)
+        .where(col(CatalogItem.nbr_code).in_(ancestor_codes))
+        .order_by(CatalogItem.nbr_code)
+    )
+    found = {item.nbr_code: item for item in session.exec(statement).all()}
+    # Devolver en orden de raíz a padre (siguiendo el orden de ancestor_codes)
+    return [found[c] for c in ancestor_codes if c in found]
+
+
+def get_nbr_next_item_code(
+    session: Session,
+    *,
+    parent_code: str,
+) -> str:
+    """Sugiere el próximo código disponible para un ítem bajo el nodo padre.
+
+    Busca los work items existentes bajo parent_code (via parent_nbr_code o
+    derivación de código) y retorna el siguiente número de secuencia.
+    El sufijo se incrementa de a 5 (5, 10, 15...).
+    """
+    # Buscar work items con parent_nbr_code explícito
+    statement = (
+        select(CatalogItem)
+        .where(CatalogItem.parent_nbr_code == parent_code)
+        .where(CatalogItem.is_work_item == True)  # noqa: E712
+        .order_by(CatalogItem.nbr_code.desc())
+        .limit(1)
+    )
+    last_with_parent = session.exec(statement).first()
+
+    if last_with_parent:
+        last_seg = last_with_parent.nbr_code.split()[-1]
+        try:
+            return _build_next_code(parent_code, int(last_seg))
+        except ValueError:
+            pass
+
+    # Fallback: buscar ítems cuyo código derive de este padre
+    parts = parent_code.split()
+    if not parts:
+        return parent_code + " 05"
+
+    facet = parts[0]
+    statement2 = (
+        select(CatalogItem)
+        .where(CatalogItem.facet == facet)
+        .where(CatalogItem.is_work_item == True)  # noqa: E712
+        .where(col(CatalogItem.nbr_code).startswith(parent_code.rstrip("0 ").rstrip()))
+        .order_by(CatalogItem.nbr_code.desc())
+        .limit(1)
+    )
+    last_derived = session.exec(statement2).first()
+
+    if last_derived:
+        last_seg = last_derived.nbr_code.split()[-1]
+        try:
+            return _build_next_code(parent_code, int(last_seg))
+        except ValueError:
+            pass
+
+    return _build_next_code(parent_code, 0)
+
+
+def _build_next_code(parent_code: str, last_suffix: int) -> str:
+    """Construye el código del siguiente ítem bajo parent_code."""
+    next_suffix = last_suffix + 5
+    parts = parent_code.split()
+    # Reemplazar el último '00' con el nuevo sufijo
+    for i in range(len(parts) - 1, 0, -1):
+        if parts[i] in ("00", "0"):
+            parts[i] = str(next_suffix).zfill(2)
+            return " ".join(parts)
+    # Si no hay ningún '00', agregar como nuevo segmento
+    return parent_code + f" {str(next_suffix).zfill(2)}"
+
+
+def _derive_ancestor_codes(nbr_code: str) -> list[str]:
+    """Deriva los códigos de todos los nodos ancestros de un código NBR.
+
+    Convención: el padre de un nodo es el mismo código con el segmento más
+    a la derecha que no sea '00' reemplazado por '00'.
+
+    Ejemplos:
+      '2C 02 02 02 00 00 00' → ['2C 02 00 00 00 00 00', '2C 02 02 00 00 00 00']
+      '2C 02 09 04 00 05'    → ['2C 02 00 00 00 00', '2C 02 09 00 00 00',
+                                 '2C 02 09 04 00 00']
+    """
+    ancestors: list[str] = []
+    current = nbr_code
+
+    for _ in range(20):  # máximo 20 niveles de profundidad
+        parent = _derive_parent_code(current)
+        if parent is None:
+            break
+        ancestors.append(parent)
+        current = parent
+
+    ancestors.reverse()  # de raíz a padre inmediato
+    return ancestors
+
+
+def _derive_parent_code(nbr_code: str) -> str | None:
+    """Retorna el código del padre inmediato, o None si es raíz de faceta."""
+    parts = nbr_code.split(" ")
+    if len(parts) <= 1:
+        return None
+
+    segments = parts[1:]  # excluir faceta
+
+    # Buscar el último segmento no-cero
+    for i in range(len(segments) - 1, -1, -1):
+        if segments[i] not in ("00", "0"):
+            if i == 0:
+                return None  # ya es raíz (solo un segmento no-cero)
+            parent_segs = segments[:i] + ["00"] + segments[i + 1:]
+            return parts[0] + " " + " ".join(parent_segs)
+
+    return None
 
 
 def get_apu_components(session: Session, item_id: str) -> list[APUComponentRead]:

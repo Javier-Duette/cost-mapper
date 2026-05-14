@@ -4,6 +4,23 @@
 > 
 > **Formato de entrada:** fecha y hora (ej: `## 2026-05-06 14:30 Ã¢â‚¬â€ Titulo`) Ã‚Â· implementado Ã‚Â· problemas Ã‚Â· decisiones cambiadas Ã‚Â· prÃƒÂ³ximo paso.
 
+## 2026-05-14 — NbrTreePicker completo + creacion manual de items
+
+**Implementado:**
+- `backend/catalog/models.py`: schema `NbrNodeRead` (liviano, sin campos de auditoria).
+- `backend/catalog/repository.py`: funciones `search_nbr_nodes()`, `get_nbr_tree_for_facet()`, `get_nbr_ancestors()`, `get_nbr_next_item_code()` + helpers `_derive_ancestor_codes()`, `_derive_parent_code()`, `_build_next_code()`. La jerarquia se deriva del formato del codigo (el ultimo segmento no-cero determina el padre) porque `parent_nbr_code` esta NULL en ~10.000/10.128 nodos.
+- `backend/catalog/service.py`: 4 delegators `buscar_nodos_nbr()`, `obtener_arbol_nbr()`, `obtener_ancestros_nbr()`, `obtener_siguiente_codigo()`.
+- `backend/catalog/router.py`: 4 endpoints nuevos bajo `/api/catalog/nbr-nodes`: busqueda plana, arbol completo por faceta, ancestros para breadcrumb, proximo codigo disponible.
+- `frontend/src/api/catalog.ts`: tipo `NbrNode` + funciones `searchNbrTree()`, `getNbrTree()`, `getNbrAncestors()`, `getNbrNextItemCode()`.
+- `frontend/src/components/shared/NbrTreePicker.tsx`: reescritura completa. Tab "Buscar" (busqueda con debounce + filtro faceta) + Tab "Navegar" (arbol expandible lazy-load por faceta, derivacion de jerarquia client-side) + breadcrumb que explica cada segmento del codigo.
+- `frontend/src/components/shared/CreateItemModal.tsx`: reemplazado campo texto NBR por `NbrTreePicker`. El nodo seleccionado determina el padre; el sistema sugiere el proximo codigo disponible (editable). La faceta se deriva automaticamente del codigo. Labels de facetas corregidos (3E=Elementos, 2C=Materiales, 2N=Mano de obra, 2Q=Equipos, 3R=Ayudas de obra, 4U=Recursos diversos).
+
+**Problemas resueltos:**
+- `repository.py` tenia docstrings con caracteres corruptos (encoding UTF-8 mal leido) — reemplazados con texto ASCII.
+- `parent_nbr_code` NULL en casi todos los nodos NBR — solucionado con derivacion de jerarquia por formato de codigo (buscar ultimo segmento no-cero, reemplazar por "00").
+
+**Proximo paso:** definir siguiente feature (backlog).
+
 ## 2026-05-13 — TCPO: preview de ítems + archivado de catálogo
 
 **Implementado:**

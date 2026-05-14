@@ -380,6 +380,20 @@ class APUComponentRead(SQLModel):
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
+class NbrNodeRead(SQLModel):
+    """Response model liviano para nodos del árbol NBR 15965.
+
+    Usado en el picker de navegación/búsqueda NBR sin cargar el ítem completo.
+    """
+
+    nbr_code: str
+    facet: str
+    description_es: str | None = None
+    description_pt: str | None = None
+    is_work_item: bool
+    parent_nbr_code: str | None = None
+
+
 class APUComponentUpdate(SQLModel):
     """Request body para edición parcial de un componente APU (coeficientes)."""
 

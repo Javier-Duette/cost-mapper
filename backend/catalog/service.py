@@ -292,3 +292,31 @@ def listar_items_usando_componente(session: Session, *, component_id: str) -> li
     parent_ids = repository.list_parent_item_ids_using_component(session, component_id=component_id)
     items = [repository.get_by_id(session, pid) for pid in parent_ids]
     return [CatalogItemRead.model_validate(it) for it in items if it is not None]
+
+
+# ── NBR Tree ────────────────────────────────────────────────────────────────
+
+def buscar_nodos_nbr(
+    session: Session,
+    *,
+    q: str | None = None,
+    facet: str | None = None,
+    limit: int = 80,
+) -> list[CatalogItem]:
+    """Búsqueda plana de nodos NBR (incluye clasificaciones y work items)."""
+    return repository.search_nbr_nodes(session, q=q, facet=facet, limit=limit)
+
+
+def obtener_arbol_nbr(session: Session, *, facet: str) -> list[CatalogItem]:
+    """Retorna todos los nodos de una faceta para construir el árbol en el frontend."""
+    return repository.get_nbr_tree_for_facet(session, facet=facet)
+
+
+def obtener_ancestros_nbr(session: Session, *, nbr_code: str) -> list[CatalogItem]:
+    """Retorna la cadena de ancestros de un nodo NBR (de raíz a padre)."""
+    return repository.get_nbr_ancestors(session, nbr_code=nbr_code)
+
+
+def obtener_siguiente_codigo(session: Session, *, parent_code: str) -> str:
+    """Sugiere el próximo código disponible para un ítem bajo el nodo padre."""
+    return repository.get_nbr_next_item_code(session, parent_code=parent_code)
